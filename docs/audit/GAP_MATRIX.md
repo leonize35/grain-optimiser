@@ -6,7 +6,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | # | Requirement (source) | Implemented | Tested | Status | Urgency | Note |
 |---|---|---|---|---|---|---|
 | 1 | Independent DES engine, no FlexSim (CLAUDE §1) | Yes, heap calendar | T9 | **Done** | — | Keep the design. |
-| 2 | Stable simultaneous-event tie-break (CLAUDE §1) | Yes: (t, class, seq) | indirect | **Partial** | P0 | Needs an explicit test. |
+| 2 | Stable simultaneous-event tie-break (CLAUDE §1) | Yes: (t, class, seq). **Python calendar ported 2026-10-19** | test_calendar.py | **Done** (calendar) | — | Integer ms time. |
 | 3 | Central dispatcher over pending requests (CLAUDE §2) | Three separate routines | — | **Partial** | P0 | Refactor into one dispatcher with pluggable policies and blocked reasons. |
 | 4 | Feasible-first can overtake a blocked truck (CLAUDE §2) | Hoppers, weighbridges | B2 probe only | **Untested** | P0 | No deterministic fixture. |
 | 5 | FIFO as a distinct documented policy (CLAUDE §2) | Yes | — | **Untested** | P0 | |
@@ -45,4 +45,4 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 38 | Reports (PDF/PPT/CSV) | No | — | **Missing** | P2 | |
 | 39 | Financial outcomes with explicit assumptions (UX) | NPV view | — | **Untested** | P2 | Must not infer revenue from shorter queues. |
 | 40 | Turnaround survivorship bias (found in audit) | — | — | **Defect** | P0 | Report unfinished trucks and censored waiting time. |
-| 41 | Deterministic fixture input for hand-checked tests (VERIF) | No | — | **Missing** | P0 | Allow scripted arrivals with fixed commodity, quantity and times. |
+| 41 | Deterministic fixture input for hand-checked tests (VERIF) | **Python scripted arrivals (2026-10-19)** | test_scripted_arrivals.py | **Partial** | P0 | Not yet driving truck logic. |

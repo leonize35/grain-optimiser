@@ -38,4 +38,25 @@ No original Git repository exists for the prototype. It was found only as the pr
 - Before: `tools\run_prototype_selftests.ps1` → 12/12 passed; `pytest` → no tests.
 - After: `tools\run_prototype_selftests.ps1` → 12/12 passed (twice, same engine hash); `pytest -v` → 44 passed.
 
-**Next step:** port the event calendar with explicit tie-break tests, then a scripted-arrival fixture format, so hand-calculated trace tests become possible (GAP_MATRIX rows 2 and 41).
+## Step 2 — event calendar, time and quantity policy, scripted arrivals
+
+**Ported:** prototype `Calendar` → `silo_engine.sim.calendar.Calendar`. Same ordering: (time, priority class, scheduling sequence) with RELEASE 0 < CONTROL 1 < ARRIVAL 2.
+**New:** `sim/time.py` (integer-millisecond clock, clock-string parsing and formatting), `domain/quantities.py` (integer kilograms), `inputs/scripted.py` (explicit truck list, site check in manager language).
+
+**Behaviour proved (tests executed, 67 passed in total):**
+- Chronological execution regardless of scheduling order.
+- Same-instant order: release, then control, then arrival; equal priority in scheduling order. This includes events scheduled *during* execution at the current instant (hand-derived A1, R, A2, A3).
+- Refusal to schedule in the past (1 ms early) and of non-integer times; scheduling at the current instant is allowed.
+- Cancellation, `run(until)` semantics, identical logs for identical schedules.
+- A worked single-weighbridge trace whose start and finish times and waits (0, 1, 3 min) are written out by hand.
+- Exact time and tonnage conversion. Over-precise or non-positive tonnages are refused, e.g. `0.1 + 0.2` t.
+- Scripted arrivals are scheduled in hand-derived order: the opening-queue truck uses CONTROL priority, and simultaneous trucks keep script order. Duplicate ids and missing or extra cargo fields are refused with the truck id. Unknown commodities and arrivals outside opening hours are reported in plain language.
+- Fault injection: switching the calendar to newest-first ordering makes 5 tests fail.
+
+**Intentional differences from the prototype:** scheduling in the past raises an error (the prototype records a violation and continues); integer milliseconds instead of float minutes; events can be cancelled.
+
+**Not yet connected:** the calendar is not used by any truck or grain logic yet. The dispatcher, reservation ledger and changeover rules wait for confirmation of docs/DOMAIN_DECISIONS.md.
+
+**Commands run:** `pytest -q` → 67 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged (`b46c2bc7…1628`).
+
+**Next step (after D1–D6 are confirmed):** truck flow through truck stations (sampler, grader, weighbridge) as pooled resources on the calendar, with scripted-arrival trace tests. Then the reservation ledger.
