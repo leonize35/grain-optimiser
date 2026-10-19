@@ -1,0 +1,9899 @@
+{
+ "generator": "tools/golden/generate_validation_golden.html",
+ "oracle_engine_version": "0.2.0",
+ "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.42304.2 Chrome/152.0.7977.149 Safari/537.36 MSIX",
+ "generated_at": "2026-10-19T20:51:08.731Z",
+ "cases": [
+  {
+   "name": "site_a_valid",
+   "description": "Prototype Site A as shipped",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "site_b_valid",
+   "description": "Prototype Site B as shipped",
+   "config": {
+    "id": "site-b",
+    "name": "Rietvlei Depot",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "Free State",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     },
+     {
+      "id": "SF",
+      "name": "Sunflower",
+      "color": "#5b5f6b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampling bay",
+      "cap": 2,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 3,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge in",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "in"
+     },
+     {
+      "id": "WB2",
+      "type": "weighbridge",
+      "name": "Weighbridge out",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "out"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H3",
+      "type": "hopper",
+      "name": "Hopper 3",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "SB",
+       "SF"
+      ]
+     },
+     {
+      "id": "H4",
+      "type": "hopper",
+      "name": "Hopper 4",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "SB",
+       "SF"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator A",
+      "rate": 240,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E2",
+      "type": "elevator",
+      "name": "Elevator B",
+      "rate": 180,
+      "changeover": 8
+     },
+     {
+      "id": "C4",
+      "type": "conveyor",
+      "name": "Top conveyor B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin A1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 2200,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin A2",
+      "capT": 5000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin A3",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 1500,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin B1",
+      "capT": 3000,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 600,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "B5",
+      "type": "bin",
+      "name": "Bin B2",
+      "capT": 3000,
+      "commodities": [
+       "SF"
+      ],
+      "inv": 300,
+      "invCommodity": "SF"
+     },
+     {
+      "id": "B6",
+      "type": "bin",
+      "name": "Bin B3",
+      "capT": 3000,
+      "commodities": [
+       "YM",
+       "SB"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "R2",
+      "type": "conveyor",
+      "name": "Reclaim B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "H3",
+      "C2"
+     ],
+     [
+      "H4",
+      "C2"
+     ],
+     [
+      "C2",
+      "E2"
+     ],
+     [
+      "E2",
+      "C4"
+     ],
+     [
+      "C4",
+      "B4"
+     ],
+     [
+      "C4",
+      "B5"
+     ],
+     [
+      "C4",
+      "B6"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "R1",
+      "L1"
+     ],
+     [
+      "B4",
+      "R2"
+     ],
+     [
+      "B5",
+      "R2"
+     ],
+     [
+      "B6",
+      "R2"
+     ],
+     [
+      "R2",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 115,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.2,
+       "SB": 0.2,
+       "SF": 0.1
+      }
+     },
+     "load": {
+      "daily": 12,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 0.7,
+       "SB": 0.3
+      }
+     },
+     "weigh": {
+      "daily": 8,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 4,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Pit conveyor A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C1"
+      ]
+     },
+     {
+      "msg": "Elevator A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Pit conveyor B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "C2"
+      ]
+     },
+     {
+      "msg": "Elevator B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "E2"
+      ]
+     },
+     {
+      "msg": "Top conveyor B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "C4"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1",
+       "WB2"
+      ]
+     }
+    ],
+    "shared": [
+     "C1",
+     "E1",
+     "C3",
+     "C2",
+     "E2",
+     "C4"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "E2": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "C4": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "R1": [
+      "loading"
+     ],
+     "R2": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ]
+     ],
+     "H3": [
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B4"
+      ],
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B5"
+      ],
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B6"
+      ]
+     ],
+     "H4": [
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B4"
+      ],
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B5"
+      ],
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B6"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R2",
+       "L1"
+      ]
+     ],
+     "B5": [
+      [
+       "B5",
+       "R2",
+       "L1"
+      ]
+     ],
+     "B6": [
+      [
+       "B6",
+       "R2",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_soy_cannot_reach_bin",
+   "description": "Site A without Top conveyor -> Bin 4 (prototype test 10)",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Hopper 2 cannot deliver Soybeans to any eligible storage bin because Top conveyor is not connected to Bin 4.",
+      "ids": [
+       "H2"
+      ]
+     }
+    ],
+    "warnings": [
+     {
+      "msg": "Bin 4 cannot receive grain from any hopper.",
+      "ids": [
+       "B4"
+      ]
+     }
+    ],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [
+     "B4"
+    ],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_hopper_disconnected",
+   "description": "Site A with Hopper 2 not connected to anything",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Hopper 2 is not connected to any conveyor or elevator, so grain tipped there cannot leave the pit.",
+      "ids": [
+       "H2"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": []
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_illegal_connection",
+   "description": "Site A with a hopper feeding a bin directly",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ],
+     [
+      "H1",
+      "B1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Hopper 1 cannot feed Bin 1. A unloading hopper cannot discharge into a storage bin.",
+      "ids": [
+       "H1",
+       "B1"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_duplicate_id",
+   "description": "Site A with two bins sharing identifier B4",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4 copy",
+      "capT": 1000,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 0
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Two items share the identifier B4. Each item needs its own identifier.",
+      "ids": [
+       "B4"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_unsupported_type",
+   "description": "Site A with an unconnected item of unsupported type",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     },
+     {
+      "id": "D1",
+      "type": "dryer",
+      "name": "Dryer"
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Dryer has an unsupported equipment type (dryer).",
+      "ids": [
+       "D1"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_missing_capacities",
+   "description": "Site A with missing or zero capacities and times",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 0,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 0,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 0,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Sampler needs a capacity of at least 1 truck at a time.",
+      "ids": [
+       "S1"
+      ]
+     },
+     {
+      "msg": "Grading lab needs a processing time.",
+      "ids": [
+       "G1"
+      ]
+     },
+     {
+      "msg": "Weighbridge needs a processing time.",
+      "ids": [
+       "WB1"
+      ]
+     },
+     {
+      "msg": "Hopper 1 needs a pit capacity in tonnes.",
+      "ids": [
+       "H1"
+      ]
+     },
+     {
+      "msg": "Hopper 2 needs a discharge rate in t/h.",
+      "ids": [
+       "H2"
+      ]
+     },
+     {
+      "msg": "Elevator 1 needs a transfer rate in t/h.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Load-out needs a loading rate in t/h.",
+      "ids": [
+       "L1"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_bin_stock_problems",
+   "description": "Site A with an overfilled bin and a bin holding a commodity it may not store",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 4500,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 0,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Bin 1 holds 4500 t at the start, more than its 4000 t capacity.",
+      "ids": [
+       "B1"
+      ]
+     },
+     {
+      "msg": "Bin 2 needs a capacity in tonnes.",
+      "ids": [
+       "B2"
+      ]
+     },
+     {
+      "msg": "Bin 3 starts with Yellow maize, which the bin is not allowed to store.",
+      "ids": [
+       "B3"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_transfer_loop",
+   "description": "Site A with Top conveyor feeding back into Pit conveyor 1",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ],
+     [
+      "C3",
+      "C1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Grain could circulate in a loop between Top conveyor and Pit conveyor 1. Remove one of the connections in that loop.",
+      "ids": [
+       "C3",
+       "C1"
+      ]
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_bad_sequences",
+   "description": "Site A with graded-before-sampled unloading, and tipping in the loading sequence",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "grade",
+      "sample",
+      "weigh_in",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "tip"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Unloading trucks are graded before a sample is taken. Put Sampling before Grading.",
+      "ids": []
+     },
+     {
+      "msg": "Unloading trucks never reach a hopper. Add Unloading to their sequence.",
+      "ids": []
+     },
+     {
+      "msg": "Only unloading trucks can tip into a hopper.",
+      "ids": []
+     },
+     {
+      "msg": "Loading trucks never reach a loading point. Add Loading to their sequence.",
+      "ids": []
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_missing_truck_equipment",
+   "description": "Site A with no sampler or grader, and a weigh-in-only weighbridge",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "in"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Unloading trucks need a sampling point, but none is configured.",
+      "ids": []
+     },
+     {
+      "msg": "Unloading trucks need a grading station, but none is configured.",
+      "ids": []
+     },
+     {
+      "msg": "Unloading trucks need a weighbridge that weighs out.",
+      "ids": []
+     },
+     {
+      "msg": "Loading trucks need a weighbridge that weighs out.",
+      "ids": []
+     }
+    ],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_demand_problems",
+   "description": "Site A with a mix summing to 105%, an unknown commodity and oversize payloads",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       70
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.05,
+       "XX": 0.1
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Unloading demand includes an unknown commodity (XX).",
+      "ids": []
+     },
+     {
+      "msg": "The largest unloading payload (70 t) exceeds every hopper capacity (largest 60 t).",
+      "ids": []
+     }
+    ],
+    "warnings": [
+     {
+      "msg": "The unloading commodity mix adds up to 105%. It will be scaled to 100%.",
+      "ids": []
+     }
+    ],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_loading_stock",
+   "description": "Site A loading soybeans with no stock or intake, and white maize with low stock but intake",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 10,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 0,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.4
+      }
+     },
+     "load": {
+      "daily": 8,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "SB": 0.5,
+       "WM": 0.5
+      }
+     },
+     "weigh": {
+      "daily": 5,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "Loading trucks collect Soybeans, but there is no opening stock and no intake of it.",
+      "ids": []
+     }
+    ],
+    "warnings": [
+     {
+      "msg": "There is little opening stock of White maize. Early loading trucks will wait for intake.",
+      "ids": []
+     }
+    ],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "a_no_demand_issues",
+   "description": "Site A with a hopper accepting nothing, and no weighbridge-only or loading demand",
+   "config": {
+    "id": "site-a",
+    "name": "Kareepan Silo",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "North West",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampler",
+      "cap": 1,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 2,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "both"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": []
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM",
+       "SB"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor 1",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor 2",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 4000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 1800,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 4000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin 3",
+      "capT": 4000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 900,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin 4",
+      "capT": 2500,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 400,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim conveyor",
+      "rate": 250,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "C2",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "C3",
+      "B4"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "B4",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 62,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.6,
+       "WM": 0.3,
+       "SB": 0.1
+      }
+     },
+     "load": {
+      "daily": 0,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 1
+      }
+     },
+     "weigh": {
+      "daily": 0,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 6,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": true,
+    "errors": [],
+    "warnings": [
+     {
+      "msg": "Hopper 1 accepts no commodity, so no truck will use it.",
+      "ids": [
+       "H1"
+      ]
+     }
+    ],
+    "info": [
+     {
+      "msg": "Elevator 1 is shared by Hopper 1, Hopper 2 and loading. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     }
+    ],
+    "shared": [
+     "E1",
+     "C3"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2",
+      "loading"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 2"
+     ],
+     "R1": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H2",
+       "C2",
+       "E1",
+       "C3",
+       "B4"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R1",
+       "E1",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "b_route_message_and_warnings",
+   "description": "Site B: sunflower cannot reach its bin; duplicate edge; edge to missing item; unreachable bin",
+   "config": {
+    "id": "site-b",
+    "name": "Rietvlei Depot",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "Free State",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     },
+     {
+      "id": "SF",
+      "name": "Sunflower",
+      "color": "#5b5f6b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampling bay",
+      "cap": 2,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 3,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge in",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "in"
+     },
+     {
+      "id": "WB2",
+      "type": "weighbridge",
+      "name": "Weighbridge out",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "out"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H3",
+      "type": "hopper",
+      "name": "Hopper 3",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "SB",
+       "SF"
+      ]
+     },
+     {
+      "id": "H4",
+      "type": "hopper",
+      "name": "Hopper 4",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "SB",
+       "SF"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator A",
+      "rate": 240,
+      "changeover": 8
+     },
+     {
+      "id": "C3",
+      "type": "conveyor",
+      "name": "Top conveyor A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E2",
+      "type": "elevator",
+      "name": "Elevator B",
+      "rate": 180,
+      "changeover": 8
+     },
+     {
+      "id": "C4",
+      "type": "conveyor",
+      "name": "Top conveyor B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin A1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 2200,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin A2",
+      "capT": 5000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "B3",
+      "type": "bin",
+      "name": "Bin A3",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 1500,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin B1",
+      "capT": 3000,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 600,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "B5",
+      "type": "bin",
+      "name": "Bin B2",
+      "capT": 3000,
+      "commodities": [
+       "SF"
+      ],
+      "inv": 300,
+      "invCommodity": "SF"
+     },
+     {
+      "id": "B6",
+      "type": "bin",
+      "name": "Bin B3",
+      "capT": 3000,
+      "commodities": [
+       "YM",
+       "SB"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "R2",
+      "type": "conveyor",
+      "name": "Reclaim B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "C3"
+     ],
+     [
+      "C3",
+      "B1"
+     ],
+     [
+      "C3",
+      "B2"
+     ],
+     [
+      "C3",
+      "B3"
+     ],
+     [
+      "H3",
+      "C2"
+     ],
+     [
+      "H4",
+      "C2"
+     ],
+     [
+      "C2",
+      "E2"
+     ],
+     [
+      "E2",
+      "C4"
+     ],
+     [
+      "C4",
+      "B4"
+     ],
+     [
+      "C4",
+      "B6"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "B2",
+      "R1"
+     ],
+     [
+      "B3",
+      "R1"
+     ],
+     [
+      "R1",
+      "L1"
+     ],
+     [
+      "B4",
+      "R2"
+     ],
+     [
+      "B5",
+      "R2"
+     ],
+     [
+      "B6",
+      "R2"
+     ],
+     [
+      "R2",
+      "L1"
+     ],
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H1",
+      "ZZ"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 115,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.2,
+       "SB": 0.2,
+       "SF": 0.1
+      }
+     },
+     "load": {
+      "daily": 12,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 0.7,
+       "SB": 0.3
+      }
+     },
+     "weigh": {
+      "daily": 8,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 4,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": false,
+    "errors": [
+     {
+      "msg": "A connection refers to equipment that no longer exists (H1 to ZZ).",
+      "ids": []
+     },
+     {
+      "msg": "Hopper 3 cannot deliver Sunflower to any eligible storage bin because Top conveyor B is not connected to Bin B2.",
+      "ids": [
+       "H3"
+      ]
+     },
+     {
+      "msg": "Hopper 4 cannot deliver Sunflower to any eligible storage bin because Top conveyor B is not connected to Bin B2.",
+      "ids": [
+       "H4"
+      ]
+     }
+    ],
+    "warnings": [
+     {
+      "msg": "The connection from Hopper 1 to Pit conveyor A is listed twice.",
+      "ids": [
+       "H1",
+       "C1"
+      ]
+     },
+     {
+      "msg": "Bin B2 cannot receive grain from any hopper.",
+      "ids": [
+       "B5"
+      ]
+     }
+    ],
+    "info": [
+     {
+      "msg": "Pit conveyor A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C1"
+      ]
+     },
+     {
+      "msg": "Elevator A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C3"
+      ]
+     },
+     {
+      "msg": "Pit conveyor B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "C2"
+      ]
+     },
+     {
+      "msg": "Elevator B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "E2"
+      ]
+     },
+     {
+      "msg": "Top conveyor B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "C4"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1",
+       "WB2"
+      ]
+     }
+    ],
+    "shared": [
+     "C1",
+     "E1",
+     "C3",
+     "C2",
+     "E2",
+     "C4"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "E2": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "C4": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "R1": [
+      "loading"
+     ],
+     "R2": [
+      "loading"
+     ]
+    },
+    "unreachable": [
+     "B5"
+    ],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C1",
+       "E1",
+       "C3",
+       "B1"
+      ],
+      [
+       "H2",
+       "C1",
+       "E1",
+       "C3",
+       "B2"
+      ],
+      [
+       "H2",
+       "C1",
+       "E1",
+       "C3",
+       "B3"
+      ]
+     ],
+     "H3": [
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B4"
+      ],
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B6"
+      ]
+     ],
+     "H4": [
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B4"
+      ],
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B6"
+      ]
+     ]
+    },
+    "load": {
+     "B1": [
+      [
+       "B1",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B2": [
+      [
+       "B2",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B3": [
+      [
+       "B3",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R2",
+       "L1"
+      ]
+     ],
+     "B5": [
+      [
+       "B5",
+       "R2",
+       "L1"
+      ]
+     ],
+     "B6": [
+      [
+       "B6",
+       "R2",
+       "L1"
+      ]
+     ]
+    }
+   }
+  },
+  {
+   "name": "b_mixed_case_ids",
+   "description": "Site B with mixed-case and punctuated identifiers (route ordering uses JS localeCompare)",
+   "config": {
+    "id": "site-b",
+    "name": "Rietvlei Depot",
+    "customer": "Demo Agri",
+    "version": 1,
+    "region": "Free State",
+    "hours": {
+     "open": 6,
+     "close": 18,
+     "overtime": 4
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize",
+      "color": "#d4a017"
+     },
+     {
+      "id": "WM",
+      "name": "White maize",
+      "color": "#c9c2a8"
+     },
+     {
+      "id": "SB",
+      "name": "Soybeans",
+      "color": "#8a9a3b"
+     },
+     {
+      "id": "SF",
+      "name": "Sunflower",
+      "color": "#5b5f6b"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "S1",
+      "type": "sampler",
+      "name": "Sampling bay",
+      "cap": 2,
+      "time": [
+       1.5,
+       2.5,
+       4
+      ]
+     },
+     {
+      "id": "G1",
+      "type": "grader",
+      "name": "Grading lab",
+      "cap": 3,
+      "time": [
+       4,
+       6,
+       10
+      ],
+      "reject": 0.02
+     },
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge in",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "in"
+     },
+     {
+      "id": "WB2",
+      "type": "weighbridge",
+      "name": "Weighbridge out",
+      "cap": 1,
+      "time": [
+       1.5,
+       2,
+       3
+      ],
+      "moves": "out"
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper 1",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper 2",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H3",
+      "type": "hopper",
+      "name": "Hopper 3",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "YM",
+       "SB",
+       "SF"
+      ]
+     },
+     {
+      "id": "H4",
+      "type": "hopper",
+      "name": "Hopper 4",
+      "capT": 60,
+      "rate": 400,
+      "tip": [
+       4,
+       6,
+       9
+      ],
+      "commodities": [
+       "SB",
+       "SF"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Pit conveyor A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator A",
+      "rate": 240,
+      "changeover": 8
+     },
+     {
+      "id": "c3",
+      "type": "conveyor",
+      "name": "Top conveyor A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Pit conveyor B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "E2",
+      "type": "elevator",
+      "name": "Elevator B",
+      "rate": 180,
+      "changeover": 8
+     },
+     {
+      "id": "C4",
+      "type": "conveyor",
+      "name": "Top conveyor B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "bin-a1",
+      "type": "bin",
+      "name": "Bin A1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 2200,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "Bin_A2",
+      "type": "bin",
+      "name": "Bin A2",
+      "capT": 5000,
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "BIN.A3",
+      "type": "bin",
+      "name": "Bin A3",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ],
+      "inv": 1500,
+      "invCommodity": "WM"
+     },
+     {
+      "id": "B4",
+      "type": "bin",
+      "name": "Bin B1",
+      "capT": 3000,
+      "commodities": [
+       "SB"
+      ],
+      "inv": 600,
+      "invCommodity": "SB"
+     },
+     {
+      "id": "B5",
+      "type": "bin",
+      "name": "Bin B2",
+      "capT": 3000,
+      "commodities": [
+       "SF"
+      ],
+      "inv": 300,
+      "invCommodity": "SF"
+     },
+     {
+      "id": "b B3",
+      "type": "bin",
+      "name": "Bin B3",
+      "capT": 3000,
+      "commodities": [
+       "YM",
+       "SB"
+      ],
+      "inv": 0
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim A",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "R2",
+      "type": "conveyor",
+      "name": "Reclaim B",
+      "rate": 300,
+      "changeover": 6
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       3,
+       5,
+       8
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "c3"
+     ],
+     [
+      "c3",
+      "bin-a1"
+     ],
+     [
+      "c3",
+      "Bin_A2"
+     ],
+     [
+      "c3",
+      "BIN.A3"
+     ],
+     [
+      "H3",
+      "C2"
+     ],
+     [
+      "H4",
+      "C2"
+     ],
+     [
+      "C2",
+      "E2"
+     ],
+     [
+      "E2",
+      "C4"
+     ],
+     [
+      "C4",
+      "B4"
+     ],
+     [
+      "C4",
+      "B5"
+     ],
+     [
+      "C4",
+      "b B3"
+     ],
+     [
+      "bin-a1",
+      "R1"
+     ],
+     [
+      "Bin_A2",
+      "R1"
+     ],
+     [
+      "BIN.A3",
+      "R1"
+     ],
+     [
+      "R1",
+      "L1"
+     ],
+     [
+      "B4",
+      "R2"
+     ],
+     [
+      "B5",
+      "R2"
+     ],
+     [
+      "b B3",
+      "R2"
+     ],
+     [
+      "R2",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "sample",
+      "grade",
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ],
+     "load": [
+      "weigh_in",
+      "load",
+      "weigh_out"
+     ],
+     "weigh": [
+      "weigh_in"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 115,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2,
+       4,
+       5,
+       6,
+       6,
+       6,
+       7,
+       9,
+       12,
+       13,
+       12,
+       8,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       24,
+       32.5,
+       38
+      ],
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.2,
+       "SB": 0.2,
+       "SF": 0.1
+      }
+     },
+     "load": {
+      "daily": 12,
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       5,
+       6,
+       6,
+       5,
+       4,
+       3,
+       3,
+       2,
+       2,
+       1,
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      "payload": [
+       30,
+       34,
+       36
+      ],
+      "mix": {
+       "YM": 0.7,
+       "SB": 0.3
+      }
+     },
+     "weigh": {
+      "daily": 8,
+      "profile": [
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1,
+       1
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 4,
+      "load": 0,
+      "weigh": 0
+     }
+    }
+   },
+   "expected": {
+    "ok": true,
+    "errors": [],
+    "warnings": [],
+    "info": [
+     {
+      "msg": "Pit conveyor A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "C1"
+      ]
+     },
+     {
+      "msg": "Elevator A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "E1"
+      ]
+     },
+     {
+      "msg": "Top conveyor A is shared by Hopper 1 and Hopper 2. Only one grain stream can use it at a time.",
+      "ids": [
+       "c3"
+      ]
+     },
+     {
+      "msg": "Pit conveyor B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "C2"
+      ]
+     },
+     {
+      "msg": "Elevator B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "E2"
+      ]
+     },
+     {
+      "msg": "Top conveyor B is shared by Hopper 3 and Hopper 4. Only one grain stream can use it at a time.",
+      "ids": [
+       "C4"
+      ]
+     },
+     {
+      "msg": "Weighbridge capacity is shared by unloading, loading and weighbridge only trucks.",
+      "ids": [
+       "WB1",
+       "WB2"
+      ]
+     }
+    ],
+    "shared": [
+     "C1",
+     "E1",
+     "c3",
+     "C2",
+     "E2",
+     "C4"
+    ],
+    "users": {
+     "C1": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "E1": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "c3": [
+      "Hopper 1",
+      "Hopper 2"
+     ],
+     "C2": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "E2": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "C4": [
+      "Hopper 3",
+      "Hopper 4"
+     ],
+     "R1": [
+      "loading"
+     ],
+     "R2": [
+      "loading"
+     ]
+    },
+    "unreachable": [],
+    "intake": {
+     "H1": [
+      [
+       "H1",
+       "C1",
+       "E1",
+       "c3",
+       "Bin_A2"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "c3",
+       "bin-a1"
+      ],
+      [
+       "H1",
+       "C1",
+       "E1",
+       "c3",
+       "BIN.A3"
+      ]
+     ],
+     "H2": [
+      [
+       "H2",
+       "C1",
+       "E1",
+       "c3",
+       "Bin_A2"
+      ],
+      [
+       "H2",
+       "C1",
+       "E1",
+       "c3",
+       "bin-a1"
+      ],
+      [
+       "H2",
+       "C1",
+       "E1",
+       "c3",
+       "BIN.A3"
+      ]
+     ],
+     "H3": [
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "b B3"
+      ],
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B4"
+      ],
+      [
+       "H3",
+       "C2",
+       "E2",
+       "C4",
+       "B5"
+      ]
+     ],
+     "H4": [
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "b B3"
+      ],
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B4"
+      ],
+      [
+       "H4",
+       "C2",
+       "E2",
+       "C4",
+       "B5"
+      ]
+     ]
+    },
+    "load": {
+     "bin-a1": [
+      [
+       "bin-a1",
+       "R1",
+       "L1"
+      ]
+     ],
+     "Bin_A2": [
+      [
+       "Bin_A2",
+       "R1",
+       "L1"
+      ]
+     ],
+     "BIN.A3": [
+      [
+       "BIN.A3",
+       "R1",
+       "L1"
+      ]
+     ],
+     "B4": [
+      [
+       "B4",
+       "R2",
+       "L1"
+      ]
+     ],
+     "B5": [
+      [
+       "B5",
+       "R2",
+       "L1"
+      ]
+     ],
+     "b B3": [
+      [
+       "b B3",
+       "R2",
+       "L1"
+      ]
+     ]
+    }
+   }
+  }
+ ]
+}

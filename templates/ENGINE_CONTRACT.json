@@ -1,0 +1,28 @@
+{
+  "schema_version": "draft-0.1",
+  "description": "Illustrative contract, not confirmed to match existing Claude prototype",
+  "site": {
+    "site_id": "site-example",
+    "units": {"quantity": "tonne", "time": "minute"},
+    "commodities": [{"code": "WHITE_MAIZE", "grades": ["1"]}],
+    "resources": [
+      {"id": "H1", "kind": "hopper", "capacity_tonnes": 30},
+      {"id": "C1", "kind": "conveyor", "rate_tonnes_per_hour": 120},
+      {"id": "E1", "kind": "elevator", "rate_tonnes_per_hour": 120},
+      {"id": "B1", "kind": "storage_bin", "capacity_tonnes": 1000}
+    ],
+    "grain_edges": [
+      {"from": "H1", "to": "C1"},
+      {"from": "C1", "to": "E1"},
+      {"from": "E1", "to": "B1"}
+    ],
+    "operating_policy": {"truck_dispatch": "feasible_first", "grain_route_reservation": "atomic"}
+  },
+  "experiment": {
+    "arrival_multiplier": 1.20,
+    "replications": 30,
+    "seed": 21042,
+    "horizon_minutes": 720
+  },
+  "notice": "Example omits truck routes, schedules, inventory and detailed commodity changeovers; must fail production readiness until supplied"
+}

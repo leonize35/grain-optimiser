@@ -1,0 +1,3 @@
+# Keep the prototype oracle and captured golden outputs byte-for-byte (their SHA-256 is recorded in docs/PORT_LOG.md).
+reference/prototype_js/** -text
+tests/golden/** -text

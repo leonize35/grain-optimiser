@@ -1,0 +1,84 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Engine test runner</title>
+<style>body{font:13px/1.45 ui-monospace,Consolas,monospace;margin:16px;background:#fff;color:#111}.p{color:#176b3a}.f{color:#b1372b;font-weight:bold}h2{font:600 15px sans-serif;margin:18px 0 6px}</style>
+</head><body>
+<h2>A. Prototype's own 12 acceptance tests (SiloEngine.selfTests)</h2><pre id="a">running…</pre>
+<h2>B. Audit probes (written during audit; NOT part of the prototype suite)</h2><pre id="b">running…</pre>
+<script src="silo_engine_v0.2.0.js"></script>
+<script>
+const E = window.SiloEngine, out = (id, s) => document.getElementById(id).textContent = s;
+const R = { version: E.VERSION, selfTests: null, probes: [] };
+try {
+  const t0 = performance.now(); const res = E.selfTests(); const ms = performance.now() - t0;
+  R.selfTests = { ms: Math.round(ms), results: res };
+  out('a', res.map((r, i) => (r.pass ? 'PASS ' : 'FAIL ') + r.name + '\n     ' + r.detail).join('\n') +
+    '\n\n' + res.filter(r => r.pass).length + '/' + res.length + ' passed in ' + Math.round(ms) + ' ms (engine v' + E.VERSION + ')');
+} catch (e) { out('a', 'Runner error: ' + e.stack); }
+
+const P = (name, fn) => { try { const d = fn(); R.probes.push({ name, ...d }); } catch (e) { R.probes.push({ name, pass: false, detail: 'Error: ' + e.message }); } };
+const viol = (rs) => rs.flatMap(r => r.violations);
+const sum = o => Object.values(o).reduce((a, b) => a + b, 0);
+
+// B1: invariant sweep across sites, demand levels and seeds
+P('B1 invariant sweep: 2 sites x demand 1.0/1.2/1.5 x 20 seeds', () => {
+  const rows = []; let total = 0; const rules = {};
+  for (const [n, f] of [['A', E.samples.siteA], ['B', E.samples.siteB]]) for (const df of [1, 1.2, 1.5]) {
+    const t0 = performance.now(); const x = E.runExperiment(f(), { reps: 20, demandFactor: df }); const ms = performance.now() - t0;
+    const v = viol(x.reps); total += v.length; v.forEach(z => rules[z.rule] = (rules[z.rule] || 0) + 1);
+    const unf = x.reps.reduce((a, r) => a + r.trucks.unfinished, 0) / 20;
+    rows.push(`site ${n} df ${df}: violations ${v.length}, max balance err ${x.summary.maxBalanceError.toExponential(1)}, mean unload TAT ${x.summary.kpi.tatUnload.mean.toFixed(1)} ±${x.summary.kpi.tatUnload.hw.toFixed(1)} min, trucks unfinished at end ${unf.toFixed(1)}, ${(ms / 20).toFixed(1)} ms/rep`);
+  }
+  return { pass: total === 0, detail: rows.join('\n     ') + '\n     violations by rule: ' + JSON.stringify(rules) };
+});
+
+// B2: strict FIFO vs feasible-first at hoppers, paired on same seeds
+P('B2 FIFO vs feasible-first (site A, 20 paired seeds, df 1.2)', () => {
+  const a = E.samples.siteA(); a.policies.tip = 'fifo';
+  const b = E.samples.siteA(); b.policies.tip = 'feasible';
+  const xa = E.runExperiment(a, { reps: 20, demandFactor: 1.2 }), xb = E.runExperiment(b, { reps: 20, demandFactor: 1.2 });
+  const d = E.paired(xa.reps, xb.reps, 'tatUnload');
+  const wa = xa.summary.waits.tip.mean, wb = xb.summary.waits.tip.mean;
+  return { pass: viol(xa.reps).length + viol(xb.reps).length === 0, detail: `mean tip wait FIFO ${wa.toFixed(1)} vs feasible ${wb.toFixed(1)} min; paired unload TAT diff (feasible-FIFO) ${d.mean.toFixed(1)} ±${d.hw.toFixed(1)} min. No starvation/fairness metric exists in output.` };
+});
+
+// B3: designed head-of-line blocking: one hopper only accepts SB; first truck SB, hopper occupied
+P('B3 head-of-line block: does feasible-first overtake and FIFO hold? (deterministic micro-case)', () => {
+  const c = E.samples.siteA();
+  c.demand.unload.daily = 0; c.demand.load.daily = 0; c.demand.weigh.daily = 0;
+  c.sequences.unload = ['tip'];
+  // H2 is the only soybean hopper; make H1 maize-only, H2 soybean-only, and pre-fill H2 so the soybean truck cannot tip yet
+  c.equipment.find(e => e.id === 'H1').commodities = ['YM'];
+  c.equipment.find(e => e.id === 'H2').commodities = ['SB'];
+  c.initial.queue.unload = 0;
+  c.demand.unload = { daily: 0, profile: new Array(24).fill(0), payload: [30, 30, 30], mix: { YM: 0.5, SB: 0.5 } };
+  return { pass: null, detail: 'Not constructible from configuration alone: backlog truck commodities are random draws from the mix, so a specific blocked-first-truck sequence cannot be forced without code. Gap: no deterministic fixture/trace input.' };
+});
+
+// B4: reservation scope evidence
+P('B4 route reservation scope (code inspection + run)', () => {
+  const r = E.runReplication(E.samples.siteA(), { seed: 1, trace: true });
+  const tr = r.trace.filter(x => /Transfer|starts loading/.test(x[1])).slice(0, 4).map(x => x[0].toFixed(1) + ' ' + x[1]);
+  return { pass: null, detail: 'Intake reserves hopper->...->bin path equipment for the WHOLE lot (amt = min(lot, bin space)), bin space via resIn; loading reserves bin stock (resOut) + route + loadpoint. Sample trace:\n       ' + tr.join('\n       ') };
+});
+
+// B5: loading with zero stock and no intake of that commodity
+P('B5 loading demand for a commodity with stock but tiny amount (starvation visibility)', () => {
+  const c = E.samples.siteA(); c.equipment.find(e => e.id === 'B4').inv = 10; c.demand.load.mix = { SB: 1 };
+  const v = E.validate(c); const r = E.runReplication(c, { seed: 4, validation: v });
+  return { pass: null, detail: `validation errors ${v.errors.length}, warnings ${v.warnings.map(w => w.msg).join(' | ') || 'none'}; loading trucks arrived ${r.trucks.arrived.load}, departed ${r.trucks.departed.load}, still on site ${r.trucks.unfinishedByAct.load || 0}; violations ${r.violations.length}` };
+});
+
+// B6: scenario arms with common random numbers
+P('B6 three-arm comparison: baseline / +20% demand / +20% demand + hopper (site A, 20 seeds)', () => {
+  const base = E.samples.siteA();
+  const plus = E.applyScenario(base, [{ op: 'add', item: { id: 'H3', type: 'hopper', name: 'Hopper 3', capT: 60, rate: 400, tip: [4, 6, 9], commodities: ['YM', 'WM'] }, edgesOut: ['C1'] }]);
+  const x0 = E.runExperiment(base, { reps: 20 }), x1 = E.runExperiment(base, { reps: 20, demandFactor: 1.2 }), x2 = E.runExperiment(plus, { reps: 20, demandFactor: 1.2 });
+  const d = E.paired(x1.reps, x2.reps, 'tatUnload');
+  return { pass: viol(x0.reps).length + viol(x1.reps).length + viol(x2.reps).length === 0,
+    detail: `unload TAT baseline ${x0.summary.kpi.tatUnload.mean.toFixed(1)}, +20% ${x1.summary.kpi.tatUnload.mean.toFixed(1)}, +20%+hopper ${x2.summary.kpi.tatUnload.mean.toFixed(1)} min; hopper effect under growth ${d.mean.toFixed(1)} ±${d.hw.toFixed(1)} (significant: ${d.significant}). Note: adding a hopper changes per-truck random draws? arrivals keyed by (seed, act, idx) so CRN preserved.` };
+});
+
+out('b', R.probes.map(p => (p.pass === true ? 'PASS ' : p.pass === false ? 'FAIL ' : 'INFO ') + p.name + '\n     ' + p.detail).join('\n\n'));
+window.__RESULTS = R;
+</script>
+</body></html>

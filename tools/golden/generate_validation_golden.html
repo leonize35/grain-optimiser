@@ -1,0 +1,63 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Validation golden generator</title>
+<style>body{font:13px/1.45 ui-monospace,Consolas,monospace;margin:16px}</style></head>
+<body><pre id="out">running…</pre>
+<!-- Reference oracle: the unmodified prototype engine v0.2.0 -->
+<script src="silo_engine_v0.2.0.js"></script>
+<script>
+/* Builds configuration cases from the prototype's sample sites, runs the prototype's validate(), and
+   saves each config together with the oracle's output to tests/golden/validation_cases.json.
+   Python parity tests load these files; they never run JavaScript themselves. */
+const E = window.SiloEngine;
+const A = () => E.samples.siteA(), B = () => E.samples.siteB();
+const eq = (c, id) => c.equipment.find((e) => e.id === id);
+const dropEdge = (c, a, b) => { c.edges = c.edges.filter(([x, y]) => !(x === a && y === b)); return c; };
+function rename(c, map) {
+  c.equipment.forEach((e) => { if (map[e.id]) e.id = map[e.id]; });
+  c.edges = c.edges.map(([a, b]) => [map[a] || a, map[b] || b]);
+  return c;
+}
+const CASES = [
+  ['site_a_valid', 'Prototype Site A as shipped', () => A()],
+  ['site_b_valid', 'Prototype Site B as shipped', () => B()],
+  ['a_soy_cannot_reach_bin', 'Site A without Top conveyor -> Bin 4 (prototype test 10)', () => dropEdge(A(), 'C3', 'B4')],
+  ['a_hopper_disconnected', 'Site A with Hopper 2 not connected to anything', () => dropEdge(A(), 'H2', 'C2')],
+  ['a_illegal_connection', 'Site A with a hopper feeding a bin directly', () => { const c = A(); c.edges.push(['H1', 'B1']); return c; }],
+  ['a_duplicate_id', 'Site A with two bins sharing identifier B4', () => { const c = A(); c.equipment.push({ id: 'B4', type: 'bin', name: 'Bin 4 copy', capT: 1000, commodities: ['SB'], inv: 0 }); return c; }],
+  ['a_unsupported_type', 'Site A with an unconnected item of unsupported type', () => { const c = A(); c.equipment.push({ id: 'D1', type: 'dryer', name: 'Dryer' }); return c; }],
+  ['a_missing_capacities', 'Site A with missing or zero capacities and times', () => {
+    const c = A(); eq(c, 'S1').cap = 0; delete eq(c, 'WB1').time; delete eq(c, 'H1').capT; eq(c, 'H2').rate = 0;
+    eq(c, 'E1').rate = 0; delete eq(c, 'L1').rate; eq(c, 'G1').time = [4, 6]; return c; }],
+  ['a_bin_stock_problems', 'Site A with an overfilled bin and a bin holding a commodity it may not store', () => {
+    const c = A(); eq(c, 'B1').inv = 4500; eq(c, 'B3').invCommodity = 'YM'; eq(c, 'B2').capT = 0; return c; }],
+  ['a_transfer_loop', 'Site A with Top conveyor feeding back into Pit conveyor 1', () => { const c = A(); c.edges.push(['C3', 'C1']); return c; }],
+  ['a_bad_sequences', 'Site A with graded-before-sampled unloading, and tipping in the loading sequence', () => {
+    const c = A(); c.sequences.unload = ['grade', 'sample', 'weigh_in', 'weigh_out']; c.sequences.load = ['weigh_in', 'tip']; return c; }],
+  ['a_missing_truck_equipment', 'Site A with no sampler or grader, and a weigh-in-only weighbridge', () => {
+    const c = A(); c.equipment = c.equipment.filter((e) => e.id !== 'S1' && e.id !== 'G1'); eq(c, 'WB1').moves = 'in'; return c; }],
+  ['a_demand_problems', 'Site A with a mix summing to 105%, an unknown commodity and oversize payloads', () => {
+    const c = A(); c.demand.unload.mix = { YM: 0.6, WM: 0.3, SB: 0.05, XX: 0.1 }; c.demand.unload.payload = [24, 32.5, 70]; return c; }],
+  ['a_loading_stock', 'Site A loading soybeans with no stock or intake, and white maize with low stock but intake', () => {
+    const c = A(); c.demand.unload.mix = { YM: 0.6, WM: 0.4 }; c.demand.load.mix = { SB: 0.5, WM: 0.5 };
+    eq(c, 'B4').inv = 0; eq(c, 'B3').inv = 10; return c; }],
+  ['a_no_demand_issues', 'Site A with a hopper accepting nothing, and no weighbridge-only or loading demand', () => {
+    const c = A(); eq(c, 'H1').commodities = []; c.demand.load.daily = 0; c.demand.weigh.daily = 0; return c; }],
+  ['b_route_message_and_warnings', 'Site B: sunflower cannot reach its bin; duplicate edge; edge to missing item; unreachable bin', () => {
+    const c = dropEdge(B(), 'C4', 'B5'); c.edges.push(['H1', 'C1']); c.edges.push(['H1', 'ZZ']); return c; }],
+  ['b_mixed_case_ids', 'Site B with mixed-case and punctuated identifiers (route ordering uses JS localeCompare)', () =>
+    rename(B(), { B1: 'bin-a1', B2: 'Bin_A2', B3: 'BIN.A3', C3: 'c3', B6: 'b B3' })],
+];
+const results = CASES.map(([name, description, build]) => {
+  const config = build();
+  const v = E.validate(config);
+  return { name, description, config: JSON.parse(JSON.stringify(config)), expected: {
+    ok: v.ok, errors: v.errors, warnings: v.warnings, info: v.info, shared: v.shared, users: v.users,
+    unreachable: v.unreachable, intake: v.routes.intake, load: v.routes.load } };
+});
+const doc = { generator: 'tools/golden/generate_validation_golden.html', oracle_engine_version: E.VERSION,
+  user_agent: navigator.userAgent, generated_at: new Date().toISOString(), cases: results };
+fetch('/save/validation_cases.json', { method: 'POST', body: JSON.stringify(doc, null, 1) })
+  .then((r) => { document.getElementById('out').textContent = (r.ok ? 'SAVED ' : 'SAVE FAILED ') + results.length + ' cases\n\n' +
+    results.map((r) => r.name + ': ok=' + r.expected.ok + ' errors=' + r.expected.errors.length + ' warnings=' + r.expected.warnings.length + ' info=' + r.expected.info.length).join('\n'); })
+  .catch((e) => { document.getElementById('out').textContent = 'SAVE FAILED ' + e; });
+</script></body></html>
