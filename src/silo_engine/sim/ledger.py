@@ -79,6 +79,9 @@ class ReservationLedger:
     def lane_free(self, lane: str) -> bool:
         return self._lanes[lane] is None
 
+    def segment_ids(self) -> list[str]:
+        return list(self._segments)
+
     def segment_streams(self, segment_id: str) -> list[GradedCommodity]:
         return list(self._segments[segment_id].streams.values())
 

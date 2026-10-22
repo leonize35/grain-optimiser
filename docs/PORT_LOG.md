@@ -137,4 +137,50 @@ Assumptions A1–A8 and the interface draft were approved by the domain owner on
 - waiting reasons are as of the most recent evaluation, which happens at every state-changing event;
 - the independent replay checker over the ledger log is not written yet (the log exists).
 
-**Next step:** build step 3: the commodity-pair changeover matrix (R3), including configuration validation of missing pairs, replacing the explicit "not yet supported" stop.
+## Step 6 — commodity-pair changeovers (R3) and route clear time (build step 3)
+
+**Implemented:**
+- Schema: site `changeovers` (`default_minutes`, `rules` with `from`/`to`/`minutes`/`equipment`) and equipment `clear_minutes`. Golden parity is unaffected.
+- `domain/changeover.py`: `ChangeoverMatrix`:
+  - asymmetric pair rules; the most specific rule wins (equipment id > type > `*`, then grade > commodity > `*`);
+  - the default applies to commodity changes only;
+  - a grade-only change needs a changeover only if a grade rule exists;
+  - equally specific rules that disagree are refused.
+  - Prototype-format sites (no `changeovers` section) use each conveyor's and elevator's single `changeover` value for any commodity change.
+- `config/rules_validation.py`: `validate_rules` checks the confirmed rules that go beyond the prototype, kept separate so `validate()` stays an exact prototype port. For R3 it reports:
+  - unknown commodities or equipment in rules;
+  - every commodity pair that can meet on the same conveyor or elevator (derived from the configured routes) with no rule or default;
+  - disagreeing rules.
+  - Prototype-format sites get a visible warning. The engine refuses to run with errors.
+- `sim/truck_flow.py`: a transfer's timeline is now reserve → changeover (longest segment, A5) → flow → clear time → release. Changeovers are recorded per segment, including 0-minute ones. The temporary "changeover not yet supported" stop is removed.
+
+**Behaviour proved (16 new tests, 144 in total):**
+- T3.1 asymmetric pair (yellow → white 10 min: lot reserved 07:11, flows 07:21–07:30);
+- a 0-minute changeover counted without delay;
+- T3.2 missing pair as a configuration error naming the pair and equipment;
+- only pairs that can actually meet are required;
+- T3.3 parallel segments, longest wins (6 min over 4 min);
+- prototype-format changeover in a run (8 min);
+- T3.4 a route held 2 min after the last grain, with the next lot starting 07:11 instead of 07:09;
+- rule specificity, the default's scope, grade rules, and ambiguity.
+
+The prototype's demo sites A and B pass `validate_rules` with no errors and the prototype-format warning.
+
+**Fault injection:**
+- summing changeovers instead of taking the longest fails 3 tests;
+- ignoring changeover time fails 3;
+- taking the first matching rule instead of the most specific fails 2;
+- applying the default to grade-only changes fails 1;
+- ignoring clear time fails 1;
+- not reporting missing pairs fails 2.
+
+**Test change:** one build-step-2 test that expected the old "changeover not yet supported" stop is replaced by the new timing tests. The pit tests that carry two commodities now state an explicit `default_minutes: 0`.
+
+**Commands run:** `pytest -q` → 144 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
+
+**Limitations:**
+- volume-based flushing (`flush_tonnes`) is specified but not built, pending site confirmation;
+- all segments of a route are released together, after the longest clear time;
+- grade-level rules are evaluated but grain still carries the placeholder grade `*` until R4 (build step 5).
+
+**Next step:** build step 4: concurrent feeds (R1 `max_concurrent_feeds` > 1) with equal rate sharing (A2), the same-destination merge rule (A1), and rescheduling of completions when a stream joins or leaves.

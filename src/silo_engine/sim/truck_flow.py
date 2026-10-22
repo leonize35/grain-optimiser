@@ -8,11 +8,13 @@ Build steps covered (docs/ENGINE_INTERFACES.md §7):
    transfers pit -> conveyors/elevators -> bin on **exclusive** segments (R1 default), with bin reservations and
    partial fills. Every claim (lanes, pit space, segments, bin space) goes through the atomic reservation ledger.
 
+3. Commodity-pair changeovers (R3) and route clear time (R1 ``clear_minutes``). A transfer's timeline is:
+   route reserved -> changeover (longest segment, A5) -> grain flows (pit drains, bin receives at the end)
+   -> clear time -> route released. Sites with missing or contradictory changeover rules do not run.
+
 Not built yet, and refused explicitly instead of being approximated:
 - loading (``load`` step);
-- concurrent feeds (``max_concurrent_feeds`` > 1, build step 4);
-- commodity changeovers (R3, build step 3): a transfer that would put a different commodity on a segment stops
-  the run with `NotYetSupported` rather than using a silent zero-minute changeover.
+- concurrent feeds (``max_concurrent_feeds`` > 1, build step 4).
 
 Interim (until R4 grades, build step 5): grain carries the placeholder grade ``*`` and bins accept every listed
 commodity with that grade.
@@ -26,7 +28,9 @@ from decimal import Decimal
 from fractions import Fraction
 
 from ..config.routes import build_routes
+from ..config.rules_validation import validate_rules
 from ..config.schema import SiteConfig
+from ..domain.changeover import ChangeoverMatrix
 from ..domain.quantities import tonnes_to_kg
 from ..domain.storage import GradedCommodity, MixingRules, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
@@ -99,8 +103,11 @@ class TransferRecord:
     path: list[str]
     bin: str
     kg: int
-    started: int
-    finished: int | None = None
+    started: int  # route reserved
+    flow_started: int  # after the changeover
+    changeover_segments: dict[str, int]  # segment -> changeover ms (0-minute changeovers included)
+    finished: int | None = None  # last grain fed; grain in the bin
+    released: int | None = None  # route free again (after clear time)
 
 
 @dataclass(frozen=True)
@@ -122,6 +129,7 @@ class TruckFlowResult:
     transfers: list[TransferRecord]
     bins: dict[str, tuple[int, GradedCommodity | None]]  # bin id -> (kg, identity)
     pits: dict[str, int]  # pit id -> kg (committed; a transfer in progress counts until it finishes)
+    changeovers: dict[str, int]  # segment -> number of changeovers
     material_balance_kg: int  # opening + tipped - closing; must be 0
     violations: list[tuple[int, str]]  # (time, invariant problem) found after any event
 
@@ -149,6 +157,10 @@ class TruckFlowModel:
         except DispatcherError as e:
             raise ModelError(f"Unknown dispatch policy: {e}") from None
 
+        rules = validate_rules(site)
+        if rules.errors:
+            raise ModelError("The site's operating rules are incomplete:\n" + "\n".join(i.msg for i in rules.errors))
+        self.changeover_matrix = ChangeoverMatrix.from_site(site)
         eq = site.equipment
         self.equipment = {e.id: e for e in eq}
         for e in eq:
@@ -374,13 +386,6 @@ class TruckFlowModel:
         reasons: list[WaitReason] = []
         for path in candidates:
             segments = path[1:-1]
-            for seg in segments:
-                last = self.ledger.last_grain(seg)
-                if last is not None and last != lot.grain:
-                    raise NotYetSupported(
-                        f"{self.equipment[seg].name} last carried {self.names.get(last.commodity, last.commodity)} and "
-                        f"would now carry {self.names.get(lot.grain.commodity, lot.grain.commodity)}: commodity "
-                        "changeover rules (R3) are build step 3.")
             b = self.bins[path[-1]]
             kg = min(lot.kg, b.free_space_kg)
             if kg <= 0:
@@ -391,12 +396,15 @@ class TruckFlowModel:
             if got:
                 reasons.extend(got)
                 continue
+            changeovers = self._changeovers(segments, lot.grain)
+            flow_start = self.cal.now + max(changeovers.values(), default=0)  # segments change over in parallel (A5)
             rate = min([pit.rate_tph] + [Fraction(str(self.equipment[s].rate)) for s in segments])
             duration = _transfer_ms(kg, rate)
-            pit.start_drain(kg, self.cal.now, duration)
-            record = TransferRecord(req_id, pit_id, lot.id, lot.truck_id, path, b.id, kg, self.cal.now)
+            pit.start_drain(kg, flow_start, duration)
+            record = TransferRecord(req_id, pit_id, lot.id, lot.truck_id, path, b.id, kg, self.cal.now, flow_start,
+                                    changeovers)
             self.transfers.append(record)
-            self.cal.schedule(self.cal.now + duration, RELEASE, lambda c: self._intake_done(pit, b, record),
+            self.cal.schedule(flow_start + duration, RELEASE, lambda c: self._intake_done(pit, b, record),
                               f"{lot.id}: {kg} kg from {pit_id} into {b.id}")
             return []
         unique: list[WaitReason] = []
@@ -405,15 +413,39 @@ class TruckFlowModel:
                 unique.append(r)
         return unique
 
+    def _changeovers(self, segments: list[str], grain: GradedCommodity) -> dict[str, int]:
+        """Changeover ms per segment whose last grain differs (first use of a segment needs none)."""
+        needed = {}
+        for seg in segments:
+            last = self.ledger.last_grain(seg)
+            if last is None or last == grain:
+                continue
+            minutes = self.changeover_matrix.required_minutes(seg, last, grain)
+            if minutes is None:  # validate_rules guarantees a rule; this guards against inconsistent use
+                raise ModelError(f"No changeover rule for {last.commodity} -> {grain.commodity} on {seg}.")
+            needed[seg] = m(minutes)
+        return needed
+
     def _intake_done(self, pit: Pit, b: StorageBin, record: TransferRecord) -> None:
         b.receive(record.id, record.kg)
         pit.finish_drain(self.cal.now)
-        self.ledger.release(record.id, self.cal.now, "completed")
         record.finished = self.cal.now
         self._intake_active.discard(pit.id)
         if pit.lots:
             self._submit_intake(pit.id)
+        clear = max((m(Decimal(str(self.equipment[s].clear_minutes))) for s in record.path[1:-1]), default=0)
+        if clear:
+            self.cal.schedule(self.cal.now + clear, RELEASE, lambda c: self._route_released(record),
+                              f"route clear after {record.id}")
+        else:
+            self._route_released(record, in_event=False)
         self._after_event()
+
+    def _route_released(self, record: TransferRecord, in_event: bool = True) -> None:
+        self.ledger.release(record.id, self.cal.now, "completed")
+        record.released = self.cal.now
+        if in_event:
+            self._after_event()
 
     # ---- running and results ----
     def run(self, until: int | None = None) -> TruckFlowResult:
@@ -436,5 +468,7 @@ class TruckFlowModel:
             overtaken=self.dispatcher.overtaken(), trace=list(self.cal.log), transfers=list(self.transfers),
             bins={bid: (b.tonnage_kg, b.identity) for bid, b in self.bins.items()},
             pits={pid: p.committed_kg for pid, p in self.pits.items()},
+            changeovers={seg: n for seg in self.ledger.segment_ids()
+                         if (n := sum(1 for x in self.transfers if seg in x.changeover_segments))},
             material_balance_kg=self._opening_kg + self._tipped_kg - closing,
             violations=list(self.violations))

@@ -52,6 +52,8 @@ class Equipment(_Model):
     tip_admission: Literal["full_load_space", "empty_pit"] = "full_load_space"
     # R1: streams that may feed this conveyor/elevator at once; 1 = exclusive (default, as in the prototype).
     max_concurrent_feeds: int = Field(default=1, ge=1)
+    # R1: minutes the route stays reserved after the last grain is fed (equipment emptying). Site input.
+    clear_minutes: float = Field(default=0, ge=0)
 
 
 class Hours(_Model):
@@ -85,6 +87,24 @@ class Policies(_Model):
     transfer: Literal["fifo", "batch", "load_first"] = "fifo"
 
 
+class ChangeoverRule(_Model):
+    """R3: minutes needed on equipment before `to` grain may follow `from` grain.
+
+    `from`/`to`: a commodity id, 'commodity:grade', or '*' (any). `equipment`: '*', or a list of equipment ids
+    and/or types (conveyor, elevator). The most specific rule wins: id > type > '*', then grade > commodity > '*'.
+    """
+    from_: str = Field(alias="from")
+    to: str
+    minutes: float = Field(ge=0)
+    equipment: Literal["*"] | list[str] = "*"
+
+
+class Changeovers(_Model):
+    # None: no default; a commodity pair that can meet on shared equipment without a rule is a configuration error.
+    default_minutes: float | None = Field(default=None, ge=0)
+    rules: list[ChangeoverRule] = []
+
+
 class OpeningQueue(_Model):
     unload: int = 0
     load: int = 0
@@ -109,6 +129,8 @@ class SiteConfig(_Model):
     demand: Demand
     policies: Policies = Policies()
     initial: Initial = Initial()
+    # R3. None = prototype format: each conveyor/elevator's single `changeover` value applies to any commodity change.
+    changeovers: Changeovers | None = None
 
 
 class ConfigSchemaError(ValueError):

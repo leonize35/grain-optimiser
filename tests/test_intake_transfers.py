@@ -44,12 +44,15 @@ def storage(bid, commodities=("YM",), cap=1000, inv=0, inv_commodity=None):
 WB = {"id": "WB1", "type": "weighbridge", "name": "WB1", "cap": 1, "time": [2, 2, 2]}
 
 
-def site(equipment, edges, sequences=None, open_hour=7):
-    return load_site_config({
+def site(equipment, edges, sequences=None, open_hour=7, changeovers=None):
+    raw = {
         "id": "t", "name": "Test silo", "version": 1, "hours": {"open": open_hour, "close": 18},
         "commodities": [{"id": "YM", "name": "Yellow maize"}, {"id": "WM", "name": "White maize"},
                         {"id": "SB", "name": "Soybeans"}],
-        "equipment": equipment, "edges": edges, "sequences": sequences or {}, "demand": {}})
+        "equipment": equipment, "edges": edges, "sequences": sequences or {}, "demand": {}}
+    if changeovers is not None:
+        raw["changeovers"] = changeovers
+    return load_site_config(raw)
 
 
 def trucks(*rows):
@@ -121,8 +124,10 @@ def test_truck_leaves_before_its_grain_reaches_the_bin():
 
 
 def pit_site(admission, commodities=("YM",)):
+    # Two commodities can share C1/E1 here, so changeover rules are required (R3); these pit tests are not about
+    # changeovers, so an explicit zero default is configured.
     return site([hopper("H1", commodities, level=40, admission=admission), conveyor("C1"), elevator("E1"),
-                 storage("B1", ("YM", "WM"))], LINE_EDGES, {"unload": ["tip"]})
+                 storage("B1", ("YM", "WM"))], LINE_EDGES, {"unload": ["tip"]}, changeovers={"default_minutes": 0})
 
 
 def tip_start(result, truck_id):
@@ -169,18 +174,6 @@ def test_lot_is_split_when_the_preferred_bin_fills():
                                  ("H1", "B2", t(10), hm("07:06"), hm("07:09"))]
     assert result.bins == {"B1": (t(1000), ("YM", "*")), "B2": (t(10), ("YM", "*"))}
     assert result.pits == {"H1": 0}
-
-
-def test_commodity_change_on_a_segment_stops_the_run_until_changeovers_exist():
-    """R3 changeovers are build step 3. Yellow maize then white maize through C1/E1 must not silently use a
-    zero-minute changeover: the model refuses explicitly."""
-    s = site([hopper("H1", ("YM", "WM")), conveyor("C1"), elevator("E1"), storage("B1", ("YM",)),
-              storage("B2", ("WM",))],
-             [["H1", "C1"], ["C1", "E1"], ["E1", "B1"], ["E1", "B2"]], {"unload": ["tip"]})
-    model = TruckFlowModel(s, trucks(("T1", "07:00", "YM", 30), ("T2", "07:00", "WM", 30)), TIMES,
-                           policy="feasible_first")
-    with pytest.raises(NotYetSupported, match="changeover"):
-        model.run()
 
 
 def test_concurrent_feeds_are_refused_until_built():

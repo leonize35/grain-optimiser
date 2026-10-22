@@ -27,7 +27,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 20 | Weighbridge-only stream (DOMAIN) | Yes | T8 | **Done** | — | |
 | 21 | Sample-to-truck identity, out of order (DOMAIN) | Yes, keyed | T12 (tautological) | **Partial** | P1 | Timeout/lost-sample case missing. |
 | 22 | Commodity segregation on shared paths (DOMAIN) | Yes, exclusive paths | T4 | **Partial** | P0 | |
-| 23 | Changeover clearance / flush (DOMAIN) | Time penalty only | — | **Partial** | P1 | **Domain decision needed.** |
+| 23 | Changeover clearance / flush (DOMAIN) | Time penalty only. **D3 confirmed; Python commodity-pair matrix, validation of missing/ambiguous pairs, clear_minutes (2026-10-22)** | test_changeovers.py | **Partial** | P1 | Volume-based flush specified, awaiting site confirmation. |
 | 24 | Grade segregation (DOMAIN) | Grade drawn, not used. **D4 confirmed: grades must drive storage (R4). Bin-level grade rules implemented in domain/storage.py** | test_storage_bin.py | **Partial** | P1 | Grades not yet wired into routing or trucks. |
 | 25 | Truck may leave before grain reaches bin (DOMAIN) | Assumed yes | — | **Unconfirmed** | P0 | Needs your confirmation. |
 | 26 | Opening backlog and inventories (DOMAIN) | Yes | T11 | **Done** | — | |
