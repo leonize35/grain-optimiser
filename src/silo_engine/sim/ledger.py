@@ -28,6 +28,9 @@ class LaneClaim:
 class SegmentClaim:
     equipment_id: str
     grain: GradedCommodity
+    # The route from this segment to its destination. Streams sharing a segment must share all of it (A1):
+    # grain that has merged cannot be separated again.
+    downstream: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -63,6 +66,7 @@ class LedgerError(RuntimeError):
 class _Segment:
     capacity: int
     streams: dict[str, GradedCommodity] = field(default_factory=dict)  # reservation id -> grain
+    downstream: dict[str, tuple[str, ...]] = field(default_factory=dict)  # reservation id -> remaining route
     last: GradedCommodity | None = None
 
 
@@ -109,11 +113,14 @@ class ReservationLedger:
             if claim.equipment_id not in self._segments:
                 raise LedgerError(f"Unknown segment {claim.equipment_id}")
             seg = self._segments[claim.equipment_id]
+            if len(seg.streams) >= seg.capacity:
+                return [WaitReason("EQUIPMENT_BUSY", claim.equipment_id, f"{claim.equipment_id} busy")]
             if any(g != claim.grain for g in seg.streams.values()):
                 return [WaitReason("COMMODITY_LOCK", claim.equipment_id,
                                    f"{claim.equipment_id} is carrying other grain")]
-            if len(seg.streams) >= seg.capacity:
-                return [WaitReason("EQUIPMENT_BUSY", claim.equipment_id, f"{claim.equipment_id} busy")]
+            if any(d != claim.downstream for d in seg.downstream.values()):
+                return [WaitReason("MERGE_PATH_DIFFERS", claim.equipment_id,
+                                   f"grain on {claim.equipment_id} is heading elsewhere; merged grain cannot be split")]
             return []
         if isinstance(claim, PitSpaceClaim):
             return self.pits[claim.pit_id].check_claim(now, claim.grain, claim.kg)
@@ -140,6 +147,7 @@ class ReservationLedger:
                 self._lanes[claim.resource] = reservation_id
             elif isinstance(claim, SegmentClaim):
                 self._segments[claim.equipment_id].streams[reservation_id] = claim.grain
+                self._segments[claim.equipment_id].downstream[reservation_id] = claim.downstream
             elif isinstance(claim, PitSpaceClaim):
                 self.pits[claim.pit_id].claim(reservation_id, claim.grain, claim.kg)
             elif isinstance(claim, BinIncomingClaim):
@@ -158,6 +166,7 @@ class ReservationLedger:
             elif isinstance(claim, SegmentClaim):
                 seg = self._segments[claim.equipment_id]
                 del seg.streams[reservation_id]
+                del seg.downstream[reservation_id]
                 if outcome == "completed":
                     seg.last = claim.grain
             elif isinstance(claim, PitSpaceClaim):
@@ -179,6 +188,8 @@ class ReservationLedger:
                 problems.append(f"{sid}: {len(seg.streams)} streams on capacity {seg.capacity}")
             if len(set(seg.streams.values())) > 1:
                 problems.append(f"{sid}: different grain on the same equipment")
+            if len(set(seg.downstream.values())) > 1:
+                problems.append(f"{sid}: merged streams heading to different destinations")
         for pit in self.pits.values():
             problems.extend(pit.check_invariants(now))
         for b in self.bins.values():

@@ -11,7 +11,7 @@ from silo_engine.config import load_site_config
 from silo_engine.inputs.scripted import load_arrival_script
 from silo_engine.sim.service_times import FixedServiceTimes
 from silo_engine.sim.time import hm
-from silo_engine.sim.truck_flow import ModelError, NotYetSupported, TruckFlowModel
+from silo_engine.sim.truck_flow import ModelError, TruckFlowModel
 
 
 def t(tonnes):
@@ -174,13 +174,6 @@ def test_lot_is_split_when_the_preferred_bin_fills():
                                  ("H1", "B2", t(10), hm("07:06"), hm("07:09"))]
     assert result.bins == {"B1": (t(1000), ("YM", "*")), "B2": (t(10), ("YM", "*"))}
     assert result.pits == {"H1": 0}
-
-
-def test_concurrent_feeds_are_refused_until_built():
-    s = site([hopper("H1"), conveyor("C1"), {**elevator("E1"), "max_concurrent_feeds": 2}, storage("B1")],
-             LINE_EDGES)
-    with pytest.raises(NotYetSupported, match="concurrent"):
-        TruckFlowModel(s, [], TIMES, policy="feasible_first")
 
 
 def test_truck_without_a_hopper_route_for_its_commodity_is_a_model_error():

@@ -30,10 +30,14 @@ class Lot:
 
 @dataclass
 class Drain:
+    """A discharge of `kg` from the head lot. The rate (kg per ms) may change while it runs (shared equipment);
+    `drained_before` holds what left the pit before `since`, when the current rate took effect."""
     lot_id: str
     kg: int
-    start: int
-    duration: int
+    start: int  # flow starts (after any changeover)
+    rate: Fraction  # kg per ms
+    since: int
+    drained_before: Fraction = Fraction(0)
 
 
 class PitError(RuntimeError):
@@ -63,8 +67,8 @@ class Pit:
         d = self.draining
         if d is None:
             return Fraction(0)
-        elapsed = min(max(now - d.start, 0), d.duration)
-        return Fraction(d.kg * elapsed, d.duration) if d.duration else Fraction(d.kg)
+        elapsed = max(now - max(d.since, d.start), 0)
+        return min(Fraction(d.kg), d.drained_before + d.rate * elapsed)
 
     def level_at(self, now: int) -> Fraction:
         return self.committed_kg - self.drained_at(now)
@@ -99,12 +103,13 @@ class Pit:
         if shortfall <= 0:
             return now
         d = self.draining
-        if d is None:
+        if d is None or d.rate == 0:
             return None
         drained_needed = self.drained_at(now) + shortfall
         if drained_needed > d.kg:
             return None
-        return d.start + math.ceil(drained_needed * d.duration / d.kg)
+        base = max(now, d.start, d.since)  # predicted at the current rate; a rate change triggers a new prediction
+        return base + math.ceil((drained_needed - self.drained_at(base)) / d.rate)
 
     def claim(self, reservation_id: str, grain: GradedCommodity, kg: int) -> None:
         if reservation_id in self.claims:
@@ -121,17 +126,32 @@ class Pit:
         self.lots.append(lot)
 
     # ---- draining ----
-    def start_drain(self, kg: int, now: int, duration: int) -> None:
+    def start_drain(self, kg: int, start: int, duration: int | None = None) -> None:
+        """Reserve the outlet for `kg` from the head lot, flowing from `start`. With `duration` the rate is fixed
+        (kg / duration); without it the rate is 0 until `set_rate` is called when the flow begins."""
         if self.draining is not None:
             raise PitError(f"{self.id} is already discharging")
         if not self.lots or kg > self.lots[0].kg or kg <= 0:
             raise PitError(f"{self.id}: cannot drain {kg} kg from the head lot")
-        self.draining = Drain(self.lots[0].id, kg, now, duration)
+        rate = Fraction(kg, duration) if duration else Fraction(0)
+        self.draining = Drain(self.lots[0].id, kg, start, rate, start)
+
+    def set_rate(self, now: int, rate: Fraction) -> None:
+        d = self.draining
+        if d is None:
+            raise PitError(f"{self.id} is not discharging")
+        d.drained_before = self.drained_at(now)
+        d.since = max(now, d.start)
+        d.rate = rate
+
+    def remaining_drain_kg(self, now: int) -> Fraction:
+        d = self.draining
+        return Fraction(0) if d is None else d.kg - self.drained_at(now)
 
     def finish_drain(self, now: int) -> Lot:
         d = self.draining
-        if d is None or now != d.start + d.duration:
-            raise PitError(f"{self.id}: drain finished at the wrong time")
+        if d is None or self.drained_at(now) < d.kg:
+            raise PitError(f"{self.id}: drain finished before all grain had left")
         head = self.lots[0]
         head.kg -= d.kg
         self.draining = None

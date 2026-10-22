@@ -12,7 +12,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 5 | FIFO as a distinct documented policy (CLAUDE §2) | Yes | — | **Untested** | P0 | |
 | 6 | Starvation and fairness measured (DOMAIN) | No | — | **Missing** | P1 | Max-overtake count, age at service. |
 | 7 | Atomic whole-route reservation (CLAUDE §3) | **Python ReservationLedger (2026-10-22): all-or-nothing over lanes, pit space, segments, bin space; release on completed/cancelled/failed** | test_ledger_and_pit.py, test_intake_transfers.py | **Partial** | P0 | Failure/interruption paths not exercised by a running model yet. |
-| 8 | Configurable reservation scope (ARCH) | Fixed at whole path × whole lot. **Decision D1 confirmed 2026-10-22; specified as R1 (max_concurrent_feeds)** | — | **Specified** | P1 | Implement per ENGINE_INTERFACES §7 item 4. |
+| 8 | Configurable reservation scope (ARCH) | **D1 confirmed; Python: exclusive by default, max_concurrent_feeds with equal sharing, merge rule, rescheduling (2026-10-22)** | test_concurrent_feeds.py | **Done** (intake) | — | Proportional sharing not built (A2). |
 | 9 | Typed directed graph for grain (CLAUDE §4) | Yes, typed edges and CONNECT rules | T2, T10 | **Done** | — | |
 | 10 | Typed graph for truck paths (CLAUDE §4) | No: virtual queues only | — | **Missing** | P1 | Yard/lane capacity, weighbridge blocking. |
 | 11 | Route feasibility incl. equipment state (ARCH) | Commodity, capacity, busy; no breakdowns | partial | **Partial** | P1 | |

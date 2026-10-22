@@ -12,9 +12,15 @@ Build steps covered (docs/ENGINE_INTERFACES.md §7):
    route reserved -> changeover (longest segment, A5) -> grain flows (pit drains, bin receives at the end)
    -> clear time -> route released. Sites with missing or contradictory changeover rules do not run.
 
+4. Concurrent feeds (R1 ``max_concurrent_feeds`` > 1). Each flowing transfer runs at the slowest of its pit's
+   discharge rate and, for every segment, the segment rate divided by the streams *flowing* on it (A2, equal
+   shares; a stream in its changeover holds a slot but no throughput). Whenever a flow starts or ends, remaining
+   kilograms are updated exactly and completions rescheduled. Streams may share a segment only if their whole
+   remaining route to the bin is the same (A1, ledger reason ``MERGE_PATH_DIFFERS``). Joining a segment that
+   already carries the same grain needs no changeover.
+
 Not built yet, and refused explicitly instead of being approximated:
-- loading (``load`` step);
-- concurrent feeds (``max_concurrent_feeds`` > 1, build step 4).
+- loading (``load`` step).
 
 Interim (until R4 grades, build step 5): grain carries the placeholder grade ``*`` and bins accept every listed
 commodity with that grade.
@@ -138,9 +144,8 @@ def _hours_ms(hours: float) -> int:
     return m(Decimal(str(hours)) * 60)
 
 
-def _transfer_ms(kg: int, rate_tph: Fraction) -> int:
-    """Time to move `kg` at `rate_tph`, rounded up to the next whole millisecond."""
-    return math.ceil(Fraction(kg) * 3600 / rate_tph)
+def _kg_per_ms(rate_tph: Fraction) -> Fraction:
+    return rate_tph * 1000 / 3_600_000
 
 
 class TruckFlowModel:
@@ -163,10 +168,6 @@ class TruckFlowModel:
         self.changeover_matrix = ChangeoverMatrix.from_site(site)
         eq = site.equipment
         self.equipment = {e.id: e for e in eq}
-        for e in eq:
-            if e.type in ("conveyor", "elevator") and e.max_concurrent_feeds > 1:
-                raise NotYetSupported(f"{e.name} allows {e.max_concurrent_feeds} concurrent feeds; concurrent feeds "
-                                      "are build step 4.")
         self.units = [_Unit(e.id, lane, e.type, e.moves or "both")
                       for e in eq if e.type in ("sampler", "grader", "weighbridge") for lane in range(int(e.cap or 0))]
         self.bins = {e.id: self._make_bin(e) for e in eq if e.type == "bin"}
@@ -186,6 +187,8 @@ class TruckFlowModel:
         self._intake_active: set[str] = set()  # pits with an intake request waiting or a transfer running
         self._transfer_count = 0
         self._rechecks: set[tuple[str, int]] = set()
+        self._flowing: dict[str, TransferRecord] = {}  # transfers whose grain is moving now
+        self._completion: dict[str, Event] = {}  # transfer id -> its (re)scheduled completion event
         self.transfers: list[TransferRecord] = []
         self.violations: list[tuple[int, str]] = []
         self._opening_kg = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
@@ -391,21 +394,24 @@ class TruckFlowModel:
             if kg <= 0:
                 reasons.append(WaitReason("BIN_FULL", b.id, f"{b.id} is full"))
                 continue
-            claims = [SegmentClaim(s, lot.grain) for s in segments] + [BinIncomingClaim(b.id, lot.grain, kg)]
+            changeovers = self._changeovers(segments, lot.grain)  # before reserving: joining needs no changeover
+            claims = [SegmentClaim(s, lot.grain, tuple(path[i:])) for i, s in enumerate(path) if 0 < i < len(path) - 1]
+            claims.append(BinIncomingClaim(b.id, lot.grain, kg))
             got = self.ledger.try_reserve(req_id, claims, self.cal.now)
             if got:
                 reasons.extend(got)
                 continue
-            changeovers = self._changeovers(segments, lot.grain)
-            flow_start = self.cal.now + max(changeovers.values(), default=0)  # segments change over in parallel (A5)
-            rate = min([pit.rate_tph] + [Fraction(str(self.equipment[s].rate)) for s in segments])
-            duration = _transfer_ms(kg, rate)
-            pit.start_drain(kg, flow_start, duration)
+            flow_start = max(self.cal.now + max(changeovers.values(), default=0),  # own changeovers, in parallel (A5)
+                             self._segments_ready(segments))  # not before a changeover already under way finishes
+            pit.start_drain(kg, flow_start)
             record = TransferRecord(req_id, pit_id, lot.id, lot.truck_id, path, b.id, kg, self.cal.now, flow_start,
                                     changeovers)
             self.transfers.append(record)
-            self.cal.schedule(flow_start + duration, RELEASE, lambda c: self._intake_done(pit, b, record),
-                              f"{lot.id}: {kg} kg from {pit_id} into {b.id}")
+            if flow_start == self.cal.now:
+                self._start_flow(record)
+            else:
+                self.cal.schedule(flow_start, CONTROL, lambda c: (self._start_flow(record), self._after_event()),
+                                  f"{record.id}: changeover done, grain flows")
             return []
         unique: list[WaitReason] = []
         for r in reasons:
@@ -418,18 +424,54 @@ class TruckFlowModel:
         needed = {}
         for seg in segments:
             last = self.ledger.last_grain(seg)
-            if last is None or last == grain:
-                continue
+            if last is None or last == grain or self.ledger.segment_streams(seg):
+                continue  # first use, same grain, or already carrying grain (the commodity lock makes it ours)
             minutes = self.changeover_matrix.required_minutes(seg, last, grain)
             if minutes is None:  # validate_rules guarantees a rule; this guards against inconsistent use
                 raise ModelError(f"No changeover rule for {last.commodity} -> {grain.commodity} on {seg}.")
             needed[seg] = m(minutes)
         return needed
 
+    def _segments_ready(self, segments: list[str]) -> int:
+        """When grain may flow on `segments`: after the flow start of every unfinished transfer already using any of
+        them (a stream joining during another stream's changeover must wait for it)."""
+        shared = set(segments)
+        return max((x.flow_started for x in self.transfers
+                    if x.finished is None and shared & set(x.path[1:-1])), default=self.cal.now)
+
+    def _start_flow(self, record: TransferRecord) -> None:
+        self._flowing[record.id] = record
+        self._recompute_rates()
+
+    def _recompute_rates(self) -> None:
+        """Equal shares (A2) for every flowing transfer; reschedule completions whose rate changed."""
+        now = self.cal.now
+        flowing_on: dict[str, int] = {}
+        for rec in self._flowing.values():
+            for seg in rec.path[1:-1]:
+                flowing_on[seg] = flowing_on.get(seg, 0) + 1
+        for rec in self._flowing.values():
+            pit = self.pits[rec.pit]
+            rate_tph = min([pit.rate_tph] + [Fraction(str(self.equipment[s].rate)) / flowing_on[s] for s in rec.path[1:-1]])
+            rate = _kg_per_ms(rate_tph)
+            if rec.id in self._completion and pit.draining.rate == rate:
+                continue
+            pit.set_rate(now, rate)
+            if rec.id in self._completion:
+                self.cal.cancel(self._completion[rec.id])
+            end = now + math.ceil(pit.remaining_drain_kg(now) / rate)
+            b = self.bins[rec.bin]
+            self._completion[rec.id] = self.cal.schedule(
+                end, RELEASE, lambda c, p=pit, bb=b, r=rec: self._intake_done(p, bb, r),
+                f"{rec.lot_id}: {rec.kg} kg from {rec.pit} into {rec.bin}")
+
     def _intake_done(self, pit: Pit, b: StorageBin, record: TransferRecord) -> None:
+        del self._flowing[record.id]
+        del self._completion[record.id]
         b.receive(record.id, record.kg)
         pit.finish_drain(self.cal.now)
         record.finished = self.cal.now
+        self._recompute_rates()  # the others may speed up
         self._intake_active.discard(pit.id)
         if pit.lots:
             self._submit_intake(pit.id)

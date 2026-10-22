@@ -183,4 +183,37 @@ The prototype's demo sites A and B pass `validate_rules` with no errors and the 
 - all segments of a route are released together, after the longest clear time;
 - grade-level rules are evaluated but grain still carries the placeholder grade `*` until R4 (build step 5).
 
-**Next step:** build step 4: concurrent feeds (R1 `max_concurrent_feeds` > 1) with equal rate sharing (A2), the same-destination merge rule (A1), and rescheduling of completions when a stream joins or leaves.
+## Step 7 — concurrent feeds on shared equipment (build step 4)
+
+**Implemented:**
+- Concurrent feeds (`max_concurrent_feeds` > 1) are now built, so the interim refusal is removed.
+- Rate model (A2): each flowing transfer runs at the slowest of its pit's discharge rate and each segment's rate divided by the streams *flowing* on it. A stream in its changeover holds a slot but takes no throughput.
+- Rescheduling: when a flow starts or ends, every flowing transfer's remaining kilograms are updated exactly, and its completion event is cancelled and rescheduled. The pit drain now supports variable rates, so waiting trucks get fresh pit-space predictions after every rate change.
+- Merge rule (A1) in the ledger: a stream may share a segment only if its whole remaining route to the bin matches (`MERGE_PATH_DIFFERS`). The rule is also an invariant.
+- Joining a segment that already carries the same grain needs no changeover. The joiner may not flow before a changeover already under way on its segments has finished.
+
+**Behaviour proved (8 new tests, 152 in total), every timeline hand-computed:**
+- T1.3 two streams at 100 t/h each, 07:00–07:18;
+- T1.6 the remaining stream speeds up, finishing at 07:13:30;
+- a feed limit of 2 making a third stream wait until 07:18;
+- T1.4 the commodity lock on shared equipment;
+- T1.5 merging only towards the same bin, including a part-lot followed by a merge (07:03 → 07:15 / 07:18, bins 1000 t and 50 t);
+- pit space following changing drain rates (truck tips at 07:10:30 instead of 07:12);
+- a joiner waiting for a changeover under way (both flow from 07:08);
+- a joiner after a changeover needing none (07:11 → 07:23 / 07:26);
+- the ledger merge refusal.
+
+**Fault injection:** no rate sharing fails 5 tests; no speed-up when a stream leaves fails 4; merge rule ignored fails 2; pit prediction ignoring rate history fails 1; a joiner charged a changeover fails 2; a joiner ignoring a changeover under way fails 1.
+
+**Bug found and fixed:** the fault "joiner charged a changeover" first went undetected. Investigating it showed that a stream joining **during** another stream's changeover would have started flowing onto equipment still being cleaned. Two tests now cover both cases, and the model waits for the changeover to finish.
+
+**Test change:** the build-step-2 test expecting concurrent feeds to be refused is removed, because the feature now exists.
+
+**Commands run:** `pytest -q` → 152 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
+
+**Limitations:**
+- equal sharing is assumption A2; proportional sharing is not built;
+- all segments of a route are released together after the longest clear time;
+- rates are exact fractions and completion times are rounded up to the next millisecond.
+
+**Next step:** build step 5: grades end to end (R4): grade on trucks and lots, bin assignment by commodity and grade with mixing rules, grading required before tipping where configured, and the matching configuration checks.
