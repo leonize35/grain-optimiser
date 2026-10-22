@@ -74,6 +74,14 @@ class Calendar:
     def pending(self) -> int:
         return sum(1 for *_, e in self._heap if not e.cancelled)
 
+    def pending_events(self) -> list[Event]:
+        """Events still to happen (not cancelled), in no particular order."""
+        return [e for *_, e in self._heap if not e.cancelled]
+
+    def cancel_all(self) -> None:
+        for e in self.pending_events():
+            e.cancelled = True
+
     def step(self) -> Event | None:
         """Execute the next event; returns it, or None when nothing is left."""
         self._drop_cancelled()

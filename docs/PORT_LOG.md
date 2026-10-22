@@ -267,4 +267,41 @@ The prototype's demo sites A and B still pass `validate_rules` with no errors.
 - stochastic grade mixes for generated demand (`grade_mix`) come with generated arrivals, not built yet;
 - grading rejection is not modelled yet.
 
-**Next step:** build step 6: finite staging areas, truck paths and blocking (R5), including the deadlock policy (`reserve_next_space` / `detect_only`).
+## Step 9 — waiting areas, truck paths, blocking and the deadlock policy (build step 6)
+
+**Implemented:**
+- Schema: `truck_areas` (`id`, `name`, `capacity`, where `null` means unlimited), `truck_paths` per activity (areas and steps in order), and `deadlock_prevention` (`reserve_next_space`, the default, or `detect_only`).
+- `sim/ledger.py`: `AreaClaim` with capacity, a peak occupancy figure and an invariant. `try_reserve_many` makes several reservations as one transaction, for example a weighbridge lane plus a place in the next area.
+- `sim/truck_flow.py`:
+  - every truck follows a path of areas and steps and holds exactly one place at a time;
+  - it gives a place up only once it has the next one, so a truck that cannot move on stays on its station and blocks it (A6). `StepRecord.left` records when it actually left;
+  - hopper tipping lanes block the same way;
+  - `reserve_next_space` reserves the next finite area together with the service;
+  - without a configured path, unlimited implicit areas reproduce the earlier behaviour exactly, and this is listed in the run's new **assumptions**.
+- **Stall detection (all modes):** if work is waiting and nothing but new arrivals remains, the run stops and reports each waiting request with its reasons. Unfinished trucks report their location.
+- `validate_rules` (R5): area ids clashing with step names, duplicate area ids, unknown areas in paths, and path steps that differ from the sequence.
+
+**Behaviour proved (8 new tests, 173 in total), hand-computed:**
+- T5.1 unlimited areas give identical times to the non-blocking model.
+- T5.2 a full yard keeps T3 on the weighbridge from 07:06 to 07:12, so T4 weighs in at 07:12 instead of 07:06. Tipping is unchanged.
+- The waiting reasons show the blocking chain (`AREA_FULL`, `EQUIPMENT_BUSY`).
+- T5.3 under `detect_only`: a circular wait (weighbridge ← yard ← hopper ← weighbridge) is reported as a stall at 07:21, after the last lot reaches the bin, naming all three trucks.
+- T5.3 under `reserve_next_space`: no deadlock; departures 07:14, 07:24, 07:34.
+- The assumptions list, the path validation, and the atomic lane-plus-area reservation are tested.
+
+**Fault injection:**
+- freeing the station at service end (no blocking) fails 3 tests;
+- ignoring `reserve_next_space` fails 1;
+- stall detection off fails 1;
+- area capacity ignored fails 5;
+- not releasing the previous place when moving fails 15.
+
+**Commands run:** `pytest -q` → 173 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged. Demo sites A and B still pass `validate_rules`.
+
+**Limitations:**
+- `reserve_next_space` looks one finite area ahead; it does not reserve a next *station* when two steps follow each other with no area between them;
+- stall detection reports a jam once nothing else can happen, so it may report later than the moment a circular wait forms;
+- a stall cancels the rest of the run, including later arrivals;
+- trucks waiting to enter an area queue under the run's dispatch policy.
+
+**Next step:** build step 7: operating hours, admission cut-off, overtime and unfinished work (R6). Turnaround reporting must include unfinished trucks, fixing the audit's survivorship-bias finding.

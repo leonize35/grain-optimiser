@@ -127,12 +127,39 @@ def _validate_grades(site: SiteConfig, result: RulesResult) -> None:
                 "Put Grading before Unloading, or set grade segregation to none.")
 
 
+TRUCK_STEPS = ("sample", "grade", "weigh_in", "tip", "load", "weigh_out")
+PATH_LABEL = {"unload": "unloading", "load": "loading", "weigh": "weighbridge-only"}
+
+
+def _validate_truck_paths(site: SiteConfig, result: RulesResult) -> None:
+    """R5: waiting areas and truck paths."""
+    area_ids = [a.id for a in site.truck_areas]
+    for a in site.truck_areas:
+        if a.id in TRUCK_STEPS:
+            result.errors.append(Issue(f"Waiting area id {a.id} is also the name of a truck step; choose another id."))
+    for dup in sorted({x for x in area_ids if area_ids.count(x) > 1}):
+        result.errors.append(Issue(f"Two waiting areas share the id {dup}."))
+    for act, label in PATH_LABEL.items():
+        path = getattr(site.truck_paths, act)
+        if not path:
+            continue
+        for x in path:
+            if x not in TRUCK_STEPS and x not in area_ids:
+                result.errors.append(Issue(f"The {label} truck path refers to unknown waiting area {x}."))
+        steps = [x for x in path if x in TRUCK_STEPS]
+        sequence = getattr(site.sequences, act)
+        if steps != list(sequence):
+            result.errors.append(Issue(f"The {label} truck path's steps ({', '.join(steps)}) do not match the "
+                                       f"{label} sequence ({', '.join(sequence)})."))
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
     equipment_names = {e.id: (e.name or e.id) for e in site.equipment}
     policy = GradePolicy(site)
     _validate_grades(site, result)
+    _validate_truck_paths(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

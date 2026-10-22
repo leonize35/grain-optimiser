@@ -34,6 +34,12 @@ class SegmentClaim:
 
 
 @dataclass(frozen=True)
+class AreaClaim:
+    """A place for one truck in a waiting area (R5)."""
+    area: str
+
+
+@dataclass(frozen=True)
 class PitSpaceClaim:
     pit_id: str
     grain: GradedCommodity
@@ -47,7 +53,7 @@ class BinIncomingClaim:
     kg: int
 
 
-Claim = LaneClaim | SegmentClaim | PitSpaceClaim | BinIncomingClaim
+Claim = LaneClaim | SegmentClaim | PitSpaceClaim | BinIncomingClaim | AreaClaim
 
 
 @dataclass(frozen=True)
@@ -71,8 +77,12 @@ class _Segment:
 
 
 class ReservationLedger:
-    def __init__(self, lanes: set[str], segments: dict[str, int], pits: dict[str, Pit], bins: dict[str, StorageBin]):
+    def __init__(self, lanes: set[str], segments: dict[str, int], pits: dict[str, Pit], bins: dict[str, StorageBin],
+                 areas: dict[str, int | None] | None = None):
         self._lanes: dict[str, str | None] = {lane: None for lane in lanes}
+        self._area_capacity = dict(areas or {})
+        self._area_holders: dict[str, set[str]] = {a: set() for a in self._area_capacity}
+        self.area_peak: dict[str, int] = {a: 0 for a in self._area_capacity}
         self._segments = {sid: _Segment(cap) for sid, cap in segments.items()}
         self.pits = pits
         self.bins = bins
@@ -82,6 +92,9 @@ class ReservationLedger:
     # ---- queries ----
     def lane_free(self, lane: str) -> bool:
         return self._lanes[lane] is None
+
+    def area_occupancy(self, area: str) -> int:
+        return len(self._area_holders[area])
 
     def segment_ids(self) -> list[str]:
         return list(self._segments)
@@ -97,6 +110,7 @@ class ReservationLedger:
 
     def snapshot(self) -> tuple:
         return (tuple(sorted(self._lanes.items(), key=lambda x: x[0])),
+                tuple((a, tuple(sorted(h))) for a, h in sorted(self._area_holders.items())),
                 tuple((sid, tuple(sorted(s.streams.items())), s.last) for sid, s in sorted(self._segments.items())),
                 tuple((pid, tuple(sorted(p.claims.items()))) for pid, p in sorted(self.pits.items())),
                 tuple((bid, b.snapshot()) for bid, b in sorted(self.bins.items())),
@@ -122,6 +136,13 @@ class ReservationLedger:
                 return [WaitReason("MERGE_PATH_DIFFERS", claim.equipment_id,
                                    f"grain on {claim.equipment_id} is heading elsewhere; merged grain cannot be split")]
             return []
+        if isinstance(claim, AreaClaim):
+            if claim.area not in self._area_capacity:
+                raise LedgerError(f"Unknown waiting area {claim.area}")
+            cap = self._area_capacity[claim.area]
+            if cap is not None and len(self._area_holders[claim.area]) >= cap:
+                return [WaitReason("AREA_FULL", claim.area, f"waiting area {claim.area} is full")]
+            return []
         if isinstance(claim, PitSpaceClaim):
             return self.pits[claim.pit_id].check_claim(now, claim.grain, claim.kg)
         if isinstance(claim, BinIncomingClaim):
@@ -137,13 +158,31 @@ class ReservationLedger:
 
     # ---- reserving and releasing ----
     def try_reserve(self, reservation_id: str, claims: list[Claim], now: int) -> list[WaitReason]:
-        if reservation_id in self._held:
-            raise LedgerError(f"Reservation id {reservation_id} already in use")
-        reasons = self.check(claims, now)
+        return self.try_reserve_many([(reservation_id, claims)], now)
+
+    def try_reserve_many(self, items: list[tuple[str, list[Claim]]], now: int) -> list[WaitReason]:
+        """Several reservations as one transaction (e.g. a weighbridge lane and a place in the next area):
+        all are made, or none. The claims across items must name different resources."""
+        ids = [rid for rid, _ in items]
+        if len(set(ids)) != len(ids) or any(rid in self._held for rid in ids):
+            raise LedgerError(f"Reservation id already in use among {ids}")
+        resources = [c.resource if isinstance(c, LaneClaim) else c.area for _, cs in items for c in cs
+                     if isinstance(c, (LaneClaim, AreaClaim))]
+        if len(set(resources)) != len(resources):
+            raise LedgerError("One transaction claims the same lane or area twice")
+        reasons = self.check([c for _, cs in items for c in cs], now)
         if reasons:
             return reasons
+        for rid, claims in items:
+            self._apply(rid, claims, now)
+        return []
+
+    def _apply(self, reservation_id: str, claims: list[Claim], now: int) -> None:
         for claim in claims:
-            if isinstance(claim, LaneClaim):
+            if isinstance(claim, AreaClaim):
+                self._area_holders[claim.area].add(reservation_id)
+                self.area_peak[claim.area] = max(self.area_peak[claim.area], len(self._area_holders[claim.area]))
+            elif isinstance(claim, LaneClaim):
                 self._lanes[claim.resource] = reservation_id
             elif isinstance(claim, SegmentClaim):
                 self._segments[claim.equipment_id].streams[reservation_id] = claim.grain
@@ -154,14 +193,15 @@ class ReservationLedger:
                 self.bins[claim.bin_id].reserve_incoming(reservation_id, claim.grain, claim.kg)
         self._held[reservation_id] = tuple(claims)
         self.log.append(LedgerEntry(now, "reserve", reservation_id, tuple(claims)))
-        return []
 
     def release(self, reservation_id: str, now: int, outcome: str) -> None:
         if reservation_id not in self._held:
             raise LedgerError(f"Unknown reservation {reservation_id}")
         claims = self._held.pop(reservation_id)
         for claim in claims:
-            if isinstance(claim, LaneClaim):
+            if isinstance(claim, AreaClaim):
+                self._area_holders[claim.area].discard(reservation_id)
+            elif isinstance(claim, LaneClaim):
                 self._lanes[claim.resource] = None
             elif isinstance(claim, SegmentClaim):
                 seg = self._segments[claim.equipment_id]
@@ -183,6 +223,10 @@ class ReservationLedger:
         for lane, holder in self._lanes.items():
             if holder is not None and holder not in self._held:
                 problems.append(f"{lane} held by unknown reservation {holder}")
+        for area, holders in self._area_holders.items():
+            cap = self._area_capacity[area]
+            if cap is not None and len(holders) > cap:
+                problems.append(f"waiting area {area}: {len(holders)} trucks for {cap} places")
         for sid, seg in self._segments.items():
             if len(seg.streams) > seg.capacity:
                 problems.append(f"{sid}: {len(seg.streams)} streams on capacity {seg.capacity}")

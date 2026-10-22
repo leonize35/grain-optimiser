@@ -19,6 +19,14 @@ Build steps covered (docs/ENGINE_INTERFACES.md §7):
    remaining route to the bin is the same (A1, ledger reason ``MERGE_PATH_DIFFERS``). Joining a segment that
    already carries the same grain needs no changeover.
 
+6. Waiting areas and blocking (R5, A6). Trucks follow a path of waiting areas and steps and hold one place at a
+   time (an area place or a station/hopper lane), giving it up only when they have the next. A truck that cannot
+   move on stays on its station and blocks it. ``reserve_next_space`` reserves the place in the next finite area
+   together with the service; ``detect_only`` does not, and relies on stall detection. Without a configured path,
+   unlimited implicit areas between steps reproduce the non-blocking behaviour (listed in the run's assumptions).
+   In every mode, if work is waiting and nothing but new arrivals is left to happen, the run stops and reports a
+   stall with each waiting request and its reasons.
+
 Not built yet, and refused explicitly instead of being approximated:
 - loading (``load`` step).
 
@@ -43,9 +51,9 @@ from ..domain.changeover import ChangeoverMatrix
 from ..domain.quantities import tonnes_to_kg
 from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
-from .calendar import CONTROL, RELEASE, Calendar, Event
+from .calendar import ARRIVAL, CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
-from .ledger import BinIncomingClaim, LaneClaim, PitSpaceClaim, ReservationLedger, SegmentClaim
+from .ledger import AreaClaim, BinIncomingClaim, LaneClaim, PitSpaceClaim, ReservationLedger, SegmentClaim
 from .pit import Lot, Pit
 from .routing import RoutePlanner
 from .service_times import ServiceTimes
@@ -53,8 +61,9 @@ from .time import m
 
 STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
 QUEUE_GROUP = {"sample": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
-               "tip": "tip", "intake": "intake"}
+               "tip": "tip", "intake": "intake", "move": "move"}
 NOT_YET_SUPPORTED = ("load",)
+ACTIVITY_LABEL = {"unload": "Unloading", "load": "Loading", "weigh": "Weighbridge-only"}
 
 
 class ModelError(ValueError):
@@ -90,7 +99,8 @@ class StepRecord:
     entered: int  # reached the step and started waiting
     unit: str | None = None  # "WB1#0" (equipment id and lane), "H1" for tipping; None for a grading result
     started: int | None = None
-    finished: int | None = None
+    finished: int | None = None  # service ended
+    left: int | None = None  # truck physically left the station; later than `finished` when it was blocked (R5)
 
 
 @dataclass
@@ -125,6 +135,14 @@ class UnfinishedTruck:
     in_service: bool
     arrived: int
     step_entered: int
+    location: str | None = None  # reservation holding the truck's place (area or station lane), None if outside
+
+
+@dataclass(frozen=True)
+class Stall:
+    """Waiting work that nothing left in the simulation can unblock (deadlock, or a plant jammed for good)."""
+    time: int
+    waiting: dict[str, list[WaitReason]]
 
 
 @dataclass
@@ -140,6 +158,9 @@ class TruckFlowResult:
     changeovers: dict[str, int]  # segment -> number of changeovers
     material_balance_kg: int  # opening + tipped - closing; must be 0
     violations: list[tuple[int, str]]  # (time, invariant problem) found after any event
+    stall: Stall | None  # set when the run stopped because nothing could move any more
+    assumptions: list[str]  # simplifications this run relied on (e.g. unlimited waiting space)
+    area_peak: dict[str, int]  # configured waiting area -> most trucks in it at once
 
 
 def _hours_ms(hours: float) -> int:
@@ -177,15 +198,25 @@ class TruckFlowModel:
         self.bins = {e.id: self._make_bin(e) for e in eq if e.type == "bin"}
         self.pits = {e.id: self._make_pit(e) for e in eq if e.type == "hopper"}
         self.planner = RoutePlanner(build_routes(site), self.bins)
+        self._area_caps: dict[str, int | None] = {a.id: a.capacity for a in site.truck_areas}
+        used = [act for act in ACTIVITY_LABEL if any(t.activity == act for t in trucks)]
+        self.paths = {act: self._build_path(act) for act in used}
         self.ledger = ReservationLedger(
             lanes={u.resource for u in self.units} | {f"{h}:tip" for h in self.pits},
             segments={e.id: e.max_concurrent_feeds for e in eq if e.type in ("conveyor", "elevator")},
-            pits=self.pits, bins=self.bins)
+            pits=self.pits, bins=self.bins, areas=self._area_caps)
+        self.assumptions = [f"{ACTIVITY_LABEL[act]} trucks have unlimited waiting space between steps "
+                            "(no truck path configured)." for act in used if not getattr(site.truck_paths, act)]
+        self.assumptions += [f"Waiting area {a.name} has unlimited space." for a in site.truck_areas if a.capacity is None]
         self._check_trucks_can_run()
 
         self.cal = Calendar()
         self.records: dict[str, TruckRecord] = {}
-        self._position: dict[str, int] = {}
+        self._position: dict[str, int] = {}  # index of the truck's current element in its path (-1 = outside)
+        self._location: dict[str, tuple[str, StepRecord | None] | None] = {}  # reservation holding its place
+        self._next_area_held: dict[str, str] = {}  # reserve_next_space: area place reserved for after the service
+        self._area_count = 0
+        self.stall: Stall | None = None
         self._awaiting_result: dict[str, str] = {}
         self._results: dict[str, tuple[str, int]] = {}
         self._intake_active: set[str] = set()  # pits with an intake request waiting or a transfer running
@@ -256,11 +287,29 @@ class TruckFlowModel:
         # Prefer a pit already holding this grain (prototype rule), otherwise configuration order.
         return [p for p in ok if p.lots and p.identity() == grain] + [p for p in ok if not (p.lots and p.identity() == grain)]
 
+    def _build_path(self, act: str) -> list[str]:
+        """The truck's physical path: waiting areas and steps. Without a configured path, an unlimited implicit area
+        sits before each step, which reproduces the non-blocking behaviour (listed in the run's assumptions)."""
+        explicit = getattr(self.site.truck_paths, act)
+        if explicit:
+            return list(explicit)
+        path: list[str] = []
+        for i, step in enumerate(getattr(self.site.sequences, act)):
+            area = f"~{act}:{i}"
+            self._area_caps[area] = None
+            path += [area, step]
+        return path
+
     # ---- event plumbing ----
     def _after_event(self) -> None:
         self.dispatcher.reconsider(self.cal.now)
         for problem in self.ledger.check_invariants(self.cal.now):
             self.violations.append((self.cal.now, problem))
+        # Stall: work is waiting but nothing other than new arrivals is left to happen; arrivals only add load.
+        if self.stall is None and self.dispatcher.pending_ids() and \
+                not any(e.priority != ARRIVAL for e in self.cal.pending_events()):
+            self.stall = Stall(self.cal.now, self.dispatcher.waiting_reasons())
+            self.cal.cancel_all()
 
     def _plant_opens(self, cal: Calendar) -> None:
         for pit in self.pits.values():
@@ -268,42 +317,101 @@ class TruckFlowModel:
                 self._submit_intake(pit.id)
         self._after_event()
 
-    # ---- trucks ----
+    # ---- trucks: movement along the truck path (R5) ----
+    # A truck holds exactly one place at a time: a place in a waiting area, or a station/hopper lane. It gives a
+    # place up only when it has the next one, so a truck that finished a service but cannot move on stays on the
+    # station and blocks it (A6).
     def _arrive(self, cal: Calendar, truck: ScriptedTruck) -> None:
         self.records[truck.id] = TruckRecord(truck.id, truck.activity, cal.now)
         self._position[truck.id] = -1
+        self._location[truck.id] = None
         self._advance(truck)
         self._after_event()
 
-    def _truck(self, truck_id: str) -> ScriptedTruck:
-        return next(t for t in self.trucks if t.id == truck_id)
-
     def _advance(self, truck: ScriptedTruck) -> None:
+        """Ask for the next element of the truck's path (a waiting area or a step)."""
         rec = self.records[truck.id]
-        steps = getattr(self.site.sequences, rec.activity)
-        self._position[truck.id] += 1
-        if self._position[truck.id] >= len(steps):
+        path = self.paths[truck.activity]
+        nxt = self._position[truck.id] + 1
+        if nxt >= len(path):
+            self._leave_location(truck)
             rec.departed = self.cal.now
             return
-        step = steps[self._position[truck.id]]
-        step_rec = StepRecord(step, self.cal.now)
+        element = path[nxt]
+        if element in self._area_caps:
+            held = self._next_area_held.pop(truck.id, None)
+            if held is not None:
+                self._move_into_area(truck, held)
+            else:
+                self.dispatcher.submit(f"{truck.id}/enter:{element}", "move", self.cal.now,
+                                       lambda now, tr=truck, a=element: self._try_enter(tr, a))
+            return
+        step_rec = StepRecord(element, self.cal.now)
         rec.steps.append(step_rec)
-        if step == "grade":
+        if element == "grade":
+            self._position[truck.id] = nxt  # the truck stays where it is while its sample is graded
             sample_id = f"S-{truck.id}"
             if sample_id in self._results:
                 self._result_reached_truck(truck, step_rec)
             else:
                 self._awaiting_result[truck.id] = sample_id
             return
-        attempt = (lambda now, tr=truck, sr=step_rec: self._try_tip(tr, sr)) if step == "tip" else \
+        attempt = (lambda now, tr=truck, sr=step_rec: self._try_tip(tr, sr)) if element == "tip" else \
                   (lambda now, tr=truck, sr=step_rec: self._try_truck_station(tr, sr))
-        self.dispatcher.submit(f"{truck.id}/{step}", QUEUE_GROUP[step], self.cal.now, attempt)
+        self.dispatcher.submit(f"{truck.id}/{element}", QUEUE_GROUP[element], self.cal.now, attempt)
 
     def _result_reached_truck(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
         step_rec.started = step_rec.finished = self.cal.now
         self._advance(truck)
 
+    def _leave_location(self, truck: ScriptedTruck) -> None:
+        loc = self._location.get(truck.id)
+        if loc is None:
+            return
+        res_id, step_rec = loc
+        self.ledger.release(res_id, self.cal.now, "completed")
+        if step_rec is not None:
+            step_rec.left = self.cal.now
+        self._location[truck.id] = None
+
+    def _move_into_area(self, truck: ScriptedTruck, res_id: str) -> None:
+        self._leave_location(truck)
+        self._location[truck.id] = (res_id, None)
+        self._position[truck.id] += 1
+        self._advance(truck)
+
+    def _try_enter(self, truck: ScriptedTruck, area: str) -> list[WaitReason]:
+        self._area_count += 1
+        res_id = f"{truck.id}/area:{area}#{self._area_count}"
+        reasons = self.ledger.try_reserve(res_id, [AreaClaim(area)], self.cal.now)
+        if reasons:
+            return reasons
+        self._move_into_area(truck, res_id)
+        return []
+
+    def _reserve_service(self, truck: ScriptedTruck, res_id: str, claims: list) -> list[WaitReason]:
+        """Reserve a service. With reserve_next_space, a place in the finite area after it is reserved in the same
+        transaction, so the truck can always move on when the service ends."""
+        path = self.paths[truck.activity]
+        after = self._position[truck.id] + 2
+        if (self.site.deadlock_prevention == "reserve_next_space" and after < len(path)
+                and self._area_caps.get(path[after]) is not None):
+            self._area_count += 1
+            area_res = f"{truck.id}/area:{path[after]}#{self._area_count}"
+            reasons = self.ledger.try_reserve_many([(res_id, claims), (area_res, [AreaClaim(path[after])])],
+                                                   self.cal.now)
+            if not reasons:
+                self._next_area_held[truck.id] = area_res
+            return reasons
+        return self.ledger.try_reserve(res_id, claims, self.cal.now)
+
+    def _occupy_station(self, truck: ScriptedTruck, res_id: str, step_rec: StepRecord) -> None:
+        self._leave_location(truck)
+        self._location[truck.id] = (res_id, step_rec)
+        self._position[truck.id] += 1
+
     def _try_lane(self, reservation_id: str, kind: str, step: str) -> tuple[_Unit | None, list[WaitReason]]:
+        """A lane for a sample (grading); samples do not occupy truck places."""
         compatible = [u for u in self.units if u.type == kind and u.serves(step)]
         for u in compatible:
             if self.ledger.lane_free(u.resource):
@@ -314,18 +422,24 @@ class TruckFlowModel:
 
     def _try_truck_station(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
         res_id = f"{truck.id}/{step_rec.step}"
-        unit, reasons = self._try_lane(res_id, STATION_TYPE[step_rec.step], step_rec.step)
-        if unit is None:
-            return reasons
-        step_rec.unit, step_rec.started = unit.resource, self.cal.now
-        end = self.cal.now + self.times.duration_ms(truck.id, step_rec.step, unit.equipment_id)
-        self.cal.schedule(end, RELEASE, lambda c: self._truck_service_done(truck, step_rec, res_id),
-                          f"{truck.id} finishes {step_rec.step} at {unit.equipment_id}")
-        return []
+        compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)]
+        for u in compatible:
+            if not self.ledger.lane_free(u.resource):
+                continue
+            got = self._reserve_service(truck, res_id, [LaneClaim(u.resource)])
+            if got:
+                return got  # the next area is full: the same for every lane
+            self._occupy_station(truck, res_id, step_rec)
+            step_rec.unit, step_rec.started = u.resource, self.cal.now
+            end = self.cal.now + self.times.duration_ms(truck.id, step_rec.step, u.equipment_id)
+            self.cal.schedule(end, RELEASE, lambda c: self._truck_service_done(truck, step_rec),
+                              f"{truck.id} finishes {step_rec.step} at {u.equipment_id}")
+            return []
+        ids = sorted({u.equipment_id for u in compatible})
+        return [WaitReason("EQUIPMENT_BUSY", ",".join(ids), f"{', '.join(ids)} busy")]
 
-    def _truck_service_done(self, truck: ScriptedTruck, step_rec: StepRecord, res_id: str) -> None:
-        self.ledger.release(res_id, self.cal.now, "completed")
-        step_rec.finished = self.cal.now
+    def _truck_service_done(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
+        step_rec.finished = self.cal.now  # the truck keeps the lane until it can move on
         if step_rec.step == "sample":
             sample_id = f"S-{truck.id}"
             self.dispatcher.submit(f"{sample_id}/grade", "grade", self.cal.now,
@@ -360,14 +474,15 @@ class TruckFlowModel:
         grain, kg, res_id = self._grain(truck), truck.kg, f"{truck.id}/tip"
         reasons: list[WaitReason] = []
         for pit in self._hopper_candidates(truck):
-            got = self.ledger.try_reserve(res_id, [LaneClaim(f"{pit.id}:tip"), PitSpaceClaim(pit.id, grain, kg)], self.cal.now)
+            got = self._reserve_service(truck, res_id, [LaneClaim(f"{pit.id}:tip"), PitSpaceClaim(pit.id, grain, kg)])
             if not got:
+                self._occupy_station(truck, res_id, step_rec)
                 step_rec.unit, step_rec.started = pit.id, self.cal.now
                 end = self.cal.now + self.times.duration_ms(truck.id, "tip", pit.id)
                 self.cal.schedule(end, RELEASE, lambda c, p=pit: self._tip_done(truck, step_rec, p, res_id),
                                   f"{truck.id} finishes tipping into {pit.id}")
                 return []
-            reasons.extend(got)
+            reasons.extend(r for r in got if r not in reasons)
             if any(r.code == "PIT_SPACE" for r in got):  # re-evaluate when space appears, even if other reasons remain
                 self._schedule_space_recheck(pit, kg)
         return reasons
@@ -380,8 +495,7 @@ class TruckFlowModel:
 
     def _tip_done(self, truck: ScriptedTruck, step_rec: StepRecord, pit: Pit, res_id: str) -> None:
         pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
-        self.ledger.release(res_id, self.cal.now, "completed")
-        self._tipped_kg += truck.kg
+        self._tipped_kg += truck.kg  # the truck keeps the tipping lane until it can move on
         step_rec.finished = self.cal.now
         if pit.id not in self._intake_active:
             self._submit_intake(pit.id)
@@ -516,9 +630,11 @@ class TruckFlowModel:
         unfinished = []
         for rec in self.records.values():
             if rec.departed is None:
-                s = rec.steps[-1]
+                s = rec.steps[-1] if rec.steps else StepRecord("arrival", rec.arrived)
                 in_service = s.started is not None and s.finished is None and s.unit is not None
-                unfinished.append(UnfinishedTruck(rec.truck_id, s.step, in_service, rec.arrived, s.entered))
+                loc = self._location.get(rec.truck_id)
+                unfinished.append(UnfinishedTruck(rec.truck_id, s.step, in_service, rec.arrived, s.entered,
+                                                  loc[0] if loc else None))
         closing = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
         return TruckFlowResult(
             records=list(self.records.values()), unfinished=unfinished, samples=dict(self._results),
@@ -528,4 +644,5 @@ class TruckFlowModel:
             changeovers={seg: n for seg in self.ledger.segment_ids()
                          if (n := sum(1 for x in self.transfers if seg in x.changeover_segments))},
             material_balance_kg=self._opening_kg + self._tipped_kg - closing,
-            violations=list(self.violations))
+            violations=list(self.violations), stall=self.stall, assumptions=list(self.assumptions),
+            area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas})

@@ -14,7 +14,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 7 | Atomic whole-route reservation (CLAUDE §3) | **Python ReservationLedger (2026-10-22): all-or-nothing over lanes, pit space, segments, bin space; release on completed/cancelled/failed** | test_ledger_and_pit.py, test_intake_transfers.py | **Partial** | P0 | Failure/interruption paths not exercised by a running model yet. |
 | 8 | Configurable reservation scope (ARCH) | **D1 confirmed; Python: exclusive by default, max_concurrent_feeds with equal sharing, merge rule, rescheduling (2026-10-22)** | test_concurrent_feeds.py | **Done** (intake) | — | Proportional sharing not built (A2). |
 | 9 | Typed directed graph for grain (CLAUDE §4) | Yes, typed edges and CONNECT rules | T2, T10 | **Done** | — | |
-| 10 | Typed graph for truck paths (CLAUDE §4) | No: virtual queues only | — | **Missing** | P1 | Yard/lane capacity, weighbridge blocking. |
+| 10 | Typed graph for truck paths (CLAUDE §4) | **Python truck paths with finite waiting areas, blocking after service, reserve_next_space / detect_only, stall detection (2026-10-22)** | test_staging.py | **Done** (station steps) | — | Loading paths follow when loading is built. |
 | 11 | Route feasibility incl. equipment state (ARCH) | Commodity, capacity, busy; no breakdowns | partial | **Partial** | P1 | |
 | 12 | Explainable blocked reasons (ARCH) | Configuration only (validate) | T10 | **Partial** | P0 | Runtime "why is this truck waiting" is missing. |
 | 13 | Quantity-aware lots, conservation (CLAUDE §5) | Float lots + ledger check | T5 | **Partial** | P0 | Decide Decimal/kg; tolerance policy; bin-full case. |

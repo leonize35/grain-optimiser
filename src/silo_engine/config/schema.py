@@ -132,6 +132,21 @@ class Initial(_Model):
     queue: OpeningQueue = OpeningQueue()
 
 
+class TruckArea(_Model):
+    """R5: a physical waiting area for trucks. capacity None = unlimited (reported as a simplification)."""
+    id: str
+    name: str
+    capacity: int | None = Field(default=None, ge=1)
+
+
+class TruckPaths(_Model):
+    """R5: per activity, the truck's physical path: waiting-area ids and truck steps in order. Its steps must equal
+    the activity's sequence. Without a path, trucks have unlimited waiting space between steps."""
+    unload: list[str] | None = None
+    load: list[str] | None = None
+    weigh: list[str] | None = None
+
+
 class SiteConfig(_Model):
     id: str
     name: str
@@ -152,6 +167,10 @@ class SiteConfig(_Model):
     # bin holding a graded commodity must list the grades it accepts.
     grade_segregation: Literal["by_grade", "none"] | None = None
     grade_mixing: list[GradeMixingRule] = []
+    # R5. Default reserve_next_space: a truck starts a service only with a place reserved in the next finite area.
+    truck_areas: list[TruckArea] = []
+    truck_paths: TruckPaths = TruckPaths()
+    deadlock_prevention: Literal["reserve_next_space", "detect_only"] = "reserve_next_space"
 
 
 class ConfigSchemaError(ValueError):
