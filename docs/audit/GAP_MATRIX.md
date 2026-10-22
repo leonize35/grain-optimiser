@@ -7,11 +7,11 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 |---|---|---|---|---|---|---|
 | 1 | Independent DES engine, no FlexSim (CLAUDE §1) | Yes, heap calendar | T9 | **Done** | — | Keep the design. |
 | 2 | Stable simultaneous-event tie-break (CLAUDE §1) | Yes: (t, class, seq). **Python calendar ported 2026-10-19** | test_calendar.py | **Done** (calendar) | — | Integer ms time. |
-| 3 | Central dispatcher over pending requests (CLAUDE §2) | Three separate routines | — | **Partial** | P0 | Refactor into one dispatcher with pluggable policies and blocked reasons. |
+| 3 | Central dispatcher over pending requests (CLAUDE §2) | **Python Dispatcher: stations, tipping and intake transfers through one dispatcher with reasons** | test_dispatcher.py, test_truck_stations.py | **Partial** | P0 | Loading and batching policy still to come. |
 | 4 | Feasible-first can overtake a blocked truck (CLAUDE §2) | Hoppers, weighbridges | B2 probe only | **Untested** | P0 | No deterministic fixture. |
 | 5 | FIFO as a distinct documented policy (CLAUDE §2) | Yes | — | **Untested** | P0 | |
 | 6 | Starvation and fairness measured (DOMAIN) | No | — | **Missing** | P1 | Max-overtake count, age at service. |
-| 7 | Atomic whole-route reservation (CLAUDE §3) | Implicit check-then-claim | in-engine monitor | **Partial** | P0 | No ledger object, no release-on-failure path. |
+| 7 | Atomic whole-route reservation (CLAUDE §3) | **Python ReservationLedger (2026-10-22): all-or-nothing over lanes, pit space, segments, bin space; release on completed/cancelled/failed** | test_ledger_and_pit.py, test_intake_transfers.py | **Partial** | P0 | Failure/interruption paths not exercised by a running model yet. |
 | 8 | Configurable reservation scope (ARCH) | Fixed at whole path × whole lot. **Decision D1 confirmed 2026-10-22; specified as R1 (max_concurrent_feeds)** | — | **Specified** | P1 | Implement per ENGINE_INTERFACES §7 item 4. |
 | 9 | Typed directed graph for grain (CLAUDE §4) | Yes, typed edges and CONNECT rules | T2, T10 | **Done** | — | |
 | 10 | Typed graph for truck paths (CLAUDE §4) | No: virtual queues only | — | **Missing** | P1 | Yard/lane capacity, weighbridge blocking. |

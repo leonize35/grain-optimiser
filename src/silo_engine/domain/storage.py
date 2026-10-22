@@ -157,6 +157,9 @@ class StorageBin:
         else:
             self._incoming[reservation_id] = (grain, expected - kg)
 
+    def has_incoming(self, reservation_id: str) -> bool:
+        return reservation_id in self._incoming
+
     def release_incoming(self, reservation_id: str) -> None:
         """Cancel the rest of an incoming reservation (partial transfer, cancellation or failure)."""
         self._known(self._incoming, reservation_id)

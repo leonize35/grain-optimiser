@@ -101,4 +101,40 @@ Assumptions A1–A8 and the interface draft were approved by the domain owner on
 
 **Limitations:** fixed service times only (stochastic durations next to this interface); no rejection at grading; no grade values on trucks yet (R4); stations are not yet connected to the reservation ledger. The ledger arrives with pits and transfers in build step 2.
 
-**Next step:** build step 2: the pit model (R2: `full_load_space`, `empty_pit`) and intake transfers on exclusive segments (R1 default) with bin reservations, through an atomic reservation ledger.
+## Step 5 — hopper pits, intake transfers and the atomic reservation ledger (build step 2)
+
+**Implemented:**
+- `sim/ledger.py`: one atomic owner of every claim (station lanes, hopper tipping lanes, pit space, conveyor/elevator streams with commodity lock, bin incoming space). It checks everything first and then takes everything, or nothing. Release frees every claim. Every reservation and release is logged, and invariants can be checked independently.
+- `sim/pit.py`: lots carry truck, commodity and grade; the level falls continuously while draining (A3); one grain per pit (A4); the `full_load_space` and `empty_pit` rules (R2); exact calculation of when space for a load will exist.
+- `sim/routing.py`: intake candidates from the configured graph, preferring bins that already hold the grain.
+- `sim/truck_flow.py`:
+  - the `tip` step, with hopper choice following the prototype rule (a pit already holding the grain first);
+  - intake transfers on exclusive segments, with route rate = slowest of the hopper and segments, and durations rounded up to the next millisecond;
+  - partial fills split across bins, pit-space re-check events, and material balance plus ledger invariants checked after **every** event.
+  - Station lanes now also go through the ledger.
+- Schema: `tip_admission` (`full_load_space` / `empty_pit`, default `full_load_space`) and `max_concurrent_feeds` (default 1) on equipment. Golden parity is unaffected.
+
+**Behaviour proved (26 new tests, 129 in total):**
+- T1.1 independent routes carry different commodities at once;
+- T1.2 an exclusive shared elevator, with H2 waiting 07:09–07:18 and its reasons naming C1 and E1;
+- T2.1 a truck leaving (07:05) before its grain reaches the bin (07:12);
+- T2.2 `full_load_space` tipping at 07:03, and T2.3 `empty_pit` at 07:12;
+- T2.4 another commodity waiting for an empty pit;
+- a lot split 20 t / 10 t when the preferred bin fills;
+- ledger all-or-nothing, with a full-state snapshot unchanged after a refusal;
+- the commodity lock on a shared segment;
+- explicit refusal of changeovers (R3), concurrent feeds and loading, which are not built yet.
+
+**Fault injection:** non-exclusive segments fail 3 tests; prototype-style stepwise pit space fails 3; no partial fill fails 1; a non-atomic ledger fails 7.
+
+**Found and fixed during testing:** a pit-space re-check was scheduled only when lack of space was the *sole* reason a truck waited. A truck waiting for both reasons kept a stale "no space" reason. It is now re-checked whenever space is among the reasons.
+
+**Commands run:** `pytest -q` → 129 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
+
+**Limitations:**
+- grades use a placeholder `*` until R4 (build step 5);
+- no `clear_minutes` hold yet (R1 default 0);
+- waiting reasons are as of the most recent evaluation, which happens at every state-changing event;
+- the independent replay checker over the ledger log is not written yet (the log exists).
+
+**Next step:** build step 3: the commodity-pair changeover matrix (R3), including configuration validation of missing pairs, replacing the explicit "not yet supported" stop.

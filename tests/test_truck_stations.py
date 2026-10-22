@@ -174,9 +174,10 @@ def test_identical_inputs_give_identical_results():
 
 
 def test_steps_not_built_yet_are_refused_explicitly():
-    s = site([wb("WB1")], {"unload": ["weigh_in", "tip", "weigh_out"]})
-    with pytest.raises(NotYetSupported, match="tip"):
-        TruckFlowModel(s, trucks(("T1", "unload", "07:00")), TWO_MIN, policy="feasible_first")
+    # Tipping is built from step 2; loading is still to come.
+    s = site([wb("WB1")], {"load": ["weigh_in", "load", "weigh_out"]})
+    with pytest.raises(NotYetSupported, match="load"):
+        TruckFlowModel(s, trucks(("T1", "load", "07:00")), TWO_MIN, policy="feasible_first")
 
 
 def test_missing_station_or_grading_without_sampling_is_a_model_error():

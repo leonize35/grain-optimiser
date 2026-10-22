@@ -48,6 +48,10 @@ class Equipment(_Model):
     inv_commodity: str | None = Field(default=None, alias="invCommodity")
     level0: float | None = None  # opening hopper level, tonnes
     level_commodity: str | None = Field(default=None, alias="levelCommodity")
+    # R2: when a truck may start tipping (site input). 'partial' is specified but not built until confirmed.
+    tip_admission: Literal["full_load_space", "empty_pit"] = "full_load_space"
+    # R1: streams that may feed this conveyor/elevator at once; 1 = exclusive (default, as in the prototype).
+    max_concurrent_feeds: int = Field(default=1, ge=1)
 
 
 class Hours(_Model):
