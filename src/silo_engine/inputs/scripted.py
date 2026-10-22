@@ -41,6 +41,7 @@ class _TruckEntry(BaseModel):
     arrive: str | int | float
     commodity: str | None = None
     tonnes: str | int | float | None = None
+    grade: str | None = None  # R4: needed for graded commodities when the site keeps grades apart
     backlog: bool = False
 
 
@@ -57,6 +58,7 @@ class ScriptedTruck:
     commodity: str | None
     kg: int | None
     backlog: bool
+    grade: str | None = None
 
 
 def load_arrival_script(raw: dict[str, Any]) -> list[ScriptedTruck]:
@@ -85,8 +87,8 @@ def load_arrival_script(raw: dict[str, Any]) -> list[ScriptedTruck]:
         except TimeFormatError as e:
             raise ScriptError(f"Truck {t.id}: {e}") from None
         if t.activity == "weigh":
-            if t.commodity is not None or t.tonnes is not None:
-                raise ScriptError(f"Truck {t.id} is weighbridge-only and cannot carry a commodity or tonnes.")
+            if t.commodity is not None or t.tonnes is not None or t.grade is not None:
+                raise ScriptError(f"Truck {t.id} is weighbridge-only and cannot carry a commodity, grade or tonnes.")
             kg = None
         else:
             if t.commodity is None or t.tonnes is None:
@@ -95,7 +97,7 @@ def load_arrival_script(raw: dict[str, Any]) -> list[ScriptedTruck]:
                 kg = tonnes_to_kg(t.tonnes)
             except QuantityError as e:
                 raise ScriptError(f"Truck {t.id}: {e}") from None
-        trucks.append(ScriptedTruck(t.id, t.activity, arrive, t.commodity, kg, t.backlog))
+        trucks.append(ScriptedTruck(t.id, t.activity, arrive, t.commodity, kg, t.backlog, t.grade))
     return trucks
 
 

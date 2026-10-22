@@ -22,8 +22,10 @@ Build steps covered (docs/ENGINE_INTERFACES.md §7):
 Not built yet, and refused explicitly instead of being approximated:
 - loading (``load`` step).
 
-Interim (until R4 grades, build step 5): grain carries the placeholder grade ``*`` and bins accept every listed
-commodity with that grade.
+5. Grades (R4): grain carries commodity and grade (``config.grades.GradePolicy``); bins accept the grades listed
+   for them; pits and bins combine grades only through the site's mixing rules; hopper choice and routing use the
+   graded grain. The unloading sequence grades before tipping wherever grades are kept apart (checked by
+   ``validate_rules``), so a truck's grade is used only after its own grading result is back.
 
 Events: completions and releases use RELEASE priority, the opening of the plant and pit-space re-checks CONTROL,
 arrivals ARRIVAL. After every event the dispatcher reconsiders and the ledger invariants are checked.
@@ -33,12 +35,13 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from fractions import Fraction
 
+from ..config.grades import GradePolicy
 from ..config.routes import build_routes
 from ..config.rules_validation import validate_rules
 from ..config.schema import SiteConfig
 from ..domain.changeover import ChangeoverMatrix
 from ..domain.quantities import tonnes_to_kg
-from ..domain.storage import GradedCommodity, MixingRules, StorageBin
+from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
 from .calendar import CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
@@ -48,7 +51,6 @@ from .routing import RoutePlanner
 from .service_times import ServiceTimes
 from .time import m
 
-UNGRADED = "*"
 STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
 QUEUE_GROUP = {"sample": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
                "tip": "tip", "intake": "intake"}
@@ -166,6 +168,8 @@ class TruckFlowModel:
         if rules.errors:
             raise ModelError("The site's operating rules are incomplete:\n" + "\n".join(i.msg for i in rules.errors))
         self.changeover_matrix = ChangeoverMatrix.from_site(site)
+        self.grades = GradePolicy(site)
+        self.mixing = self.grades.mixing()
         eq = site.equipment
         self.equipment = {e.id: e for e in eq}
         self.units = [_Unit(e.id, lane, e.type, e.moves or "both")
@@ -199,16 +203,17 @@ class TruckFlowModel:
 
     # ---- construction ----
     def _make_bin(self, e) -> StorageBin:
-        accepts = frozenset(GradedCommodity(c, UNGRADED) for c in (e.commodities or []))
         opening_kg = tonnes_to_kg(e.inv) if e.inv else 0
-        opening = GradedCommodity(e.inv_commodity, UNGRADED) if opening_kg else None
-        return StorageBin(e.id, tonnes_to_kg(e.cap_t), accepts, MixingRules([]), opening_kg, opening)
+        opening = self.grades.grain(e.inv_commodity, e.inv_grade) if opening_kg else None
+        return StorageBin(e.id, tonnes_to_kg(e.cap_t), self.grades.bin_accepts(e), self.mixing, opening_kg, opening)
 
     def _make_pit(self, e) -> Pit:
         lots = []
         if e.level0:
-            lots.append(Lot(f"L0-{e.id}", None, GradedCommodity(e.level_commodity, UNGRADED), tonnes_to_kg(e.level0), 0))
-        return Pit(e.id, tonnes_to_kg(e.cap_t), Fraction(str(e.rate)), e.tip_admission, set(e.commodities or []), lots)
+            grain = self.grades.grain(e.level_commodity, e.level_grade)
+            lots.append(Lot(f"L0-{e.id}", None, grain, tonnes_to_kg(e.level0), 0))
+        return Pit(e.id, tonnes_to_kg(e.cap_t), Fraction(str(e.rate)), e.tip_admission, set(e.commodities or []), lots,
+                   self.mixing)
 
     def _check_trucks_can_run(self) -> None:
         for act in sorted({t.activity for t in self.trucks}):
@@ -228,12 +233,22 @@ class TruckFlowModel:
                         need = {"weigh_in": "a weighbridge that weighs in", "weigh_out": "a weighbridge that weighs out"}
                         raise ModelError(f"{act} trucks need {need.get(step, 'a ' + kind)}, but none is configured.")
         for truck in self.trucks:
+            if truck.commodity is not None:
+                name = self.names.get(truck.commodity, truck.commodity)
+                if self.grades.is_graded(truck.commodity):
+                    if truck.grade is None and self.grades.segregated(truck.commodity):
+                        raise ModelError(f"Truck {truck.id} brings {name}, which is graded; give its grade.")
+                    if truck.grade is not None and truck.grade not in self.grades.grades[truck.commodity]:
+                        raise ModelError(f"Truck {truck.id} has {name} grade {truck.grade}, which is not one of "
+                                         "its grades.")
+                elif truck.grade is not None:
+                    raise ModelError(f"Truck {truck.id} gives a grade for {name}, which has no grades.")
             if "tip" in getattr(self.site.sequences, truck.activity) and not self._hopper_candidates(truck):
                 name = self.names.get(truck.commodity, truck.commodity)
                 raise ModelError(f"No hopper can take {name} (truck {truck.id}) and send it to a bin assigned to it.")
 
     def _grain(self, truck: ScriptedTruck) -> GradedCommodity:
-        return GradedCommodity(truck.commodity, UNGRADED)
+        return self.grades.grain(truck.commodity, truck.grade)
 
     def _hopper_candidates(self, truck: ScriptedTruck) -> list[Pit]:
         grain = self._grain(truck)

@@ -4,7 +4,8 @@
 - While a transfer drains the pit, the level falls **continuously** (assumption A3), so space for the next
   truck appears gradually. Committed quantities change only when the drain finishes; `level_at(t)` and
   `free_space_at(t)` give the continuous view used for admission.
-- A pit holds one commodity and grade at a time (A4; grade mixing rules arrive with R4 in build step 5).
+- A pit holds one commodity and grade at a time (A4), unless the site's grade mixing rules (R4) let two grades
+  of the same commodity share it.
 - Admission rules (site input): ``full_load_space`` (free space ≥ load) or ``empty_pit`` (nothing in the pit).
 - Space for a truck that is tipping is held by a *claim* until tipping ends, when the claim becomes a lot.
 """
@@ -13,7 +14,7 @@ from collections import deque
 from dataclasses import dataclass
 from fractions import Fraction
 
-from ..domain.storage import GradedCommodity
+from ..domain.storage import GradedCommodity, MixingRules
 from .dispatcher import WaitReason
 
 ADMISSION_RULES = ("full_load_space", "empty_pit")
@@ -46,7 +47,7 @@ class PitError(RuntimeError):
 
 class Pit:
     def __init__(self, pit_id: str, capacity_kg: int, rate_tph: Fraction, admission: str, accepts: set[str],
-                 lots: list[Lot] | None = None):
+                 lots: list[Lot] | None = None, mixing: MixingRules | None = None):
         if admission not in ADMISSION_RULES:
             raise PitError(f"{pit_id}: unknown tipping rule '{admission}'")
         self.id = pit_id
@@ -54,6 +55,7 @@ class Pit:
         self.rate_tph = rate_tph
         self.admission = admission
         self.accepts = accepts
+        self.mixing = mixing or MixingRules([])
         self.lots: deque[Lot] = deque(lots or [])
         self.claims: dict[str, tuple[GradedCommodity, int]] = {}
         self.draining: Drain | None = None
@@ -76,15 +78,26 @@ class Pit:
     def free_space_at(self, now: int) -> Fraction:
         return self.capacity_kg - self.level_at(now) - sum(kg for _, kg in self.claims.values())
 
+    def _combined(self, extra: list[GradedCommodity]) -> tuple[bool, GradedCommodity | None]:
+        identity = None
+        for grain in [lot.grain for lot in self.lots] + [g for g, _ in self.claims.values()] + extra:
+            if identity is None:
+                identity = grain
+            else:
+                combined = self.mixing.combine(identity, grain)
+                if combined is None:
+                    return False, identity
+                identity = combined
+        return True, identity
+
     def identity(self) -> GradedCommodity | None:
-        grains = [lot.grain for lot in self.lots] + [g for g, _ in self.claims.values()]
-        return grains[0] if grains else None
+        return self._combined([])[1]
 
     # ---- admission ----
     def check_claim(self, now: int, grain: GradedCommodity, kg: int) -> list[WaitReason]:
         reasons: list[WaitReason] = []
         current = self.identity()
-        if current is not None and current != grain:
+        if current is not None and not self._combined([grain])[0]:
             reasons.append(WaitReason("PIT_INCOMPATIBLE", self.id,
                                       f"{self.id} holds {current.commodity}; {grain.commodity} must wait until it is empty"))
         if self.admission == "empty_pit":
@@ -165,6 +178,6 @@ class Pit:
             problems.append(f"{self.id}: negative level")
         if self.level_at(now) + sum(kg for _, kg in self.claims.values()) > self.capacity_kg:
             problems.append(f"{self.id}: grain plus claimed space exceeds pit capacity")
-        if len({lot.grain for lot in self.lots} | {g for g, _ in self.claims.values()}) > 1:
-            problems.append(f"{self.id}: more than one commodity or grade in the pit")
+        if not self._combined([])[0]:
+            problems.append(f"{self.id}: grain in the pit that may not be mixed")
         return problems

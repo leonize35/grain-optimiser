@@ -216,4 +216,55 @@ The prototype's demo sites A and B pass `validate_rules` with no errors and the 
 - all segments of a route are released together after the longest clear time;
 - rates are exact fractions and completion times are rounded up to the next millisecond.
 
-**Next step:** build step 5: grades end to end (R4): grade on trucks and lots, bin assignment by commodity and grade with mixing rules, grading required before tipping where configured, and the matching configuration checks.
+## Step 8 — grades end to end (build step 5)
+
+**Implemented:**
+- Schema:
+  - commodity `grades`;
+  - bin `accepts` (`[{commodity, grades}]`);
+  - opening-stock grades `invGrade` / `levelGrade`;
+  - site `grade_segregation` (`by_grade` default / `none`) and `grade_mixing` (`[{commodity, grades, result}]`);
+  - scripted-truck `grade`.
+
+  Ungraded commodities behave exactly as before, so golden parity and every earlier test are unaffected.
+- `config/grades.py` (`GradePolicy`): one place that turns configuration into commodity-and-grade identities, bin grade lists and mixing rules. With segregation `none`, grades are recorded but grain is handled as `*`.
+- `sim/pit.py`: pits combine grades only through the mixing rules (A4 with R4).
+- `sim/truck_flow.py`: grain identity, hopper choice, pit admission, routing and bins all use commodity and grade. Scripted trucks with graded commodities must state a valid grade.
+- `config/rules_validation.py`, new R4 checks:
+  - mixing rules, bin grade lists, opening stock and changeover rules must refer to real grades;
+  - every bin holding a graded commodity lists its grades (unless segregation is `none`), and grade lists contradicting `none` are errors;
+  - every grade must reach a bin that accepts it (T4.3);
+  - grading must come before tipping wherever bins keep grades apart (T4.5).
+
+**Behaviour proved (13 new tests, 165 in total), timelines hand-computed:**
+- T4.1 each grade goes only to its bin. The pit holds grade 2 until 07:15, so grade 1 tips then.
+- A grade-level changeover rule is applied in a run (4 min).
+- T4.2 a mixing rule lets grades share the pit and bin, and the bin stays grade 2.
+- T4.4 a truck cannot tip before its own grading result.
+- Segregation `none` records grades without restricting.
+- A graded truck must state a known grade.
+- Every configuration check has a test, plus one confirming that ungraded sites are unaffected.
+
+The prototype's demo sites A and B still pass `validate_rules` with no errors.
+
+**Fault injection:**
+- ignoring grade in grain identity fails 4 tests;
+- bins accepting every grade fails 4;
+- pits ignoring mixing rules fails 1;
+- not reporting grading after tipping fails 1;
+- not reporting an unreachable grade fails 1;
+- accepting a graded truck without a grade fails 1.
+
+**Adjustments made while testing:**
+1. One missing grade list produced a knock-on "grade unreachable" error. The reachability check now skips a commodity whose bins have not listed grades yet, so only the root cause is reported.
+2. The mixing test's own site was invalid under T4.3 (no bin took grade 3). The test site was corrected; the rule was kept.
+
+**Commands run:** `pytest -q` → 165 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
+
+**Limitations:**
+- two different grades of the same commodity cannot flow on a shared segment at the same moment, even if mixing is allowed (the commodity lock compares commodity and grade, a conservative choice);
+- a grade-only change with no grade rule is recorded as a 0-minute changeover;
+- stochastic grade mixes for generated demand (`grade_mix`) come with generated arrivals, not built yet;
+- grading rejection is not modelled yet.
+
+**Next step:** build step 6: finite staging areas, truck paths and blocking (R5), including the deadlock policy (`reserve_next_space` / `detect_only`).

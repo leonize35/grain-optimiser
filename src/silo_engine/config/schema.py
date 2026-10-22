@@ -28,6 +28,20 @@ class Commodity(_Model):
     id: str
     name: str
     color: str | None = None
+    grades: list[str] | None = None  # R4; None = ungraded commodity
+
+
+class BinAccept(_Model):
+    """R4: grades of one of the bin's commodities that the bin may hold."""
+    commodity: str
+    grades: list[str]
+
+
+class GradeMixingRule(_Model):
+    """R4: these grades of `commodity` may share a bin or pit; the mixture is classified as `result`."""
+    commodity: str
+    grades: list[str]
+    result: str
 
 
 class Equipment(_Model):
@@ -44,10 +58,13 @@ class Equipment(_Model):
     changeover: float | None = None  # minutes
     setup: list[float] | None = None  # load point setup [min, mode, max] minutes
     commodities: list[str] | None = None
+    accepts: list[BinAccept] | None = None  # R4 (bins): grades accepted per graded commodity
     inv: float | None = None  # opening bin stock, tonnes
     inv_commodity: str | None = Field(default=None, alias="invCommodity")
+    inv_grade: str | None = Field(default=None, alias="invGrade")
     level0: float | None = None  # opening hopper level, tonnes
     level_commodity: str | None = Field(default=None, alias="levelCommodity")
+    level_grade: str | None = Field(default=None, alias="levelGrade")
     # R2: when a truck may start tipping (site input). 'partial' is specified but not built until confirmed.
     tip_admission: Literal["full_load_space", "empty_pit"] = "full_load_space"
     # R1: streams that may feed this conveyor/elevator at once; 1 = exclusive (default, as in the prototype).
@@ -131,6 +148,10 @@ class SiteConfig(_Model):
     initial: Initial = Initial()
     # R3. None = prototype format: each conveyor/elevator's single `changeover` value applies to any commodity change.
     changeovers: Changeovers | None = None
+    # R4. For graded commodities: 'none' records grades without restricting bins or pits; otherwise (default) every
+    # bin holding a graded commodity must list the grades it accepts.
+    grade_segregation: Literal["by_grade", "none"] | None = None
+    grade_mixing: list[GradeMixingRule] = []
 
 
 class ConfigSchemaError(ValueError):

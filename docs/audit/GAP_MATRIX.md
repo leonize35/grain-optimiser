@@ -28,7 +28,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 21 | Sample-to-truck identity, out of order (DOMAIN) | Yes, keyed | T12 (tautological) | **Partial** | P1 | Timeout/lost-sample case missing. |
 | 22 | Commodity segregation on shared paths (DOMAIN) | Yes, exclusive paths | T4 | **Partial** | P0 | |
 | 23 | Changeover clearance / flush (DOMAIN) | Time penalty only. **D3 confirmed; Python commodity-pair matrix, validation of missing/ambiguous pairs, clear_minutes (2026-10-22)** | test_changeovers.py | **Partial** | P1 | Volume-based flush specified, awaiting site confirmation. |
-| 24 | Grade segregation (DOMAIN) | Grade drawn, not used. **D4 confirmed: grades must drive storage (R4). Bin-level grade rules implemented in domain/storage.py** | test_storage_bin.py | **Partial** | P1 | Grades not yet wired into routing or trucks. |
+| 24 | Grade segregation (DOMAIN) | **D4 confirmed; Python grades end to end: bins, pits, routing, mixing rules, grading before tipping, configuration checks (2026-10-22)** | test_grades.py, test_storage_bin.py | **Done** (intake) | — | Stochastic grade mix with generated demand still to come. |
 | 25 | Truck may leave before grain reaches bin (DOMAIN) | Assumed yes | — | **Unconfirmed** | P0 | Needs your confirmation. |
 | 26 | Opening backlog and inventories (DOMAIN) | Yes | T11 | **Done** | — | |
 | 27 | Shift end, carry-over, multi-day (VERIF 9) | Hard stop, single day | — | **Missing** | P1 | Turnaround is biased by trucks that never departed (B1). |
