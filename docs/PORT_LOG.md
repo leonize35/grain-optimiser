@@ -69,4 +69,36 @@ No original Git repository exists for the prototype. It was found only as the pr
 
 **Commands run:** `pytest -q` → 87 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
 
-**Next step:** after review of the interfaces and assumptions, build order item 1 in ENGINE_INTERFACES.md §7: truck stations with unlimited areas plus the dispatcher skeleton (FIFO and feasible-first), with hand-traced scripted tests.
+## Step 4 — central dispatcher skeleton and truck stations (build step 1)
+
+Assumptions A1–A8 and the interface draft were approved by the domain owner on 2026-10-22.
+
+**Implemented:**
+- `sim/dispatcher.py`: queue groups with `strict_fifo` or `feasible_first`, rescanning after every start, waiting reasons, overtake counts.
+- `sim/truck_flow.py`:
+  - samplers, graders and weighbridges as pooled lanes, with weighbridge direction respected;
+  - samples as separate entities, each truck waiting for its own grading result;
+  - unlimited waiting areas (R5 default), and unfinished trucks reported at the end of a run;
+  - tipping and loading refused explicitly as not yet built.
+- `sim/service_times.py`: fixed durations for hand-checked tests.
+
+**Behaviour proved (16 new tests, 103 in total), every expected time derived by hand in the test docstring:**
+- arrival-order service on one weighbridge and on a two-lane weighbridge;
+- the head-of-line case with in-only and out-only weighbridges: under feasible-first the later truck overtakes, and the overtake is counted; under strict FIFO it waits behind the blocked truck, with the full trace timed by hand;
+- waiting reasons `EQUIPMENT_BUSY` and `QUEUE_ORDER`;
+- grading results returning out of order; another truck's result being back never releases a truck;
+- unfinished trucks reported when a run stops early;
+- reproducibility; explicit refusal of unbuilt steps, missing stations and unknown policies.
+
+**Fault injection:**
+- ignoring strict FIFO fails 3 tests;
+- not rescanning after a start fails 5;
+- releasing a truck on *any* returned result first went undetected. That exposed a test gap, so a test was added, and it now fails 1.
+
+**Discrepancy flagged:** the prototype's weighbridge policy `fifo` is feasible-first in arrival order (see ENGINE_INTERFACES.md §0).
+
+**Commands run:** `pytest -q` → 103 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
+
+**Limitations:** fixed service times only (stochastic durations next to this interface); no rejection at grading; no grade values on trucks yet (R4); stations are not yet connected to the reservation ledger. The ledger arrives with pits and transfers in build step 2.
+
+**Next step:** build step 2: the pit model (R2: `full_load_space`, `empty_pit`) and intake transfers on exclusive segments (R1 default) with bin reservations, through an atomic reservation ledger.

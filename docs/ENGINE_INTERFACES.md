@@ -19,6 +19,14 @@ event (arrival, service done, transfer done, space freed)
 
 Policies (FIFO, feasible-first, commodity batching) only decide the **order** of requests and whether a later request may overtake an earlier blocked one. They never bypass the ledger.
 
+**Implemented (build step 1, `sim/dispatcher.py`):** requests belong to a queue group, and each group has one of two policies:
+- `strict_fifo`: no request starts while an earlier request of the same group is waiting.
+- `feasible_first`: a later request may start when an earlier one is blocked, and the overtake is counted per request.
+
+After every start, the scan restarts from the earliest request.
+
+**Discrepancy with the prototype:** the prototype's weighbridge policy named `fifo` scans the whole queue, which is `feasible_first` here. A site configuration that says `weigh: "fifo"` must be mapped deliberately once policies move into the schema.
+
 ## 1. Requests (what is waiting)
 
 | Request | Raised when | Needs |
@@ -67,7 +75,7 @@ Guarantees:
 - **No double allocation:** no claim exceeds its capacity at any instant.
 - **Deadlock:** circular waits are prevented by the R5 policy or reported. They are never silent.
 
-`Blocked.reasons` is a list of `(code, equipment_id, detail)`. Codes: `NO_PHYSICAL_ROUTE`, `EQUIPMENT_BUSY`, `COMMODITY_LOCK`, `MERGE_PATH_DIFFERS`, `PIT_SPACE`, `BIN_NOT_ALLOWED`, `BIN_INCOMPATIBLE`, `BIN_FULL`, `STOCK_SHORT`, `GRADE_PENDING`, `AREA_FULL`, `OUT_OF_SERVICE`. These feed the "why is this truck waiting" view.
+`Blocked.reasons` is a list of `(code, equipment_id, detail)`. Codes: `QUEUE_ORDER` (strict FIFO, behind an earlier request; implemented), `NO_PHYSICAL_ROUTE`, `EQUIPMENT_BUSY`, `COMMODITY_LOCK`, `MERGE_PATH_DIFFERS`, `PIT_SPACE`, `BIN_NOT_ALLOWED`, `BIN_INCOMPATIBLE`, `BIN_FULL`, `STOCK_SHORT`, `GRADE_PENDING`, `AREA_FULL`, `OUT_OF_SERVICE`. These feed the "why is this truck waiting" view.
 
 ## 4. `ChangeoverPolicy`
 
