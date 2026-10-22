@@ -1,0 +1,321 @@
+<title>Silo Scenario Viewer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an operations log read top to bottom. Comparison first (summary), then the day as two timelines on one
+   shared clock (trucks, then grain), then storage, run checks and assumptions. Equipment colours mark identity. */
+:root {
+  --bg: #f4f6f3; --surface: #fcfcfb; --ink: #151a19; --ink-2: #4c5450; --muted: #7f8680; --line: #dde2dc;
+  --accent: #1d5c53; --accent-soft: #dcebe7; --demo: #f6ead2; --demo-ink: #6b4a0c;
+  --s-weigh: #2a78d6; --s-sample: #eb6834; --s-grade: #1baf7a; --s-tip: #eda100; --s-grain: #6250d6;
+  --hatch: #4c5450; --good: #0ca30c; --critical: #d03b3b;
+  --display: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1312; --surface: #181c1b; --ink: #edf0ec; --ink-2: #bec5bf; --muted: #868d87; --line: #2b302e;
+  --accent: #6fb7a9; --accent-soft: #1d302c; --demo: #33290f; --demo-ink: #efc871;
+  --s-weigh: #3987e5; --s-sample: #d95926; --s-grade: #199e70; --s-tip: #c98500; --s-grain: #9085e9;
+  --hatch: #bec5bf; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f1312; --surface: #181c1b; --ink: #edf0ec; --ink-2: #bec5bf; --muted: #868d87; --line: #2b302e;
+  --accent: #6fb7a9; --accent-soft: #1d302c; --demo: #33290f; --demo-ink: #efc871;
+  --s-weigh: #3987e5; --s-sample: #d95926; --s-grade: #199e70; --s-tip: #c98500; --s-grain: #9085e9;
+  --hatch: #bec5bf; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body); }
+.page { max-width: 1120px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; letter-spacing: .005em; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); line-height: 1.02; }
+h2 { font-size: 1.45rem; line-height: 1.1; }
+p { margin: 0; max-width: 66ch; }
+.eyebrow { font: 500 .75rem var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--ink-2); }
+.mono, td.n, th.n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 10px; }
+.demo { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; background: var(--demo); color: var(--demo-ink);
+  padding: 10px 14px; border-radius: 6px; font-size: .92rem; }
+.demo b { font: 600 .75rem var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+section { display: grid; gap: 14px; min-width: 0; }
+.sec-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: end; justify-content: space-between; }
+.sec-head > div { display: grid; gap: 4px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+
+/* scenario switch */
+.switch { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; padding: 3px; background: var(--surface); gap: 3px; flex-wrap: nowrap; flex: none; }
+.switch button { white-space: nowrap; font: 600 .95rem var(--body); color: var(--ink-2); background: transparent; border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.switch button:focus-visible, .seg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note { font-size: .95rem; color: var(--ink-2); }
+
+/* comparison table */
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font: 600 .72rem var(--mono); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+td.n, th.n { text-align: right; }
+td.lbl { white-space: normal; min-width: 180px; }
+col.active { background: var(--accent-soft); }
+.delta-worse { color: var(--critical); }
+.delta-better { color: var(--good); }
+
+/* charts */
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: .88rem; color: var(--ink-2); }
+.legend span { display: inline-flex; gap: 7px; align-items: center; }
+.sw { width: 18px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.line { height: 2px; background: var(--muted); border-radius: 0; }
+.chart { overflow-x: auto; }
+.chart svg { display: block; }
+svg text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+svg .rowlbl { font-family: var(--body); font-size: 13px; fill: var(--ink); }
+svg .rowsub { font-family: var(--body); font-size: 11px; fill: var(--muted); }
+svg .inbar { font-family: var(--mono); font-size: 10px; fill: var(--surface); }
+.seg { cursor: default; }
+.seg:hover { filter: brightness(1.12); }
+#tip { position: fixed; z-index: 20; pointer-events: none; background: var(--ink); color: var(--surface);
+  font: 13px/1.4 var(--body); padding: 7px 10px; border-radius: 6px; max-width: 280px; opacity: 0; transition: opacity .1s; }
+#tip.show { opacity: 1; }
+#tip b { font-weight: 600; }
+
+/* lower grid */
+.lower { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.bins { display: grid; gap: 12px; }
+.bin { display: grid; gap: 5px; }
+.bin .row { display: flex; justify-content: space-between; gap: 8px; font-size: .92rem; flex-wrap: wrap; }
+.bar { height: 10px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--s-grain); border-radius: 3px; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-2); font-size: .95rem; }
+.checks { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.checks li { display: flex; gap: 10px; align-items: baseline; font-size: .95rem; }
+.pill { font: 600 .72rem var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; }
+.pill.ok { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+.pill.bad { background: color-mix(in srgb, var(--critical) 18%, transparent); color: var(--critical); }
+footer { font-size: .85rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+@media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow" id="engine"></div>
+    <h1>One receiving day, two yard layouts</h1>
+    <p class="muted">Twelve trucks arrive between 07:00 and 07:38. Each is sampled, waits for its grading result,
+      weighs in, tips into a hopper and weighs out. Grain then travels from the hopper pits up the shared elevator
+      to a bin that accepts its commodity and grade. The only difference between the two runs is how many trucks
+      fit in the hopper yard.</p>
+    <div class="demo"><b>Demo data</b><span>Scripted, illustrative silo and trucks for reviewing engine behaviour. These are not results for any real silo.</span></div>
+  </header>
+
+  <section aria-labelledby="cmp">
+    <div class="sec-head">
+      <div><h2 id="cmp">What changes</h2><p class="note" id="scen-note"></p></div>
+      <div class="switch" role="group" aria-label="Scenario shown in the timelines">
+        <button type="button" id="btn-open" data-key="open">Yard unlimited</button>
+        <button type="button" id="btn-tight" data-key="tight">Yard holds 1</button>
+      </div>
+    </div>
+    <div class="panel tw"><table id="kpis"></table></div>
+  </section>
+
+  <section aria-labelledby="trk">
+    <div class="sec-head">
+      <div><h2 id="trk">Trucks through the day</h2><p class="note">One row per truck, on the clock. Hover a bar for details.</p></div>
+    </div>
+    <div class="legend" id="legend-trucks"></div>
+    <div class="panel chart" id="chart-trucks"></div>
+  </section>
+
+  <section aria-labelledby="grn">
+    <div class="sec-head">
+      <div><h2 id="grn">Grain from pits to bins</h2><p class="note">Each bar is one lot moving up the elevator. When the commodity changes, the route is cleaned first.</p></div>
+    </div>
+    <div class="legend" id="legend-grain"></div>
+    <div class="panel chart" id="chart-grain"></div>
+  </section>
+
+  <div class="lower">
+    <section aria-labelledby="bns"><h2 id="bns">Bins at the end of the day</h2><div class="panel bins" id="bins"></div></section>
+    <section aria-labelledby="chk"><h2 id="chk">Run checks</h2><div class="panel"><ul class="checks" id="checks"></ul></div></section>
+    <section aria-labelledby="asm"><h2 id="asm">Assumptions in this run</h2><div class="panel"><ul class="plain" id="assumptions"></ul></div></section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const DATA = {"engine": "0.3.0.dev0", "scenarios": [{"key": "open", "label": "Yard unlimited", "note": "Trucks that have weighed in can always wait in the hopper yard.", "trucks": [{"id": "T01", "commodity": "Yellow maize", "grade": "1", "tonnes": 32.0, "arrived": 420.0, "departed": 436.0, "segments": [{"kind": "service", "step": "sample", "start": 420.0, "end": 422.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 422.0, "end": 426.0}, {"kind": "service", "step": "weigh_in", "start": 426.0, "end": 428.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 428.0, "end": 434.0, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 434.0, "end": 436.0, "where": "Weighbridge"}]}, {"id": "T02", "commodity": "Yellow maize", "grade": "1", "tonnes": 30.0, "arrived": 423.0, "departed": 440.0, "segments": [{"kind": "service", "step": "sample", "start": 423.0, "end": 425.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 425.0, "end": 429.0}, {"kind": "service", "step": "weigh_in", "start": 429.0, "end": 431.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 431.0, "end": 437.0, "where": "Hopper 2"}, {"kind": "blocked", "step": "tip", "start": 437.0, "end": 438.0, "where": "Hopper 2"}, {"kind": "wait", "step": "weigh_out", "start": 437.0, "end": 438.0}, {"kind": "service", "step": "weigh_out", "start": 438.0, "end": 440.0, "where": "Weighbridge"}]}, {"id": "T03", "commodity": "White maize", "grade": null, "tonnes": 31.0, "arrived": 426.0, "departed": 496.6, "segments": [{"kind": "service", "step": "sample", "start": 426.0, "end": 428.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 428.0, "end": 432.0}, {"kind": "service", "step": "weigh_in", "start": 432.0, "end": 434.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 434.0, "end": 488.6}, {"kind": "service", "step": "tip", "start": 488.6, "end": 494.6, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 494.6, "end": 496.6, "where": "Weighbridge"}]}, {"id": "T04", "commodity": "Yellow maize", "grade": "2", "tonnes": 28.0, "arrived": 428.0, "departed": 498.6, "segments": [{"kind": "service", "step": "sample", "start": 428.0, "end": 430.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 430.0, "end": 434.0}, {"kind": "wait", "step": "weigh_in", "start": 434.0, "end": 436.0}, {"kind": "service", "step": "weigh_in", "start": 436.0, "end": 438.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 438.0, "end": 490.1}, {"kind": "service", "step": "tip", "start": 490.1, "end": 496.1, "where": "Hopper 2"}, {"kind": "blocked", "step": "tip", "start": 496.1, "end": 496.6, "where": "Hopper 2"}, {"kind": "wait", "step": "weigh_out", "start": 496.1, "end": 496.6}, {"kind": "service", "step": "weigh_out", "start": 496.6, "end": 498.6, "where": "Weighbridge"}]}, {"id": "T05", "commodity": "Yellow maize", "grade": "1", "tonnes": 33.0, "arrived": 432.0, "departed": 450.0, "segments": [{"kind": "service", "step": "sample", "start": 432.0, "end": 434.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 434.0, "end": 438.0}, {"kind": "wait", "step": "weigh_in", "start": 438.0, "end": 440.0}, {"kind": "service", "step": "weigh_in", "start": 440.0, "end": 442.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 442.0, "end": 448.0, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 448.0, "end": 450.0, "where": "Weighbridge"}]}, {"id": "T06", "commodity": "White maize", "grade": null, "tonnes": 30.0, "arrived": 435.0, "departed": 510.9, "segments": [{"kind": "service", "step": "sample", "start": 435.0, "end": 437.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 437.0, "end": 441.0}, {"kind": "wait", "step": "weigh_in", "start": 441.0, "end": 442.0}, {"kind": "service", "step": "weigh_in", "start": 442.0, "end": 444.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 444.0, "end": 502.9}, {"kind": "service", "step": "tip", "start": 502.9, "end": 508.9, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 508.9, "end": 510.9, "where": "Weighbridge"}]}, {"id": "T07", "commodity": "Yellow maize", "grade": "1", "tonnes": 29.0, "arrived": 438.0, "departed": 456.0, "segments": [{"kind": "service", "step": "sample", "start": 438.0, "end": 440.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 440.0, "end": 444.0}, {"kind": "service", "step": "weigh_in", "start": 444.0, "end": 446.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 446.0, "end": 452.0, "where": "Hopper 2"}, {"kind": "blocked", "step": "tip", "start": 452.0, "end": 454.0, "where": "Hopper 2"}, {"kind": "wait", "step": "weigh_out", "start": 452.0, "end": 454.0}, {"kind": "service", "step": "weigh_out", "start": 454.0, "end": 456.0, "where": "Weighbridge"}]}, {"id": "T08", "commodity": "Yellow maize", "grade": "2", "tonnes": 34.0, "arrived": 442.0, "departed": 556.5, "segments": [{"kind": "service", "step": "sample", "start": 442.0, "end": 444.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 444.0, "end": 448.0}, {"kind": "wait", "step": "weigh_in", "start": 448.0, "end": 450.0}, {"kind": "service", "step": "weigh_in", "start": 450.0, "end": 452.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 452.0, "end": 548.5}, {"kind": "service", "step": "tip", "start": 548.5, "end": 554.5, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 554.5, "end": 556.5, "where": "Weighbridge"}]}, {"id": "T09", "commodity": "Yellow maize", "grade": "1", "tonnes": 31.0, "arrived": 445.0, "departed": 462.0, "segments": [{"kind": "service", "step": "sample", "start": 445.0, "end": 447.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 447.0, "end": 451.0}, {"kind": "wait", "step": "weigh_in", "start": 451.0, "end": 452.0}, {"kind": "service", "step": "weigh_in", "start": 452.0, "end": 454.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 454.0, "end": 460.0, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 460.0, "end": 462.0, "where": "Weighbridge"}]}, {"id": "T10", "commodity": "White maize", "grade": null, "tonnes": 30.0, "arrived": 450.0, "departed": 519.9, "segments": [{"kind": "service", "step": "sample", "start": 450.0, "end": 452.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 452.0, "end": 456.0}, {"kind": "service", "step": "weigh_in", "start": 456.0, "end": 458.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 458.0, "end": 511.9}, {"kind": "service", "step": "tip", "start": 511.9, "end": 517.9, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 517.9, "end": 519.9, "where": "Weighbridge"}]}, {"id": "T11", "commodity": "Yellow maize", "grade": "1", "tonnes": 32.0, "arrived": 454.0, "departed": 472.0, "segments": [{"kind": "service", "step": "sample", "start": 454.0, "end": 456.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 456.0, "end": 460.0}, {"kind": "wait", "step": "weigh_in", "start": 460.0, "end": 462.0}, {"kind": "service", "step": "weigh_in", "start": 462.0, "end": 464.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 464.0, "end": 470.0, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 470.0, "end": 472.0, "where": "Weighbridge"}]}, {"id": "T12", "commodity": "Yellow maize", "grade": "2", "tonnes": 30.0, "arrived": 458.0, "departed": 504.6, "segments": [{"kind": "service", "step": "sample", "start": 458.0, "end": 460.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 460.0, "end": 464.0}, {"kind": "service", "step": "weigh_in", "start": 464.0, "end": 466.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 466.0, "end": 496.6}, {"kind": "service", "step": "tip", "start": 496.6, "end": 502.6, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 502.6, "end": 504.6, "where": "Weighbridge"}]}], "transfers": [{"pit": "Hopper 1", "bin": "Bin 1", "truck": "T01", "tonnes": 32.0, "reserved": 434.0, "flow": 434.0, "finished": 450.2, "changeover": 0.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T02", "tonnes": 30.0, "reserved": 437.0, "flow": 437.0, "finished": 455.0, "changeover": 0.0}, {"pit": "Hopper 1", "bin": "Bin 1", "truck": "T05", "tonnes": 33.0, "reserved": 450.2, "flow": 450.2, "finished": 470.0, "changeover": 0.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T07", "tonnes": 29.0, "reserved": 455.0, "flow": 455.0, "finished": 472.4, "changeover": 0.0}, {"pit": "Hopper 1", "bin": "Bin 1", "truck": "T09", "tonnes": 31.0, "reserved": 470.0, "flow": 470.0, "finished": 488.6, "changeover": 0.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T11", "tonnes": 32.0, "reserved": 472.4, "flow": 472.4, "finished": 490.1, "changeover": 0.0}, {"pit": "Hopper 1", "bin": "Bin 3", "truck": "T03", "tonnes": 31.0, "reserved": 494.6, "flow": 502.6, "finished": 511.9, "changeover": 8.0}, {"pit": "Hopper 2", "bin": "Bin 2", "truck": "T04", "tonnes": 28.0, "reserved": 511.9, "flow": 516.9, "finished": 525.3, "changeover": 5.0}, {"pit": "Hopper 1", "bin": "Bin 3", "truck": "T06", "tonnes": 30.0, "reserved": 525.3, "flow": 533.3, "finished": 542.3, "changeover": 8.0}, {"pit": "Hopper 2", "bin": "Bin 2", "truck": "T12", "tonnes": 30.0, "reserved": 542.3, "flow": 547.3, "finished": 556.3, "changeover": 5.0}, {"pit": "Hopper 1", "bin": "Bin 3", "truck": "T10", "tonnes": 30.0, "reserved": 556.3, "flow": 564.3, "finished": 573.3, "changeover": 8.0}, {"pit": "Hopper 2", "bin": "Bin 2", "truck": "T08", "tonnes": 34.0, "reserved": 573.3, "flow": 578.3, "finished": 588.5, "changeover": 5.0}], "bins": [{"name": "Bin 1", "tonnes": 187.0, "capacity": 3000, "holds": "Yellow maize grade 1"}, {"name": "Bin 2", "tonnes": 92.0, "capacity": 3000, "holds": "Yellow maize grade 2"}, {"name": "Bin 3", "tonnes": 91.0, "capacity": 3000, "holds": "White maize"}], "kpi": {"mean_turnaround": 46.00833333333333, "max_turnaround": 114.5, "last_departure": "09:16:30", "completed": 12, "unfinished": 0, "weighbridge_blocked": 0, "mean_tip_wait": 57.76666666666667, "mean_weigh_wait": 1.6666666666666667, "changeovers": 6, "yard_peak": 6}, "checks": {"material_balance_kg": 0, "violations": 0, "stall": null}, "assumptions": ["Waiting area Road queue has unlimited space.", "Waiting area Lab waiting bay has unlimited space.", "Waiting area Hopper yard has unlimited space."], "config_hash": "5eb25bfeb46f"}, {"key": "tight", "label": "Yard holds 1", "note": "Only one truck fits between the weighbridge and the hoppers. A truck may only weigh in when a yard place is reserved for it.", "trucks": [{"id": "T01", "commodity": "Yellow maize", "grade": "1", "tonnes": 32.0, "arrived": 420.0, "departed": 436.0, "segments": [{"kind": "service", "step": "sample", "start": 420.0, "end": 422.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 422.0, "end": 426.0}, {"kind": "service", "step": "weigh_in", "start": 426.0, "end": 428.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 428.0, "end": 434.0, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 434.0, "end": 436.0, "where": "Weighbridge"}]}, {"id": "T02", "commodity": "Yellow maize", "grade": "1", "tonnes": 30.0, "arrived": 423.0, "departed": 439.0, "segments": [{"kind": "service", "step": "sample", "start": 423.0, "end": 425.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 425.0, "end": 429.0}, {"kind": "service", "step": "weigh_in", "start": 429.0, "end": 431.0, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 431.0, "end": 437.0, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 437.0, "end": 439.0, "where": "Weighbridge"}]}, {"id": "T03", "commodity": "White maize", "grade": null, "tonnes": 31.0, "arrived": 426.0, "departed": 458.2, "segments": [{"kind": "service", "step": "sample", "start": 426.0, "end": 428.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 428.0, "end": 432.0}, {"kind": "service", "step": "weigh_in", "start": 432.0, "end": 434.0, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 434.0, "end": 450.2}, {"kind": "service", "step": "tip", "start": 450.2, "end": 456.2, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 456.2, "end": 458.2, "where": "Weighbridge"}]}, {"id": "T04", "commodity": "Yellow maize", "grade": "2", "tonnes": 28.0, "arrived": 428.0, "departed": 460.6, "segments": [{"kind": "service", "step": "sample", "start": 428.0, "end": 430.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 430.0, "end": 434.0}, {"kind": "wait", "step": "weigh_in", "start": 434.0, "end": 450.2}, {"kind": "service", "step": "weigh_in", "start": 450.2, "end": 452.2, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 452.2, "end": 452.6}, {"kind": "service", "step": "tip", "start": 452.6, "end": 458.6, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 458.6, "end": 460.6, "where": "Weighbridge"}]}, {"id": "T05", "commodity": "Yellow maize", "grade": "1", "tonnes": 33.0, "arrived": 432.0, "departed": 481.5, "segments": [{"kind": "service", "step": "sample", "start": 432.0, "end": 434.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 434.0, "end": 438.0}, {"kind": "wait", "step": "weigh_in", "start": 438.0, "end": 452.6}, {"kind": "service", "step": "weigh_in", "start": 452.6, "end": 454.6, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 454.6, "end": 473.5}, {"kind": "service", "step": "tip", "start": 473.5, "end": 479.5, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 479.5, "end": 481.5, "where": "Weighbridge"}]}, {"id": "T06", "commodity": "White maize", "grade": null, "tonnes": 30.0, "arrived": 435.0, "departed": 504.8, "segments": [{"kind": "service", "step": "sample", "start": 435.0, "end": 437.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 437.0, "end": 441.0}, {"kind": "wait", "step": "weigh_in", "start": 441.0, "end": 473.5}, {"kind": "service", "step": "weigh_in", "start": 473.5, "end": 475.5, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 475.5, "end": 496.8}, {"kind": "service", "step": "tip", "start": 496.8, "end": 502.8, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 502.8, "end": 504.8, "where": "Weighbridge"}]}, {"id": "T07", "commodity": "Yellow maize", "grade": "1", "tonnes": 29.0, "arrived": 438.0, "departed": 506.8, "segments": [{"kind": "service", "step": "sample", "start": 438.0, "end": 440.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 440.0, "end": 444.0}, {"kind": "wait", "step": "weigh_in", "start": 444.0, "end": 496.8}, {"kind": "service", "step": "weigh_in", "start": 496.8, "end": 498.8, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 498.8, "end": 504.8, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 504.8, "end": 506.8, "where": "Weighbridge"}]}, {"id": "T08", "commodity": "Yellow maize", "grade": "2", "tonnes": 34.0, "arrived": 442.0, "departed": 527.8, "segments": [{"kind": "service", "step": "sample", "start": 442.0, "end": 444.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 444.0, "end": 448.0}, {"kind": "wait", "step": "weigh_in", "start": 448.0, "end": 498.8}, {"kind": "service", "step": "weigh_in", "start": 498.8, "end": 500.8, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 500.8, "end": 519.8}, {"kind": "service", "step": "tip", "start": 519.8, "end": 525.8, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 525.8, "end": 527.8, "where": "Weighbridge"}]}, {"id": "T09", "commodity": "Yellow maize", "grade": "1", "tonnes": 31.0, "arrived": 445.0, "departed": 529.8, "segments": [{"kind": "service", "step": "sample", "start": 445.0, "end": 447.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 447.0, "end": 451.0}, {"kind": "wait", "step": "weigh_in", "start": 451.0, "end": 519.8}, {"kind": "service", "step": "weigh_in", "start": 519.8, "end": 521.8, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 521.8, "end": 527.8, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 527.8, "end": 529.8, "where": "Weighbridge"}]}, {"id": "T10", "commodity": "White maize", "grade": null, "tonnes": 30.0, "arrived": 450.0, "departed": 551.7, "segments": [{"kind": "service", "step": "sample", "start": 450.0, "end": 452.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 452.0, "end": 456.0}, {"kind": "wait", "step": "weigh_in", "start": 456.0, "end": 521.8}, {"kind": "service", "step": "weigh_in", "start": 521.8, "end": 523.8, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 523.8, "end": 543.7}, {"kind": "service", "step": "tip", "start": 543.7, "end": 549.7, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 549.7, "end": 551.7, "where": "Weighbridge"}]}, {"id": "T11", "commodity": "Yellow maize", "grade": "1", "tonnes": 32.0, "arrived": 454.0, "departed": 553.7, "segments": [{"kind": "service", "step": "sample", "start": 454.0, "end": 456.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 456.0, "end": 460.0}, {"kind": "wait", "step": "weigh_in", "start": 460.0, "end": 543.7}, {"kind": "service", "step": "weigh_in", "start": 543.7, "end": 545.7, "where": "Weighbridge"}, {"kind": "service", "step": "tip", "start": 545.7, "end": 551.7, "where": "Hopper 2"}, {"kind": "service", "step": "weigh_out", "start": 551.7, "end": 553.7, "where": "Weighbridge"}]}, {"id": "T12", "commodity": "Yellow maize", "grade": "2", "tonnes": 30.0, "arrived": 458.0, "departed": 578.0, "segments": [{"kind": "service", "step": "sample", "start": 458.0, "end": 460.0, "where": "Sampling point"}, {"kind": "grade", "step": "grade", "start": 460.0, "end": 464.0}, {"kind": "wait", "step": "weigh_in", "start": 464.0, "end": 545.7}, {"kind": "service", "step": "weigh_in", "start": 545.7, "end": 547.7, "where": "Weighbridge"}, {"kind": "wait", "step": "tip", "start": 547.7, "end": 570.0}, {"kind": "service", "step": "tip", "start": 570.0, "end": 576.0, "where": "Hopper 1"}, {"kind": "service", "step": "weigh_out", "start": 576.0, "end": 578.0, "where": "Weighbridge"}]}], "transfers": [{"pit": "Hopper 1", "bin": "Bin 1", "truck": "T01", "tonnes": 32.0, "reserved": 434.0, "flow": 434.0, "finished": 450.2, "changeover": 0.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T02", "tonnes": 30.0, "reserved": 437.0, "flow": 437.0, "finished": 452.6, "changeover": 0.0}, {"pit": "Hopper 1", "bin": "Bin 3", "truck": "T03", "tonnes": 31.0, "reserved": 456.2, "flow": 464.2, "finished": 473.5, "changeover": 8.0}, {"pit": "Hopper 2", "bin": "Bin 2", "truck": "T04", "tonnes": 28.0, "reserved": 473.5, "flow": 478.5, "finished": 486.9, "changeover": 5.0}, {"pit": "Hopper 1", "bin": "Bin 1", "truck": "T05", "tonnes": 33.0, "reserved": 486.9, "flow": 486.9, "finished": 496.8, "changeover": 0.0}, {"pit": "Hopper 1", "bin": "Bin 3", "truck": "T06", "tonnes": 30.0, "reserved": 502.8, "flow": 510.8, "finished": 519.8, "changeover": 8.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T07", "tonnes": 29.0, "reserved": 519.8, "flow": 524.8, "finished": 533.5, "changeover": 5.0}, {"pit": "Hopper 1", "bin": "Bin 2", "truck": "T08", "tonnes": 34.0, "reserved": 533.5, "flow": 533.5, "finished": 543.7, "changeover": 0.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T09", "tonnes": 31.0, "reserved": 543.7, "flow": 543.7, "finished": 553.0, "changeover": 0.0}, {"pit": "Hopper 1", "bin": "Bin 3", "truck": "T10", "tonnes": 30.0, "reserved": 553.0, "flow": 561.0, "finished": 570.0, "changeover": 8.0}, {"pit": "Hopper 2", "bin": "Bin 1", "truck": "T11", "tonnes": 32.0, "reserved": 570.0, "flow": 575.0, "finished": 584.6, "changeover": 5.0}, {"pit": "Hopper 1", "bin": "Bin 2", "truck": "T12", "tonnes": 30.0, "reserved": 584.6, "flow": 584.6, "finished": 593.6, "changeover": 0.0}], "bins": [{"name": "Bin 1", "tonnes": 187.0, "capacity": 3000, "holds": "Yellow maize grade 1"}, {"name": "Bin 2", "tonnes": 92.0, "capacity": 3000, "holds": "Yellow maize grade 2"}, {"name": "Bin 3", "tonnes": 91.0, "capacity": 3000, "holds": "White maize"}], "kpi": {"mean_turnaround": 64.74166666666667, "max_turnaround": 120.0, "last_departure": "09:38", "completed": 12, "unfinished": 0, "weighbridge_blocked": 0, "mean_tip_wait": 16.857142857142858, "mean_weigh_wait": 51.87777777777778, "changeovers": 6, "yard_peak": 1}, "checks": {"material_balance_kg": 0, "violations": 0, "stall": null}, "assumptions": ["Waiting area Road queue has unlimited space.", "Waiting area Lab waiting bay has unlimited space."], "config_hash": "49ce4e75930b"}]};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clock = (m) => { const h = Math.floor(m / 60), mm = Math.floor(m % 60), s = Math.round((m * 60) % 60);
+  return String(h).padStart(2, "0") + ":" + String(mm).padStart(2, "0") + (s ? ":" + String(s).padStart(2, "0") : ""); };
+const dur = (a, b) => { const d = b - a; return (Math.round(d * 10) / 10) + " min"; };
+const STEP = { sample: ["Sampling", "--s-sample"], grade: ["Waiting for grading result", "--s-grade"],
+  weigh_in: ["Weigh in", "--s-weigh"], weigh_out: ["Weigh out", "--s-weigh"], tip: ["Tipping", "--s-tip"] };
+const WAIT_FOR = { sample: "the sampling point", weigh_in: "the weighbridge (weigh in)", tip: "a hopper", weigh_out: "the weighbridge (weigh out)" };
+
+// Shared clock across both scenarios, so the two timelines compare directly.
+const ends = DATA.scenarios.flatMap((s) => s.trucks.map((t) => t.departed || 0).concat(s.transfers.map((x) => x.finished || 0)));
+const T0 = 7 * 60, T1 = Math.ceil(Math.max(...ends) / 15) * 15;
+let current = "open";
+try { current = localStorage.getItem("scenario-viewer") || "open"; } catch (e) { /* storage unavailable */ }
+if (!DATA.scenarios.some((s) => s.key === current)) current = "open";
+
+function legends() {
+  $("#legend-trucks").innerHTML = [
+    ["Sampling", "var(--s-sample)"], ["Waiting for grading result", "var(--s-grade)"], ["Weighbridge", "var(--s-weigh)"],
+    ["Tipping into a hopper", "var(--s-tip)"]].map(([l, c]) => `<span><i class="sw" style="background:${c}"></i>${l}</span>`).join("") +
+    `<span><svg width="18" height="10" aria-hidden="true"><rect width="18" height="10" rx="2" fill="url(#hatch-legend)"/></svg>Finished but blocked (no space ahead)</span>` +
+    `<span><i class="sw line"></i>Queueing</span>`;
+  $("#legend-grain").innerHTML = `<span><i class="sw" style="background:var(--s-grain)"></i>Grain flowing to a bin</span>` +
+    `<span><svg width="18" height="10" aria-hidden="true"><rect width="18" height="10" rx="2" fill="url(#hatch-co-legend)"/></svg>Commodity changeover (route cleaned, no grain moving)</span>`;
+}
+
+function axis(width, left, top, height) {
+  const x = (m) => left + (m - T0) / (T1 - T0) * (width - left - 12);
+  let g = "";
+  for (let m = T0; m <= T1; m += 15) {
+    const major = m % 60 === 0;
+    g += `<line x1="${x(m)}" x2="${x(m)}" y1="${top}" y2="${top + height}" stroke="var(--line)" stroke-width="1"${major ? "" : ' stroke-dasharray="2 3"'}/>`;
+    g += `<text x="${x(m)}" y="${top - 8}" text-anchor="middle">${clock(m)}</text>`;
+  }
+  return { x, g };
+}
+
+function defs() {
+  return `<defs>
+    <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="var(--surface)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--hatch)" stroke-width="2.2"/></pattern>
+    <pattern id="hatch-co" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(135)">
+      <rect width="6" height="6" fill="var(--surface)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--s-grain)" stroke-width="2.2"/></pattern>
+  </defs>`;
+}
+
+function trucksChart(s) {
+  const rowH = 30, left = 150, top = 30, width = Math.max(860, $("#chart-trucks").clientWidth - 34);
+  const h = top + s.trucks.length * rowH + 8;
+  const { x, g } = axis(width, left, top, s.trucks.length * rowH);
+  let rows = "";
+  s.trucks.forEach((t, i) => {
+    const y = top + i * rowH, cy = y + rowH / 2;
+    const grade = t.grade ? ` · grade ${t.grade}` : "";
+    rows += `<text class="rowlbl" x="0" y="${cy - 1}">${esc(t.id)}</text><text class="rowsub" x="40" y="${cy - 1}">${esc(t.commodity)}${grade}</text>`;
+    rows += `<text class="rowsub" x="40" y="${cy + 12}">${t.tonnes} t · arrived ${clock(t.arrived)}</text>`;
+    for (const sg of t.segments) {
+      const a = x(sg.start), b = x(sg.end == null ? T1 : sg.end), w = Math.max(b - a, 1);
+      const [label, color] = STEP[sg.step] || [sg.step, "--muted"];
+      let tipText, shape;
+      if (sg.kind === "wait") {
+        tipText = `<b>${t.id}</b> queueing for ${WAIT_FOR[sg.step] || sg.step}<br>${clock(sg.start)}–${sg.end == null ? "end" : clock(sg.end)} (${sg.end == null ? "unfinished" : dur(sg.start, sg.end)})`;
+        shape = `<rect class="seg" x="${a}" y="${cy - 5}" width="${w}" height="10" fill="transparent"/><line x1="${a}" x2="${b}" y1="${cy}" y2="${cy}" stroke="var(--muted)" stroke-width="2"/>`;
+      } else if (sg.kind === "blocked") {
+        tipText = `<b>${t.id}</b> finished at ${esc(sg.where)} but blocked: no space ahead<br>${clock(sg.start)}–${clock(sg.end)} (${dur(sg.start, sg.end)})`;
+        shape = `<rect class="seg" x="${a}" y="${cy - 7}" width="${w}" height="14" rx="2" fill="url(#hatch)" stroke="var(--surface)" stroke-width="1"/>`;
+      } else if (sg.kind === "grade") {
+        tipText = `<b>${t.id}</b> waiting for its own grading result<br>${clock(sg.start)}–${clock(sg.end)} (${dur(sg.start, sg.end)})`;
+        shape = `<rect class="seg" x="${a}" y="${cy - 4}" width="${w}" height="8" rx="2" fill="var(${color})" stroke="var(--surface)" stroke-width="1"/>`;
+      } else {
+        tipText = `<b>${t.id}</b> ${label.toLowerCase()} at ${esc(sg.where)}<br>${clock(sg.start)}–${clock(sg.end)} (${dur(sg.start, sg.end)})`;
+        shape = `<rect class="seg" x="${a}" y="${cy - 7}" width="${w}" height="14" rx="2" fill="var(${color})" stroke="var(--surface)" stroke-width="1"/>`;
+      }
+      rows += `<g data-tip="${esc(tipText)}">${shape}</g>`;
+    }
+    if (t.departed != null) rows += `<text x="${x(t.departed) + 5}" y="${cy + 4}">${dur(t.arrived, t.departed)}</text>`;
+  });
+  $("#chart-trucks").innerHTML = `<svg width="${width}" height="${h}" viewBox="0 0 ${width} ${h}" role="img" aria-label="Timeline of each truck's steps">${defs()}${g}${rows}</svg>`;
+}
+
+function grainChart(s) {
+  const pits = [...new Set(s.transfers.map((x) => x.pit))].sort();
+  const rowH = 44, left = 150, top = 30, width = Math.max(860, $("#chart-grain").clientWidth - 34);
+  const h = top + pits.length * rowH + 8;
+  const { x, g } = axis(width, left, top, pits.length * rowH);
+  let rows = "";
+  pits.forEach((p, i) => {
+    const cy = top + i * rowH + rowH / 2;
+    rows += `<text class="rowlbl" x="0" y="${cy + 4}">${esc(p)}</text>`;
+    for (const tr of s.transfers.filter((v) => v.pit === p)) {
+      const a = x(tr.reserved), f = x(tr.flow), b = x(tr.finished);
+      const who = tr.truck ? `${tr.truck}'s lot` : "Opening stock";
+      if (f > a) rows += `<g data-tip="${esc(`<b>${who}</b>: changeover before ${tr.bin}<br>${clock(tr.reserved)}–${clock(tr.flow)} (${dur(tr.reserved, tr.flow)})`)}"><rect class="seg" x="${a}" y="${cy - 9}" width="${f - a}" height="18" rx="2" fill="url(#hatch-co)" stroke="var(--surface)" stroke-width="1"/></g>`;
+      rows += `<g data-tip="${esc(`<b>${who}</b>: ${tr.tonnes} t into ${tr.bin}<br>${clock(tr.flow)}–${clock(tr.finished)} (${dur(tr.flow, tr.finished)})`)}"><rect class="seg" x="${f}" y="${cy - 9}" width="${Math.max(b - f, 1)}" height="18" rx="2" fill="var(--s-grain)" stroke="var(--surface)" stroke-width="1"/>${b - f > 30 ? `<text class="inbar" x="${f + 4}" y="${cy + 3.5}">${esc(tr.bin.replace("Bin ", "B"))}</text>` : ""}</g>`;
+    }
+  });
+  $("#chart-grain").innerHTML = `<svg width="${width}" height="${h}" viewBox="0 0 ${width} ${h}" role="img" aria-label="Timeline of grain transfers per hopper">${defs()}${g}${rows}</svg>`;
+}
+
+function kpis() {
+  const [a, b] = DATA.scenarios;
+  const rows = [
+    ["Average turnaround", "mean_turnaround", "min", -1], ["Longest turnaround", "max_turnaround", "min", -1],
+    ["Last truck leaves", "last_departure", "", 0], ["Average wait to weigh in", "mean_weigh_wait", "min", -1],
+    ["Average wait for a hopper", "mean_tip_wait", "min", -1], ["Weighbridge blocked", "weighbridge_blocked", "min", -1],
+    ["Most trucks in the yard at once", "yard_peak", "", 0], ["Commodity changeovers", "changeovers", "", 0]];
+  const fmt = (v) => typeof v === "number" ? (Math.round(v * 10) / 10).toString() : v;
+  const active = DATA.scenarios.findIndex((s) => s.key === current);
+  let html = `<colgroup><col><col${active === 0 ? ' class="active"' : ""}><col${active === 1 ? ' class="active"' : ""}><col></colgroup>`;
+  html += `<thead><tr><th>Measure</th><th class="n">${esc(a.label)}</th><th class="n">${esc(b.label)}</th><th class="n">Difference</th></tr></thead><tbody>`;
+  for (const [label, key, unit, better] of rows) {
+    const va = a.kpi[key], vb = b.kpi[key];
+    let diff = "–", cls = "";
+    if (typeof va === "number") {
+      const d = Math.round((vb - va) * 10) / 10;
+      diff = (d > 0 ? "+" : "") + d + (unit ? " " + unit : "");
+      if (better && d !== 0) cls = (d * better > 0) ? "delta-better" : "delta-worse";
+      if (d === 0) diff = "same";
+    }
+    html += `<tr><td class="lbl">${label}</td><td class="n">${fmt(va)}${unit && typeof va === "number" ? " " + unit : ""}</td><td class="n">${fmt(vb)}${unit && typeof vb === "number" ? " " + unit : ""}</td><td class="n ${cls}">${diff}</td></tr>`;
+  }
+  $("#kpis").innerHTML = html + "</tbody>";
+}
+
+function lower(s) {
+  $("#bins").innerHTML = s.bins.map((b) => `<div class="bin"><div class="row"><span>${esc(b.name)} · ${esc(b.holds)}</span><span class="mono">${b.tonnes} / ${b.capacity} t</span></div><div class="bar" role="img" aria-label="${esc(b.name)} ${Math.round(b.tonnes / b.capacity * 100)} percent full"><i style="width:${Math.max(b.tonnes / b.capacity * 100, 0.5)}%"></i></div></div>`).join("");
+  const c = s.checks;
+  const item = (ok, text) => `<li><span class="pill ${ok ? "ok" : "bad"}">${ok ? "Pass" : "Fail"}</span><span>${text}</span></li>`;
+  $("#checks").innerHTML = item(c.material_balance_kg === 0, `Every kilogram accounted for (balance error ${c.material_balance_kg} kg)`) +
+    item(c.violations === 0, `${c.violations} rule violations (capacity, commodity mixing, double bookings)`) +
+    item(c.stall === null, c.stall === null ? "No deadlock or jam" : `Plant jammed at ${c.stall}`) +
+    item(s.kpi.unfinished === 0, `${s.kpi.completed} of ${s.kpi.completed + s.kpi.unfinished} trucks finished`);
+  $("#assumptions").innerHTML = s.assumptions.length ? s.assumptions.map((a) => `<li>${esc(a)}</li>`).join("")
+    : "<li>No simplifications reported for this run.</li>";
+  $("#assumptions").insertAdjacentHTML("beforeend", "<li>Service times are fixed (sampling 2, grading 4, weighing 2, tipping 6 min), not measured.</li>");
+}
+
+function render() {
+  const s = DATA.scenarios.find((v) => v.key === current);
+  document.querySelectorAll(".switch button").forEach((btn) => btn.setAttribute("aria-pressed", btn.dataset.key === current));
+  $("#scen-note").textContent = "Timelines below show: " + s.label + ". " + s.note;
+  kpis(); trucksChart(s); grainChart(s); lower(s);
+  $("#foot").innerHTML = `<span>Engine ${esc(DATA.engine)}</span><span>Configuration ${esc(s.config_hash)}</span><span>Policy: feasible-first; reserve next space</span>`;
+}
+
+$("#engine").textContent = "Developer review · simulation engine " + DATA.engine;
+legends();
+document.body.insertAdjacentHTML("beforeend", `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <pattern id="hatch-legend" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="var(--surface)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--hatch)" stroke-width="2.2"/></pattern>
+  <pattern id="hatch-co-legend" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(135)"><rect width="6" height="6" fill="var(--surface)"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--s-grain)" stroke-width="2.2"/></pattern></defs></svg>`);
+document.querySelectorAll(".switch button").forEach((btn) => btn.addEventListener("click", () => {
+  current = btn.dataset.key;
+  try { localStorage.setItem("scenario-viewer", current); } catch (e) { /* storage unavailable */ }
+  render();
+}));
+const tip = $("#tip");
+document.addEventListener("mousemove", (e) => {
+  const g = e.target.closest && e.target.closest("[data-tip]");
+  if (!g) { tip.classList.remove("show"); return; }
+  tip.innerHTML = g.dataset.tip;
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(e.clientX + pad, window.innerWidth - w - 8) + "px";
+  tip.style.top = Math.max(8, e.clientY - h - pad) + "px";
+  tip.classList.add("show");
+});
+let resizeTimer;
+window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(render, 150); });
+render();
+</script>
