@@ -1,61 +1,240 @@
-# Domain decisions — operating rules to confirm before they enter the engine
+# Domain rules specification — confirmed decisions D1–D6 and storage bins (R7)
 
-Status of every item: **PROPOSED, awaiting confirmation by the domain owner.** Nothing below is implemented beyond what the prototype already does. Once confirmed, each rule gets a behavioural test before any code.
+Decisions confirmed by the domain owner on 2026-10-22. This file specifies each rule **before implementation**: configuration parameters, expected behaviour, edge cases and verification tests.
 
-Each item gives: what the prototype does today (observed), the proposed interpretation, why, and the test that would pin it down.
+Tags used throughout:
+- **[CONFIRMED]** physical or operating rule confirmed by the domain owner; the engine must implement it.
+- **[SITE INPUT]** behaviour that differs per silo; it is a configuration parameter, and its value must come from the site.
+- **[ASSUMPTION]** a modelling choice made by the engineer, not yet confirmed. It is listed in §8 for review.
+- **[DEFAULT]** what the engine does when a site has not supplied a value. Every default is reported in the run's assumptions list. None is silent.
 
----
+No site's layout (including Ventersdorp) appears in engine code. Sites differ only by configuration.
 
-## D1. Can two hoppers of the same commodity share one elevator at the same time?
-
-- **Prototype:** no. A transfer reserves every conveyor and elevator on its path, exclusively, for the whole lot (whole route × whole lot). Two hoppers carrying the same commodity alternate one lot at a time (BASELINE_RESULTS B4 trace).
-- **Proposal:** keep **one lot at a time per route segment** as the default rule. It is safe, deadlock-free and matches the prototype. Design the reservation ledger so that a second rule can be switched on per site later without rewriting the dispatcher: **"commodity lock"**, where a segment may carry several streams of the *same* commodity at once and shares its t/h rate between them.
-- **Why:** the default is the conservative reading of "whole-route reservation". The alternative could matter a lot for throughput (an elevator idling while a second same-commodity pit waits), but it should only be built if it happens on real plants.
-- **Question for you:** at the sites you know, do two pits ever discharge onto the same conveyor or elevator at the same time? If so, is it only for the same commodity?
-- **Test:** two hoppers, one elevator, same commodity, scripted arrivals at 07:00 and 07:01. Under the default rule the second lot starts exactly when the first finishes (hand-computed times).
-
-## D2. Can an unloading truck leave before its grain reaches the bin?
-
-- **Prototype:** yes. The truck tips into the pit and continues to weigh-out at once; the pit acts as a buffer. A truck waits only if the pit cannot take its **whole** load (no partial tipping).
-- **Proposal:** adopt the prototype rule. Tipping needs a free pit with enough space for the full load, of a compatible commodity (empty, or holding the same commodity). The truck is then released, and the grain becomes a lot in the pit.
-- **Question for you:** is partial tipping ever done (a truck tips half, waits, tips the rest)? Is a truck ever held at the pit until the pit has drained?
-- **Test:** pit capacity 60 t holding 40 t; a 30 t truck arrives. It waits until at least 30 t has drained, and its start time is computed by hand from the discharge rate.
-
-## D3. What happens on a commodity changeover?
-
-- **Prototype:** a changeover is a **time penalty**. If any conveyor or elevator on the chosen route last carried a different commodity, the transfer starts after the longest changeover time among those segments. Segments are treated as empty when each lot finishes. There is no flush quantity and no contamination tracking.
-- **Proposal:** keep the time-based rule. The route stays reserved during the changeover, so nothing else can use it, and the changeover is counted and reported per segment. Add an optional per-segment flush quantity later only if you confirm it happens.
-- **Questions for you:** (a) Is the clearance time-based (run empty for N minutes) or volume-based (a quantity of the new commodity is diverted or downgraded)? (b) Is it needed for every commodity pair, or only some (e.g. yellow to white maize, but not white to yellow)?
-- **Test:** route last carried yellow maize, next lot white maize, changeover 8 min, rate 200 t/h, lot 30 t. Transfer time = 8 + 30/200×60 = **17 min**.
-
-## D4. Must grades be kept apart in bins?
-
-- **Prototype:** no. A grade is drawn per truck (85% grade 1) but is never used for routing or storage.
-- **Proposal:** segregate by **commodity only** in the first engine version. Record grade on each lot so it shows in reports and traces, and leave an optional per-bin "allowed grades" rule for later.
-- **Question for you:** at your sites, are different grades of the same commodity stored in different bins? If so, is grade known before tipping (from the sample) so it can steer the truck to a hopper?
-- **Test (if confirmed):** grade-2 maize is never routed to a bin restricted to grade 1, and a validation error appears if no bin accepts a grade that arrives.
-
-## D5. Do waiting trucks physically block weighbridges or lanes?
-
-- **Prototype:** no. Queues are virtual and unlimited. A truck holds the weighbridge only while being weighed and then moves to an unlimited queue for the hopper.
-- **Proposal:** keep unlimited virtual queues for now. Make it a priority follow-up to add an optional **yard/lane capacity** per area (e.g. space for N trucks between the weighbridge and the hoppers). When that space is full, a truck that has finished weighing stays on the weighbridge and blocks it. This is "blocking after service" and can change weighbridge utilisation materially.
-- **Question for you:** after weigh-in, where do trucks queue for the hoppers, and how many fit? When that space is full, does the truck wait on the weighbridge?
-- **Test (when added):** lane capacity 1, one truck waiting for a busy hopper. The next weighed truck stays on the weighbridge until the lane frees, with times computed by hand.
-
-## D6. What happens to trucks still on site when the silo closes?
-
-- **Prototype:** the gate closes at closing time, and trucks inside are served during overtime. At the end of overtime the run **stops hard**. Trucks still on site are counted but **excluded from turnaround statistics**, which understates congestion on busy days (audit finding, GAP_MATRIX row 40).
-- **Proposal:**
-  1. No new arrivals after closing.
-  2. Trucks already inside are served during overtime.
-  3. At the end of overtime, every truck still on site is reported as **unserved**, with its waiting time so far, and the turnaround KPIs show the unserved count next to them. They are never silently dropped.
-  4. In multi-day runs, unserved trucks become the next morning's opening queue, and grain in pits stays in the pits.
-- **Question for you:** in reality, are trucks inside at closing always finished that night, or sent away? Is there a hard stop time?
-- **Test:** scripted arrivals where the last truck cannot finish before the end of overtime. It appears as unserved with a waiting time computed by hand, and the KPI output reports the count.
+Field names below are proposals for the configuration schema (schema v2). Existing prototype fields keep working, and missing new fields take the default.
 
 ---
 
-## Related decisions already taken (engineering, not operating rules)
+## R1 (D1) Grain transfer equipment: shared, independent and hybrid routes
+
+**Rules**
+- [CONFIRMED] The physical connections (typed directed graph) are the only source of possible routes. Example: H1/H2 → bottom conveyor A and H3/H4 → bottom conveyor B is expressed purely as edges.
+- [CONFIRMED] Different commodities never overlap on the same commodity-locked equipment at the same time.
+- [CONFIRMED] Separate routes (no shared equipment) may carry different commodities at the same time.
+- [CONFIRMED] Concurrent feed of compatible grain onto shared equipment is allowed **only** where the equipment is configured to support it, and the combined flow may not exceed that equipment's transfer capacity.
+- [ASSUMPTION A1] When two streams merge onto one piece of equipment, they cannot be separated again, so they must share the **entire remaining path to the same bin**, and both must be compatible with that bin (commodity *and* grade, R4).
+
+**Configuration** (per conveyor or elevator)
+
+| Field | Type | Meaning | Default |
+|---|---|---|---|
+| `rate` | t/h | Rated transfer capacity | required |
+| `max_concurrent_feeds` | int ≥ 1 | How many streams may feed it at once | **1** [DEFAULT]: exclusive, as in the prototype |
+| `commodity_locked` | bool | Carries one commodity at a time while grain is on it | `true` |
+| `clear_minutes` | minutes ≥ 0 | Time for the last grain to leave the equipment after the feed stops (route held until clear) | **0** [DEFAULT, SITE INPUT] |
+
+**Expected behaviour**
+- A stream may start on a segment if: active streams < `max_concurrent_feeds`; the segment is idle, or every active stream has the same commodity (and grade, A1); and no changeover is in progress (R3).
+- With *n* streams sharing a segment, the combined rate is capped at that segment's `rate`. [ASSUMPTION A2] The capacity is shared equally (each stream gets `rate / n` on that segment, and a stream's speed is the slowest of its segments). When a stream joins or leaves, the remaining tonnes of the others are recomputed and their completion events rescheduled.
+
+**Edge cases:** a merge where the downstream paths differ is refused (blocked reason `MERGE_PATH_DIFFERS`); a commodity mismatch is refused (`COMMODITY_LOCK`); an equipment rate of 0 is caught by configuration validation; a stream finishing early speeds up the remaining stream.
+
+**Verification tests** (hand-computed)
+- T1.1 Independent routes: maize on line A and soybeans on line B both start at 07:00. Neither waits.
+- T1.2 Exclusive shared elevator (`max_concurrent_feeds` = 1): lot 1, 30 t at 200 t/h, runs 07:00–07:09. Lot 2, arriving at 07:01, starts at 07:09 and ends at 07:18.
+- T1.3 Concurrent (= 2), same commodity and same bin: both 30 t lots run at 100 t/h each, 07:00–07:18.
+- T1.4 Concurrent (= 2) but different commodity: the second lot waits as in T1.2.
+- T1.5 Concurrent (= 2), same commodity but different destination bins: refused, `MERGE_PATH_DIFFERS`.
+- T1.6 In T1.3, lot A is only 15 t: A runs 07:00–07:09 at 100 t/h. B has 15 t left at 07:09, then runs alone at 200 t/h and ends at 07:13:30.
+
+## R2 (D2) Hopper pit inventory and truck tipping
+
+**Rules**
+- [CONFIRMED] Pit inventory and its discharge are modelled separately from the truck. A truck can finish tipping before its grain reaches the bin.
+- [CONFIRMED] A truck may only start tipping when the pit has enough available capacity and the operating rules allow it.
+- [SITE INPUT] Partial tipping, and whether a truck must wait for the pit to be clear.
+- [ASSUMPTION A3] Pit level falls **continuously** while discharging, so space becomes available gradually. The prototype frees space only when a whole transfer finishes. Continuous is more realistic but differs from the prototype.
+- [ASSUMPTION A4] A pit holds one commodity and grade at a time, unless the R4 mixing rules allow two grades together.
+
+**Configuration** (per hopper): `cap_t`, `rate` (discharge t/h), `tip` (tipping time distribution), `accepts` (commodity/grade list, R4), and:
+
+| Field | Values | Meaning | Default |
+|---|---|---|---|
+| `tip_admission` | `full_load_space` / `partial` / `empty_pit` | When a truck may start tipping | `full_load_space` [DEFAULT]: as in the prototype |
+
+**Expected behaviour**
+- `full_load_space`: start when free space (capacity − level − already-claimed space) ≥ truck load.
+- `empty_pit`: start only when the pit is empty.
+- `partial`: tip what fits, then wait for space for the remainder. **Not implemented until confirmed.**
+- The truck is released when tipping ends. The grain becomes a lot in the pit, carrying the truck id, commodity, grade and kilograms.
+
+**Edge cases:** a load larger than the pit is a configuration error (already validated); tipping while the pit is discharging is allowed; a truck waiting for space gets a re-check event scheduled at the exact time enough space will exist (A3).
+
+**Verification tests**
+- T2.1 After tipping, the truck proceeds to weigh-out while its lot is still in the pit.
+- T2.2 `full_load_space`: 60 t pit holding 40 t yellow maize and discharging at 200 t/h from 07:00. A 30 t truck arrives at 07:00 and needs 10 t of space, which takes 3 min, so tipping starts at **07:03**.
+- T2.3 `empty_pit`, same situation: 40 t at 200 t/h takes 12 min, so tipping starts at **07:12**.
+- T2.4 Pit holds yellow maize and a white maize truck arrives: it waits until the pit is empty (A4).
+
+## R3 (D3) Commodity changeovers: configurable clearance
+
+**Rules**
+- [CONFIRMED] Commodities stay segregated along the whole route.
+- [CONFIRMED] A route is released only when the required equipment is clear and any configured cleaning or changeover conditions are met.
+- [CONFIRMED] Changeover requirements come from a **commodity-pair matrix**; different pairs may differ. No changeover time is hard-coded. The earlier 5- and 8-minute figures were estimates, not measurements.
+- [SITE INPUT] All matrix values.
+- [ASSUMPTION A5] When several segments of a route need a changeover, they are cleared **in parallel**, so the route waits for the longest one, as in the prototype. The alternative is in sequence (sum of times).
+
+**Configuration** (site level)
+
+```json
+"changeovers": {
+  "default_minutes": null,
+  "rules": [
+    {"from": "YM", "to": "WM", "minutes": 10, "equipment": "*"},
+    {"from": "WM", "to": "YM", "minutes": 0},
+    {"from": "YM:2", "to": "YM:1", "minutes": 4, "equipment": ["elevator"]}
+  ]
+}
+```
+
+- `from` / `to`: a commodity, or `commodity:grade` for grade-level rules. Rules may be asymmetric.
+- `equipment`: `"*"`, a list of equipment types, or equipment ids. The most specific rule wins (id over type over `*`).
+- `default_minutes`: `null` means *no default*. Any commodity pair that can meet on shared equipment without a rule is then a **configuration error**, naming the pair and the equipment.
+- [SITE INPUT, later] `flush_tonnes` and a destination bin for volume-based flushing. Specified only, not implemented until a site confirms it.
+
+**Expected behaviour:** a segment remembers the last commodity and grade it carried. A new stream with a different commodity (or grade, if a grade rule exists) triggers the changeover. The route is reserved during the changeover, and no grain moves. The changeover is recorded per segment and reported. First use of a segment needs no changeover.
+
+**Edge cases:** a 0-minute rule (a recorded changeover with no delay); a missing rule with no default (configuration error); a long idle period (residue still counts, so the changeover is still needed); `clear_minutes` (R1) applies before release even with no commodity change.
+
+**Verification tests**
+- T3.1 Asymmetric pair: yellow → white maize 10 min, white → yellow 0 min. A 30 t white maize lot after yellow maize at 200 t/h takes 10 + 9 = 19 min.
+- T3.2 Missing rule and `default_minutes` null: validation error "No changeover rule for Yellow maize → Soybeans on Elevator 1".
+- T3.3 Two segments needing 6 and 10 min: the route waits **10 min** (A5).
+- T3.4 `clear_minutes` 2 on the elevator: the route is released 2 min after the last tonne is fed.
+
+## R4 (D4) Commodity and grade drive storage allocation
+
+**Rules**
+- [CONFIRMED] Every lot carries commodity **and** grade, and the engine tracks both everywhere (truck, sample, pit lot, transfer, bin).
+- [CONFIRMED] Storage compatibility uses commodity, grade and explicitly permitted mixing rules. Grain of the same commodity cannot automatically share a bin.
+- [CONFIRMED] Where the configured process requires it, grading must be completed and matched to the correct truck (by sample id) before unloading.
+
+**Configuration**
+- Commodity: `grades: ["1", "2", "3"]`.
+- Bin: `accepts: [{"commodity": "YM", "grades": ["1"]}]`. If omitted, the bin accepts every grade of its listed commodities, but only after an explicit setting `grade_segregation: "none"` (otherwise a configuration error).
+- Site `grade_mixing: [{"commodity": "YM", "grades": ["1", "2"], "result": "2"}]`: these grades may share a bin (or pit), and the mixture is classified as `result`. No rule means no mixing.
+- Truck process: the `grade` step before `tip` in the unloading sequence means "grading must be complete before tipping".
+- Demand: `grade_mix` per commodity (stochastic runs). Scripted trucks state their grade.
+
+**Expected behaviour:** hopper and bin selection use the graded commodity and grade. A truck whose grading result is not yet back cannot tip, even if a hopper is free. Results returning out of order are matched by sample id.
+
+**Edge cases**
+- A grade arrives that no reachable bin accepts: configuration error.
+- Grade-restricted bins, but grading happens *after* tipping (grade unknown at allocation): configuration error.
+- Mixing changes the bin's grade, e.g. a grade-1 lot into a grade-2 bin stays grade 2.
+- A rejected truck leaves without tipping.
+
+**Verification tests**
+- T4.1 Grade-2 maize is never placed in a grade-1-only bin.
+- T4.2 With the mixing rule {1, 2 → 2}, grade-1 grain goes into a grade-2 bin, and the bin stays grade 2.
+- T4.3 No bin accepts yellow maize grade 3, which arrives: configuration error.
+- T4.4 Scripted: truck A's grading result returns after truck B's. A cannot tip before its own result, and B's result never releases A.
+- T4.5 Grade-restricted bins with grading after tipping: configuration error.
+
+## R5 (D5) Physical truck queues, staging and blocking
+
+**Rules**
+- [CONFIRMED] Unlimited waiting space is allowed only as an explicitly documented simplification.
+- [CONFIRMED] The engine supports finite staging areas, physical truck connections, and blocking when downstream space is unavailable.
+- [SITE INPUT] Staging capacities, and whether a full queue can block a weighbridge.
+- [ASSUMPTION A6] A truck that has finished service but cannot enter the next area **stays on the station and blocks it** (blocking after service). The station is released when the truck physically leaves, not when service ends.
+
+**Configuration**
+
+```json
+"truck_areas": [
+  {"id": "gate", "name": "Road queue", "capacity": null},
+  {"id": "yard", "name": "Hopper waiting area", "capacity": 6}
+],
+"truck_paths": {"unload": ["gate", "sample", "grade", "weigh_in", "yard", "tip", "weigh_out"]}
+```
+
+- `capacity: null` means unlimited, and this is reported as a simplification in the run's assumptions.
+- Paths alternate areas and service steps, so they are a typed truck graph, separate from the grain graph.
+- [SITE INPUT] `deadlock_prevention`: `reserve_next_space` (a truck may start a service only if a place is reserved in the area after it) or `detect_only`.
+
+**Expected behaviour:** before moving on, a truck must claim a place in the next area. If none is free, it stays where it is and keeps that station busy. Weighbridges used in both directions, combined with finite areas, can deadlock. This is either prevented (`reserve_next_space`) or detected and reported as a run failure; it is never silently ignored.
+
+**Edge cases:** every area unlimited reproduces today's behaviour; an area of capacity 0 is a configuration error; a circular wait between weigh-in and weigh-out across a full yard (see T5.3).
+
+**Verification tests**
+- T5.1 All areas unlimited: identical times to the current non-blocking model.
+- T5.2 Yard capacity 1, occupied by a truck waiting for a busy hopper. The next weighed truck stays on the weighbridge, and a third truck's weigh-in waits. Times are hand-computed.
+- T5.3 Shared in/out weighbridge with a full yard: under `detect_only`, the deadlock is reported with the trucks involved; under `reserve_next_space`, no deadlock occurs.
+
+## R6 (D6) Operating hours, admission cut-off and unfinished work
+
+**Rules**
+- [CONFIRMED] Every unfinished truck is reported with its waiting time. None silently disappears from performance reporting.
+- [CONFIRMED] Admission cut-off, operating hours and overtime rules are configurable.
+- [CONFIRMED] In multi-day scenarios, unfinished trucks carry over according to the site's policy.
+- [ASSUMPTION A7] A service in progress at the hard stop (e.g. tipping) is completed. Grain transfers already running may finish if `transfers_after_close` allows it.
+
+**Configuration**
+
+| Field | Meaning | Default |
+|---|---|---|
+| `hours.open`, `hours.close` | Operating hours | required |
+| `hours.admission_cutoff` | Last time a new truck may enter (per activity optional) | = `close` [DEFAULT] |
+| `hours.overtime_minutes` | Service continues after close up to this | 0 [DEFAULT] |
+| `end_of_day.unfinished_trucks` | `carry_over` (next opening, original arrival time kept) or `turned_away` (counted as lost) | `carry_over` [DEFAULT, SITE INPUT] |
+| `end_of_day.late_arrivals` | Trucks arriving after cut-off: `queue_for_next_day` or `turned_away` | `queue_for_next_day` [DEFAULT, SITE INPUT] |
+| `end_of_day.transfers_after_close` | Pits and conveyors keep running until clear: `true`/`false` | `true` [ASSUMPTION] |
+
+**Expected behaviour:** KPIs report (a) completed-truck statistics and (b) unfinished trucks: count, plus waiting time so far (censored at the end of the run). They also report (c) turned-away trucks. Turnaround including unfinished trucks is shown as a lower bound. Grain in pits and bins always carries over.
+
+**Verification tests**
+- T6.1 The last truck cannot finish: it is reported as unfinished, with a hand-computed waiting time.
+- T6.2 Two-day run: an unfinished truck is first in the day-2 queue, and its turnaround spans the night from its original arrival.
+- T6.3 Arrival after cut-off with `turned_away`: counted as turned away, not in the queue.
+
+## R7 Storage bins
+
+**Rules [CONFIRMED]** Each bin tracks capacity, current tonnage, fill percentage, commodity, grade, incoming reservations, outgoing commitments and availability. A bin's allowed commodity and grade may change over time, but a change must never overwrite existing inventory or violate segregation.
+
+**Configuration:** `capT`, `accepts` (R4), opening stock (`inv`, `invCommodity`, `invGrade`), `in_service` (default true), and later `assignment_schedule` (timed changes of `accepts`).
+
+**State and behaviour** (quantities in whole kilograms)
+- `free_space` = capacity − tonnage − incoming reserved.
+- `available_stock` = tonnage − outgoing committed.
+- The bin's identity (commodity, grade) comes from its contents. If it is empty, the identity comes from its pending incoming reservations. If neither exists, it is unassigned (any allowed grain may come).
+- `reserve_incoming(c, g, kg)` succeeds only if the bin is in service, (c, g) is allowed, the grain is compatible with the identity (including mixing rules), and kg ≤ free space. It is all-or-nothing: on refusal nothing changes, and reasons are returned.
+- `receive(reservation, kg)` must not exceed what was reserved. The unused remainder can be released.
+- `reserve_outgoing(c, kg)` requires kg ≤ available stock and a matching commodity. `dispatch(reservation, kg)` removes the grain.
+- When tonnage reaches 0 with no reservations, the identity is cleared.
+- `reassign(accepts)` is refused if current contents or pending reservations would violate the new assignment. Otherwise it takes effect for future grain only.
+- [ASSUMPTION A8] An out-of-service bin accepts no new incoming or outgoing reservations. Reservations already made are honoured.
+
+**Invariants (checked independently):** 0 ≤ tonnage ≤ capacity; tonnage + incoming reserved ≤ capacity; outgoing committed ≤ tonnage; contents and all pending incoming have one compatible identity.
+
+**Verification tests:** tests/test_storage_bin.py (implemented in this step).
+
+---
+
+## 8. Assumptions awaiting your confirmation
+
+| Id | Assumption | Alternative |
+|---|---|---|
+| A1 | Merged streams must share the whole remaining path to the same bin | Diverters after merge points (would need explicit modelling) |
+| A2 | Shared capacity is split equally between concurrent streams | Proportional to each pit's discharge rate |
+| A3 | Pit level falls continuously during discharge | Space frees only when a whole lot has left (prototype) |
+| A4 | A pit holds one commodity and grade at a time (unless mixing rules allow) | Pits may hold mixed grades |
+| A5 | Changeovers on several segments run in parallel (longest wins) | In sequence (sum) |
+| A6 | Blocking after service: a truck stays on the station until it can move on | Trucks wait elsewhere (no blocking) |
+| A7 | A service in progress at the hard stop is completed; transfers may run until clear | Everything stops at the hard stop |
+| A8 | Out-of-service bin: no new reservations; existing ones honoured | Existing reservations are also cancelled |
+
+## Engineering decisions already taken
 
 | Decision | Choice | Where |
 |---|---|---|

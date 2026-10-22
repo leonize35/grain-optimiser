@@ -12,7 +12,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 5 | FIFO as a distinct documented policy (CLAUDE §2) | Yes | — | **Untested** | P0 | |
 | 6 | Starvation and fairness measured (DOMAIN) | No | — | **Missing** | P1 | Max-overtake count, age at service. |
 | 7 | Atomic whole-route reservation (CLAUDE §3) | Implicit check-then-claim | in-engine monitor | **Partial** | P0 | No ledger object, no release-on-failure path. |
-| 8 | Configurable reservation scope (ARCH) | Fixed at whole path × whole lot | — | **Missing** | P1 | **Domain decision needed first.** |
+| 8 | Configurable reservation scope (ARCH) | Fixed at whole path × whole lot. **Decision D1 confirmed 2026-10-22; specified as R1 (max_concurrent_feeds)** | — | **Specified** | P1 | Implement per ENGINE_INTERFACES §7 item 4. |
 | 9 | Typed directed graph for grain (CLAUDE §4) | Yes, typed edges and CONNECT rules | T2, T10 | **Done** | — | |
 | 10 | Typed graph for truck paths (CLAUDE §4) | No: virtual queues only | — | **Missing** | P1 | Yard/lane capacity, weighbridge blocking. |
 | 11 | Route feasibility incl. equipment state (ARCH) | Commodity, capacity, busy; no breakdowns | partial | **Partial** | P1 | |
@@ -28,7 +28,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 21 | Sample-to-truck identity, out of order (DOMAIN) | Yes, keyed | T12 (tautological) | **Partial** | P1 | Timeout/lost-sample case missing. |
 | 22 | Commodity segregation on shared paths (DOMAIN) | Yes, exclusive paths | T4 | **Partial** | P0 | |
 | 23 | Changeover clearance / flush (DOMAIN) | Time penalty only | — | **Partial** | P1 | **Domain decision needed.** |
-| 24 | Grade segregation (DOMAIN) | Grade drawn, not used | — | **Missing** | P2 | Confirm whether grades must be kept apart in bins. |
+| 24 | Grade segregation (DOMAIN) | Grade drawn, not used. **D4 confirmed: grades must drive storage (R4). Bin-level grade rules implemented in domain/storage.py** | test_storage_bin.py | **Partial** | P1 | Grades not yet wired into routing or trucks. |
 | 25 | Truck may leave before grain reaches bin (DOMAIN) | Assumed yes | — | **Unconfirmed** | P0 | Needs your confirmation. |
 | 26 | Opening backlog and inventories (DOMAIN) | Yes | T11 | **Done** | — | |
 | 27 | Shift end, carry-over, multi-day (VERIF 9) | Hard stop, single day | — | **Missing** | P1 | Turnaround is biased by trucks that never departed (B1). |

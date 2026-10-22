@@ -59,4 +59,14 @@ No original Git repository exists for the prototype. It was found only as the pr
 
 **Commands run:** `pytest -q` → 67 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged (`b46c2bc7…1628`).
 
-**Next step (after D1–D6 are confirmed):** truck flow through truck stations (sampler, grader, weighbridge) as pooled resources on the calendar, with scripted-arrival trace tests. Then the reservation ledger.
+## Step 3 — confirmed domain rules specified; storage bin model
+
+**Decisions D1–D6 confirmed by the domain owner (2026-10-22).** These are now specified as rules R1–R7 in docs/DOMAIN_DECISIONS.md, each with configuration parameters, expected behaviour, edge cases and verification tests, and each tagged confirmed / site input / assumption / default. Eight engineering assumptions (A1–A8) are listed for confirmation. docs/ENGINE_INTERFACES.md drafts the contracts for the route planner, reservation ledger, changeover policy and requests. None of those is implemented yet.
+
+**Implemented:** `domain/storage.py`, covering `StorageBin` (R7) and `MixingRules` (R4): capacity, tonnage, fill fraction, commodity and grade identity, incoming reservations, outgoing commitments, availability, safe reassignment and independent invariants. Refusals are all-or-nothing and return reason codes. Misuse raises `BinError`.
+
+**Behaviour proved (20 new tests, 87 in total):** exact space and stock arithmetic in kilograms; partial delivery with release of unused space; refusal of another commodity or grade without a mixing rule; a mixing rule classifying the mixture; refusal when the mixture's grade is not assigned to the bin; an empty bin's identity fixed by a pending reservation, preventing segregation breaches before grain arrives; identity cleared when emptied; reassignment refused when it would contradict contents or pending reservations; out-of-service behaviour (assumption A8); and atomicity (state snapshot unchanged after a refusal). Fault injection: ignoring incoming reservations in free space, or ignoring pending reservations in identity, each fails 2 tests.
+
+**Commands run:** `pytest -q` → 87 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged.
+
+**Next step:** after review of the interfaces and assumptions, build order item 1 in ENGINE_INTERFACES.md §7: truck stations with unlimited areas plus the dispatcher skeleton (FIFO and feasible-first), with hand-traced scripted tests.

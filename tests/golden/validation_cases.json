@@ -1,8 +1,8 @@
 {
  "generator": "tools/golden/generate_validation_golden.html",
  "oracle_engine_version": "0.2.0",
- "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/2.42304.2 Chrome/152.0.7977.149 Safari/537.36 MSIX",
- "generated_at": "2026-10-19T20:51:08.731Z",
+ "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/3.1623.1 Chrome/152.0.7977.167 Safari/537.36 MSIX",
+ "generated_at": "2026-10-22T09:37:41.527Z",
  "cases": [
   {
    "name": "site_a_valid",
