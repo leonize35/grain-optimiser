@@ -1,0 +1,737 @@
+{
+ "id": "site_c_segregation_trap",
+ "name": "Site C variant (synthetic): South grade-1 maize has a single shared-grade bin",
+ "version": 1,
+ "hours": {
+  "open": 6,
+  "close": 18,
+  "overtime": 2
+ },
+ "commodities": [
+  {
+   "id": "YM",
+   "name": "Yellow maize",
+   "grades": [
+    "1",
+    "2"
+   ]
+  },
+  {
+   "id": "WM",
+   "name": "White maize"
+  },
+  {
+   "id": "SB",
+   "name": "Soybeans"
+  }
+ ],
+ "equipment": [
+  {
+   "id": "S1",
+   "type": "sampler",
+   "name": "Sampler",
+   "cap": 2,
+   "time": [
+    2,
+    3,
+    5
+   ]
+  },
+  {
+   "id": "G1",
+   "type": "grader",
+   "name": "Grading lab",
+   "cap": 3,
+   "time": [
+    4,
+    6,
+    10
+   ]
+  },
+  {
+   "id": "WB1",
+   "type": "weighbridge",
+   "name": "Weighbridge in",
+   "cap": 1,
+   "moves": "in",
+   "time": [
+    1.5,
+    2,
+    3
+   ]
+  },
+  {
+   "id": "WB2",
+   "type": "weighbridge",
+   "name": "Weighbridge out",
+   "cap": 1,
+   "moves": "out",
+   "time": [
+    1.5,
+    2,
+    3
+   ]
+  },
+  {
+   "id": "WB3",
+   "type": "weighbridge",
+   "name": "Weighbridge both",
+   "cap": 1,
+   "moves": "both",
+   "time": [
+    1.5,
+    2,
+    3
+   ]
+  },
+  {
+   "id": "HN1",
+   "type": "hopper",
+   "name": "North hopper 1",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM"
+   ]
+  },
+  {
+   "id": "HN2",
+   "type": "hopper",
+   "name": "North hopper 2",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM"
+   ]
+  },
+  {
+   "id": "HN3",
+   "type": "hopper",
+   "name": "North soy hopper",
+   "capT": 40,
+   "rate": 300,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "SB"
+   ]
+  },
+  {
+   "id": "CN1",
+   "type": "conveyor",
+   "name": "North intake conveyor 1",
+   "rate": 350
+  },
+  {
+   "id": "CN2",
+   "type": "conveyor",
+   "name": "North intake conveyor 2",
+   "rate": 250
+  },
+  {
+   "id": "EN1",
+   "type": "elevator",
+   "name": "North elevator 1",
+   "rate": 220,
+   "max_concurrent_feeds": 2
+  },
+  {
+   "id": "EN2",
+   "type": "elevator",
+   "name": "North elevator 2",
+   "rate": 200
+  },
+  {
+   "id": "DN1",
+   "type": "conveyor",
+   "name": "North distribution 1",
+   "rate": 300
+  },
+  {
+   "id": "DN2",
+   "type": "conveyor",
+   "name": "North distribution 2",
+   "rate": 300
+  },
+  {
+   "id": "BN1",
+   "type": "bin",
+   "name": "North bin 1",
+   "capT": 3000,
+   "commodities": [
+    "YM"
+   ],
+   "accepts": [
+    {
+     "commodity": "YM",
+     "grades": [
+      "1"
+     ]
+    }
+   ],
+   "inv": 1500,
+   "invCommodity": "YM",
+   "invGrade": "1"
+  },
+  {
+   "id": "BN2",
+   "type": "bin",
+   "name": "North bin 2",
+   "capT": 3000,
+   "commodities": [
+    "YM"
+   ],
+   "accepts": [
+    {
+     "commodity": "YM",
+     "grades": [
+      "1",
+      "2"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BN3",
+   "type": "bin",
+   "name": "North bin 3",
+   "capT": 3000,
+   "commodities": [
+    "YM"
+   ],
+   "accepts": [
+    {
+     "commodity": "YM",
+     "grades": [
+      "2"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BN4",
+   "type": "bin",
+   "name": "North bin 4",
+   "capT": 3000,
+   "commodities": [
+    "WM"
+   ],
+   "inv": 800,
+   "invCommodity": "WM"
+  },
+  {
+   "id": "BN5",
+   "type": "bin",
+   "name": "North bin 5",
+   "capT": 3000,
+   "commodities": [
+    "WM"
+   ]
+  },
+  {
+   "id": "BN6",
+   "type": "bin",
+   "name": "North bin 6",
+   "capT": 2000,
+   "commodities": [
+    "SB"
+   ],
+   "inv": 400,
+   "invCommodity": "SB"
+  },
+  {
+   "id": "X1",
+   "type": "conveyor",
+   "name": "North-South interconnect",
+   "rate": 200
+  },
+  {
+   "id": "RN1",
+   "type": "conveyor",
+   "name": "North reclaim",
+   "rate": 250
+  },
+  {
+   "id": "LN1",
+   "type": "loadpoint",
+   "name": "North load-out",
+   "rate": 250,
+   "setup": [
+    3,
+    5,
+    8
+   ]
+  },
+  {
+   "id": "HS1",
+   "type": "hopper",
+   "name": "South hopper 1",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM"
+   ]
+  },
+  {
+   "id": "HS2",
+   "type": "hopper",
+   "name": "South hopper 2",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "WM",
+    "SB"
+   ]
+  },
+  {
+   "id": "CS1",
+   "type": "conveyor",
+   "name": "South intake conveyor",
+   "rate": 300
+  },
+  {
+   "id": "ES1",
+   "type": "elevator",
+   "name": "South elevator",
+   "rate": 200
+  },
+  {
+   "id": "DS1",
+   "type": "conveyor",
+   "name": "South distribution",
+   "rate": 300
+  },
+  {
+   "id": "BS1",
+   "type": "bin",
+   "name": "South bin 1",
+   "capT": 2500,
+   "commodities": [
+    "YM"
+   ],
+   "accepts": [
+    {
+     "commodity": "YM",
+     "grades": [
+      "1",
+      "2"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BS2",
+   "type": "bin",
+   "name": "South bin 2",
+   "capT": 2500,
+   "commodities": [
+    "YM"
+   ],
+   "accepts": [
+    {
+     "commodity": "YM",
+     "grades": [
+      "2"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "BS3",
+   "type": "bin",
+   "name": "South bin 3",
+   "capT": 2500,
+   "commodities": [
+    "WM"
+   ],
+   "inv": 600,
+   "invCommodity": "WM"
+  },
+  {
+   "id": "BS4",
+   "type": "bin",
+   "name": "South bin 4",
+   "capT": 2000,
+   "commodities": [
+    "SB"
+   ],
+   "inv": 300,
+   "invCommodity": "SB"
+  },
+  {
+   "id": "RS1",
+   "type": "conveyor",
+   "name": "South reclaim",
+   "rate": 250
+  },
+  {
+   "id": "LS1",
+   "type": "loadpoint",
+   "name": "South load-out",
+   "rate": 250,
+   "setup": [
+    3,
+    5,
+    8
+   ]
+  }
+ ],
+ "edges": [
+  [
+   "HN1",
+   "CN1"
+  ],
+  [
+   "HN2",
+   "CN1"
+  ],
+  [
+   "HN3",
+   "CN2"
+  ],
+  [
+   "CN1",
+   "EN1"
+  ],
+  [
+   "CN1",
+   "EN2"
+  ],
+  [
+   "CN2",
+   "EN2"
+  ],
+  [
+   "EN1",
+   "DN1"
+  ],
+  [
+   "EN2",
+   "DN2"
+  ],
+  [
+   "DN1",
+   "BN1"
+  ],
+  [
+   "DN1",
+   "BN2"
+  ],
+  [
+   "DN1",
+   "BN3"
+  ],
+  [
+   "DN1",
+   "BN4"
+  ],
+  [
+   "DN2",
+   "BN3"
+  ],
+  [
+   "DN2",
+   "BN4"
+  ],
+  [
+   "DN2",
+   "BN5"
+  ],
+  [
+   "DN2",
+   "BN6"
+  ],
+  [
+   "DN2",
+   "X1"
+  ],
+  [
+   "X1",
+   "DS1"
+  ],
+  [
+   "BN1",
+   "RN1"
+  ],
+  [
+   "BN2",
+   "RN1"
+  ],
+  [
+   "BN3",
+   "RN1"
+  ],
+  [
+   "BN4",
+   "RN1"
+  ],
+  [
+   "BN5",
+   "RN1"
+  ],
+  [
+   "BN6",
+   "RN1"
+  ],
+  [
+   "RN1",
+   "EN2"
+  ],
+  [
+   "EN2",
+   "LN1"
+  ],
+  [
+   "HS1",
+   "CS1"
+  ],
+  [
+   "HS2",
+   "CS1"
+  ],
+  [
+   "CS1",
+   "ES1"
+  ],
+  [
+   "ES1",
+   "DS1"
+  ],
+  [
+   "DS1",
+   "BS1"
+  ],
+  [
+   "DS1",
+   "BS2"
+  ],
+  [
+   "DS1",
+   "BS3"
+  ],
+  [
+   "DS1",
+   "BS4"
+  ],
+  [
+   "BS1",
+   "RS1"
+  ],
+  [
+   "BS2",
+   "RS1"
+  ],
+  [
+   "BS3",
+   "RS1"
+  ],
+  [
+   "BS4",
+   "RS1"
+  ],
+  [
+   "RS1",
+   "LS1"
+  ]
+ ],
+ "sequences": {
+  "unload": [
+   "sample",
+   "grade",
+   "weigh_in",
+   "tip",
+   "weigh_out"
+  ],
+  "load": [
+   "weigh_in",
+   "load",
+   "weigh_out"
+  ],
+  "weigh": [
+   "weigh_in"
+  ]
+ },
+ "demand": {
+  "unload": {
+   "daily": 160,
+   "payload": [
+    28,
+    32,
+    36
+   ],
+   "mix": {
+    "YM": 0.55,
+    "WM": 0.3,
+    "SB": 0.15
+   },
+   "grade_mix": {
+    "YM": {
+     "1": 0.7,
+     "2": 0.3
+    }
+   },
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    4,
+    7,
+    9,
+    10,
+    10,
+    9,
+    8,
+    8,
+    9,
+    10,
+    9,
+    6,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "load": {
+   "daily": 14,
+   "payload": [
+    30,
+    32,
+    34
+   ],
+   "mix": {
+    "YM": 0.5,
+    "WM": 0.3,
+    "SB": 0.2
+   },
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    4,
+    5,
+    5,
+    5,
+    4,
+    4,
+    4,
+    4,
+    4,
+    3,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "weigh": {
+   "daily": 6,
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  }
+ },
+ "changeovers": {
+  "default_minutes": 6,
+  "rules": [
+   {
+    "from": "YM",
+    "to": "SB",
+    "minutes": 12
+   },
+   {
+    "from": "WM",
+    "to": "SB",
+    "minutes": 12
+   },
+   {
+    "from": "SB",
+    "to": "YM",
+    "minutes": 15
+   },
+   {
+    "from": "SB",
+    "to": "WM",
+    "minutes": 15
+   },
+   {
+    "from": "YM:1",
+    "to": "YM:2",
+    "minutes": 0
+   },
+   {
+    "from": "YM:2",
+    "to": "YM:1",
+    "minutes": 3
+   }
+  ]
+ },
+ "initial": {
+  "queue": {
+   "unload": 5,
+   "load": 0,
+   "weigh": 0
+  }
+ }
+}
