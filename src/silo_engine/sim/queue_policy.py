@@ -63,3 +63,44 @@ class FeasibleFirst:
 BUILT_IN: dict[str, type] = {"strict_fifo": StrictFifo, "feasible_first": FeasibleFirst}
 POLICY_NAMES = tuple(BUILT_IN)
 DEFAULT_POLICY = "feasible_first"  # unchanged default when neither the run nor the site names a policy
+
+
+# ---- the prototype's policy names (configuration field `policies`) ----
+# The single translation from the prototype's `policies` to these queue policies. The prototype's own code is a frozen
+# reference, not a second implementation: tests/test_policy_equivalence.py checks this table against its decisions.
+PROTOTYPE_DEFAULTS = {"tip": "fifo", "weigh": "fifo", "transfer": "fifo"}  # the prototype's Object.assign defaults
+PROTOTYPE_EQUIVALENTS: dict[tuple[str, str], dict[str, str]] = {
+    ("tip", "fifo"): {"tip": "strict_fifo"},  # dispatchTip tries only the queue head
+    ("tip", "feasible"): {"tip": "feasible_first"},  # dispatchTip scans the whole queue
+    ("weigh", "fifo"): {"weigh": "feasible_first"},  # dispatchPool scans the whole queue for a fitting weighbridge
+    ("transfer", "fifo"): {"intake": "feasible_first", "load": "feasible_first"},  # oldest first, whole list scanned
+}
+# Queues the prototype always scans in full (no setting), and the Python-only waiting-area queue.
+PROTOTYPE_FIXED = {"sample": "feasible_first", "grade": "feasible_first", "move": "feasible_first"}
+PROTOTYPE_UNSUPPORTED = {
+    ("tip", "batch"): "hopper-led commodity batching (each free hopper takes the earliest truck of its commodity)",
+    ("weigh", "load_first"): "loading trucks weighed first",
+    ("weigh", "out_first"): "outbound weighings first",
+    ("transfer", "batch"): "a route-choice rule (prefer routes without changeover), not a queue order",
+    ("transfer", "load_first"): "loading transfers before intake transfers",
+}
+
+
+class UnsupportedPrototypePolicy(ValueError):
+    """A prototype policy with no equivalent here. Not approximated: the run must name a supported policy."""
+
+
+def from_prototype(policies: Mapping[str, str] | None) -> dict[str, str]:
+    """Queue policy per queue group equivalent to the prototype's `policies` (missing keys take the prototype's
+    defaults). Raises UnsupportedPrototypePolicy for rules not ported (BATCH, load_first, out_first)."""
+    chosen = {**PROTOTYPE_DEFAULTS, **dict(policies or {})}
+    out = dict(PROTOTYPE_FIXED)
+    for key, value in chosen.items():
+        if (key, value) in PROTOTYPE_UNSUPPORTED:
+            raise UnsupportedPrototypePolicy(
+                f"Prototype policy {key}='{value}' ({PROTOTYPE_UNSUPPORTED[key, value]}) has no equivalent in this "
+                "engine yet; choose strict_fifo or feasible_first in queue_policies.")
+        if (key, value) not in PROTOTYPE_EQUIVALENTS:
+            raise UnsupportedPrototypePolicy(f"Unknown prototype policy {key}='{value}'.")
+        out.update(PROTOTYPE_EQUIVALENTS[key, value])
+    return out

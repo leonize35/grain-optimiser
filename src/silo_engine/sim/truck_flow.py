@@ -71,7 +71,7 @@ from .dispatcher import Dispatcher, DispatcherError, WaitReason
 from .ledger import (AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
                      SegmentClaim)
 from .pit import Lot, Pit
-from .queue_policy import DEFAULT_POLICY
+from .queue_policy import DEFAULT_POLICY, UnsupportedPrototypePolicy, from_prototype
 from .routing import RoutePlanner
 from .service_times import ServiceTimes
 from .time import MS_PER_DAY, MS_PER_MINUTE, m
@@ -375,6 +375,9 @@ class TruckFlowModel:
         if "starvation_wait_minutes" not in site.fairness.model_fields_set:
             self.assumptions.append(f"A truck counts as starved after waiting {site.fairness.starvation_wait_minutes:g} "
                                     "min in total (default reporting threshold).")
+        note = self._prototype_policy_note(site)
+        if note:
+            self.assumptions.append(note)
         h = site.hours
         self.windows = []  # per day: (open, admission cut-off, hard stop) in ms
         for d in range(days):
@@ -421,6 +424,20 @@ class TruckFlowModel:
         schedule_arrivals(self.cal, trucks, self._arrive)
 
     # ---- construction ----
+    def _prototype_policy_note(self, site: SiteConfig) -> str | None:
+        """The prototype-format `policies` field is not applied (docs/QUEUE_POLICY_DESIGN.md §9). Say so when a
+        configuration sets it and it differs from the queue policies this run actually uses."""
+        if "policies" not in site.model_fields_set:
+            return None
+        given = ", ".join(f"{k}='{v}'" for k, v in site.policies.model_dump().items())
+        used = f"this run uses {self.queue_policies} ({self.policy_source})"
+        try:
+            if from_prototype(site.policies.model_dump()) == self.queue_policies:
+                return None
+            return f"The configuration's prototype policies ({given}) are not applied; {used}."
+        except UnsupportedPrototypePolicy as e:
+            return f"The configuration's prototype policies ({given}) are not applied: {e} Instead {used}."
+
     def _make_bin(self, e) -> StorageBin:
         opening_kg = tonnes_to_kg(e.inv) if e.inv else 0
         opening = self.grades.grain(e.inv_commodity, e.inv_grade) if opening_kg else None

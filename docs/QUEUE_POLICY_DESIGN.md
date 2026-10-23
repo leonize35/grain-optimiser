@@ -167,7 +167,8 @@ mapping (used by tests); `TruckFlowResult.queue_policies` and `.policy_source` r
 
 **Tests run:**
 - `pytest -q`: 253 passed. These are the 231 existing tests, unchanged, plus 22 in `tests/test_queue_policy.py`.
-- `toolsun_prototype_selftests.ps1`: 12/12, prototype engine sha256 unchanged.
+- `tools
+un_prototype_selftests.ps1`: 12/12, prototype engine sha256 unchanged.
 
 **Equivalence:**
 - **Engine fingerprint** (16 Site A runs: 2 policies × 2 demand levels × 4 seeds): byte-identical to step 13, both
@@ -200,3 +201,88 @@ Tests were added for both. The merge fault was also caught by the fingerprint (1
   differential check (§1.2).
 - The feasible/infeasible split is a configuration test only.
 - Overnight waiting on site counts as operational.
+
+## 9. Settling the prototype policies (step 15)
+
+### 9.1 Final policy architecture
+
+| Layer | Where | Role |
+|---|---|---|
+| **Policy definitions** (the only implementation) | `sim/queue_policy.py`: `StrictFifo`, `FeasibleFirst` | Recommend an order from a read-only snapshot |
+| **Authoritative configuration** | `SiteConfig.queue_policies` (`default` + per group), Python names | Per silo configuration |
+| **Run / experiment selection** | `TruckFlowModel(policy=...)`, `run_experiment(policy=...)` | Overrides the site; recorded with `policy_source` |
+| **Prototype names** | `policies` field (`tip`/`weigh`/`transfer`) | Validated for parity; **not applied** |
+| **The one translation** | `queue_policy.from_prototype` + `PROTOTYPE_EQUIVALENTS` table | Prototype names → queue policies; raises for rules not ported |
+| **Physical feasibility** | engine `attempt` callables + reservation ledger | Eligibility, compatibility, routes, capacity, changeovers |
+
+The prototype engine stays a frozen reference (`reference/prototype_js`, sha256 unchanged), not a second
+implementation. The equivalence tests tie the translation table to its decisions.
+
+**Translation table** (from the prototype source):
+
+| Prototype | Prototype behaviour | Queue policy |
+|---|---|---|
+| `tip: "fifo"` (prototype default) | `dispatchTip` tries only the queue head | `tip: strict_fifo` |
+| `tip: "feasible"` | scans the whole tip queue | `tip: feasible_first` |
+| `weigh: "fifo"` | `dispatchPool` scans the whole queue for a fitting weighbridge | `weigh: feasible_first` |
+| `transfer: "fifo"` | intake lots and loading trucks by age, whole list scanned | `intake`, `load`: `feasible_first` |
+| sampling, grading (fixed) | whole queue scanned | `sample`, `grade`: `feasible_first` |
+| (none) | no waiting areas in the prototype | `move`: `feasible_first` |
+| `tip: "batch"`, `transfer: "batch"`, `transfer: "load_first"`, `weigh: "load_first"`, `weigh: "out_first"` | see §1.2 | **not ported**: `UnsupportedPrototypePolicy`, never approximated |
+
+**Behaviour preserved:**
+- The engine still does not apply the prototype field.
+- When a configuration *sets* `policies` and they differ from what the run uses (or have no equivalent), the run's
+  assumptions say so: "The configuration's prototype policies (...) are not applied; this run uses ...".
+- All 17 golden configurations set `tip: "feasible", weigh: "fifo", transfer: "fifo"`. That translates to exactly
+  what they run today, so they get no note and their experiment metadata is unchanged.
+
+### 9.2 Equivalence tests (`tests/test_policy_equivalence.py`, golden `tests/golden/policy_equivalence.json`)
+
+`python tools/policy_equivalence.py` runs the unmodified prototype in headless Edge on 14 scenarios and stores
+its traces. The Python engine runs the same configurations, the same trucks (opening backlog with identical ids,
+commodities and tonnes) and the translated policies. Every admission decision is compared: weighbridge starts,
+tipping (truck, hopper), transfers (time, commodity, tonnes, route), loading (truck, route) and departures.
+
+- **Layouts:** one hopper; two independent lines (one hopper yellow-only, slow and fast tipping); two hoppers
+  sharing a conveyor, one opening with grain; a two-lane weighbridge in and out; loading and intake sharing an
+  elevator with opening bin stock.
+- **Policies:** each layout under prototype `tip: fifo` and `tip: feasible`, with `weigh`/`transfer: fifo`. The two
+  tip policies decide differently in at least 3 layouts, so the comparison is not vacuous.
+- **Durations** are fixed and hoppers hold 1000 t, so the prototype's stepwise hopper level and this engine's
+  continuous drain (A3) cannot affect admission.
+
+### 9.3 Results
+
+- **Decisions:** 8 of 10 comparable scenarios match the prototype in every decision. The remaining 2 differ only by
+  the equal-age tie-break (§9.4). With the prototype's tie-break substituted inside the test, they also match in
+  every decision.
+- **Rules not ported:** the 4 scenarios with prototype rules lacking an equivalent are refused by the translation
+  (`UnsupportedPrototypePolicy`).
+- **Test suite:** `pytest -q`: 272 passed, 2 expected failures (the strict xfail marks for the tie-break scenarios).
+- **Unchanged behaviour:**
+  - engine fingerprint (16 Site A runs) byte-identical, with the policy as an argument and from `queue_policies`;
+  - configuration hashes unchanged;
+  - `FAIRNESS_BASELINE.md` regenerated byte-identical.
+- **Fault injection:** 7/7 detected (each table entry flipped, BATCH silently approximated, prototype default
+  changed, note suppressed).
+- **Prototype selftests:** 12/12.
+
+### 9.4 Remaining differences between the prototype and this engine
+
+1. **Equal-age intake tie-break.** When two pits' head lots have exactly the same age:
+   - the prototype transfers from the pit listed first in the configuration;
+   - this engine transfers from the pit whose transfer request was queued first.
+
+   The difference can cascade: in the shared-conveyor `tip=feasible` scenario yellow trucks tip 9 min later. It
+   needs exactly equal lot ages, so it arises with fixed durations. In the 16 stochastic Site A runs, 0 of 951
+   intake starts involved such a tie. **Not changed; needs approval.**
+2. **The prototype `policies` field is not applied.** Honouring it would change runs whose configuration sets
+   `tip: "fifo"`, or omits `policies` (the prototype's default is strict FIFO at the hopper). It would make BATCH
+   configurations fail instead of running feasible-first. **Not changed; needs approval.**
+3. **Not ported:** prototype `tip: "batch"`, `transfer: "batch"` (a route-choice rule), `transfer: "load_first"`,
+   `weigh: "load_first"`, `weigh: "out_first"`.
+4. **Known modelling differences outside queue policy** (unchanged, documented earlier):
+   - continuous versus stepwise hopper drain (A3), which affects hopper space;
+   - explicit changeover rules required (R3), where the prototype treats a missing value as 0;
+   - Python-only waiting areas and blocking (R5).

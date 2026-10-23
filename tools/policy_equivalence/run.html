@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Prototype policy equivalence capture</title></head>
+<body><pre id="out">running</pre>
+<script src="../../reference/prototype_js/silo_engine_v0.2.0.js"></script>
+<script src="scenarios.js"></script>
+<script>
+// Runs the UNMODIFIED prototype engine on each scenario (scenarios.js, written by tools/policy_equivalence.py) and
+// prints its trace. Not part of the prototype. Trucks come from the opening backlog (initial.queue), so they all
+// arrive at opening with commodities drawn from the scenario seed; all durations are fixed ([a, a, a]).
+const out = { version: SiloEngine.VERSION, scenarios: {} };
+for (const s of SCENARIOS) {
+  try {
+    const r = SiloEngine.runReplication(s.config, { seed: s.seed, trace: true });
+    out.scenarios[s.name] = { trace: r.trace, violations: r.violations, balanceError: r.grain.balanceError };
+  } catch (e) {
+    out.scenarios[s.name] = { error: String(e && e.message || e) };
+  }
+}
+document.getElementById('out').textContent = JSON.stringify(out);
+</script></body></html>

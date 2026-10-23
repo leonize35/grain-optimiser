@@ -110,6 +110,9 @@ class Demand(_Model):
 
 
 class Policies(_Model):
+    """Prototype-format policies (kept for configuration parity with the prototype). NOT applied by this engine: the
+    authoritative setting is `queue_policies`. `sim.queue_policy.from_prototype` is the one translation; a run notes
+    in its assumptions when these differ from what it used (docs/QUEUE_POLICY_DESIGN.md §9)."""
     tip: Literal["fifo", "feasible", "batch"] = "fifo"
     weigh: Literal["fifo", "load_first", "out_first"] = "fifo"
     transfer: Literal["fifo", "batch", "load_first"] = "fifo"

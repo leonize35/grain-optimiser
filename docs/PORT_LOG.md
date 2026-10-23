@@ -538,6 +538,19 @@ Verified:
 - 13/13 injected faults detected (2 after adding tests);
 - prototype selftests 12/12.
 
+## Step 15 — settling the prototype policies
+
+Details: `docs/QUEUE_POLICY_DESIGN.md` §9.
+- One implementation of the policies (`sim/queue_policy.py`), one authoritative setting (`queue_policies`), and one translation from the prototype's `policies` names (`from_prototype`). Rules not ported (BATCH, load_first, out_first) raise instead of being approximated.
+- The prototype field is still not applied; a run notes when it differs from what ran.
+- Equivalence harness: `tools/policy_equivalence.py` captures the unmodified prototype's decisions in headless Edge (via PowerShell; a plain subprocess pipe receives no output on this machine). `tests/test_policy_equivalence.py` compares every admission decision on 10 comparable scenarios. 8 match exactly; 2 differ only by the equal-age intake tie-break and match exactly once the prototype's tie-break is substituted in the test.
+- Verified:
+  - 272 passed, 2 expected failures;
+  - fingerprint, configuration hashes and fairness baseline unchanged;
+  - 7/7 translation faults detected;
+  - prototype selftests 12/12.
+- Open for approval: the equal-age tie-break; whether to apply the prototype `policies` field.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

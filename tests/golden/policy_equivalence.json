@@ -1,0 +1,5345 @@
+{
+ "engine_sha256": "b46c2bc707adf27d60f405377a321366220c89fb3d7fc42dea16d960e08a1628",
+ "prototype_version": "0.2.0",
+ "scenarios": [
+  {
+   "name": "one_hopper/tip=fifo",
+   "layout": "one_hopper",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "one_hopper",
+    "name": "one_hopper",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "fifo",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB0 departs"
+     ],
+     [
+      421,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      421,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB1 departs"
+     ],
+     [
+      430,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      430,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      439,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      439,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      440,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      440,
+      "UB2 departs"
+     ],
+     [
+      440,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      440,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      441,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      441,
+      "UB3 departs"
+     ],
+     [
+      449,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      449,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      458,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      458,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      459,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      459,
+      "UB4 departs"
+     ],
+     [
+      459,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      459,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      460,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      460,
+      "UB5 departs"
+     ],
+     [
+      468,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      468,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      477,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      477,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      478,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      478,
+      "UB6 departs"
+     ],
+     [
+      478,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      478,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      479,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      479,
+      "UB7 departs"
+     ],
+     [
+      487,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      487,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      496,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "one_hopper/tip=feasible",
+   "layout": "one_hopper",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "one_hopper",
+    "name": "one_hopper",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB0 departs"
+     ],
+     [
+      421,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      421,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB1 departs"
+     ],
+     [
+      422,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      423,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      423,
+      "UB4 departs"
+     ],
+     [
+      423,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      424,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      424,
+      "UB5 departs"
+     ],
+     [
+      430,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      430,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      439,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      439,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      448,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      448,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      457,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      457,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      458,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      458,
+      "UB2 departs"
+     ],
+     [
+      458,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      458,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      459,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      459,
+      "UB3 departs"
+     ],
+     [
+      459,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      460,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      460,
+      "UB6 departs"
+     ],
+     [
+      460,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      461,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      461,
+      "UB7 departs"
+     ],
+     [
+      467,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      467,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      476,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      476,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      485,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      485,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      494,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "two_independent/tip=fifo",
+   "layout": "two_independent",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "two_independent",
+    "name": "two_independent",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       10,
+       10,
+       10
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper H2",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Conveyor 2",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E2",
+      "type": "elevator",
+      "name": "Elevator 2",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C2",
+      "E2"
+     ],
+     [
+      "E2",
+      "B1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "fifo",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      430,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      430,
+      "UB0 departs"
+     ],
+     [
+      430,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      430,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      430,
+      "UB2 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      431,
+      "Grain lot GUB2 (30 t) waits in Hopper H2"
+     ],
+     [
+      431,
+      "UB2 departs"
+     ],
+     [
+      431,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      431,
+      "UB3 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      432,
+      "Grain lot GUB3 (30 t) waits in Hopper H2"
+     ],
+     [
+      432,
+      "UB3 departs"
+     ],
+     [
+      439,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      440,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      440,
+      "UB1 departs"
+     ],
+     [
+      440,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      440,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      440,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      440,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      449,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      449,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      450,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      450,
+      "UB4 departs"
+     ],
+     [
+      450,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      450,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      450,
+      "UB6 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      451,
+      "Grain lot GUB6 (30 t) waits in Hopper H2"
+     ],
+     [
+      451,
+      "UB6 departs"
+     ],
+     [
+      451,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      451,
+      "UB7 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      452,
+      "Grain lot GUB7 (30 t) waits in Hopper H2"
+     ],
+     [
+      452,
+      "UB7 departs"
+     ],
+     [
+      459,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      460,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      460,
+      "UB5 departs"
+     ],
+     [
+      460,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      460,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      460,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      469,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      469,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "two_independent/tip=feasible",
+   "layout": "two_independent",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "two_independent",
+    "name": "two_independent",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       10,
+       10,
+       10
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper H2",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "C2",
+      "type": "conveyor",
+      "name": "Conveyor 2",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E2",
+      "type": "elevator",
+      "name": "Elevator 2",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ],
+     [
+      "H2",
+      "C2"
+     ],
+     [
+      "C2",
+      "E2"
+     ],
+     [
+      "E2",
+      "B1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB2 (30 t) waits in Hopper H2"
+     ],
+     [
+      421,
+      "UB2 departs"
+     ],
+     [
+      421,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      421,
+      "UB3 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      422,
+      "Grain lot GUB3 (30 t) waits in Hopper H2"
+     ],
+     [
+      422,
+      "UB3 departs"
+     ],
+     [
+      422,
+      "UB6 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      423,
+      "Grain lot GUB6 (30 t) waits in Hopper H2"
+     ],
+     [
+      423,
+      "UB6 departs"
+     ],
+     [
+      423,
+      "UB7 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      424,
+      "Grain lot GUB7 (30 t) waits in Hopper H2"
+     ],
+     [
+      424,
+      "UB7 departs"
+     ],
+     [
+      430,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      430,
+      "UB0 departs"
+     ],
+     [
+      430,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      430,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      430,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      430,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      439,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      439,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      439,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      440,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      440,
+      "UB1 departs"
+     ],
+     [
+      440,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      440,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      448,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      448,
+      "Transfer 30.00 t Yellow maize: Hopper H2 > Conveyor 2 > Elevator 2 > Bin 1"
+     ],
+     [
+      449,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      450,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      450,
+      "UB4 departs"
+     ],
+     [
+      450,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      450,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      457,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ],
+     [
+      459,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      460,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      460,
+      "UB5 departs"
+     ],
+     [
+      460,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      469,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "two_shared_opening_grain/tip=fifo",
+   "layout": "two_shared_opening_grain",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "two_shared_opening_grain",
+    "name": "two_shared_opening_grain",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper H2",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       2,
+       2,
+       2
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "level0": 20,
+      "levelCommodity": "WM"
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "fifo",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "Transfer 20.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB1 departs"
+     ],
+     [
+      422,
+      "Grain lot GUB0 (30 t) waits in Hopper H2"
+     ],
+     [
+      422,
+      "UB0 departs"
+     ],
+     [
+      426,
+      "Grain lot L0-H2 reaches storage in Bin 2"
+     ],
+     [
+      426,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      435,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      435,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      435,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      436,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      436,
+      "UB2 departs"
+     ],
+     [
+      436,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      436,
+      "UB4 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      437,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      437,
+      "UB3 departs"
+     ],
+     [
+      438,
+      "Grain lot GUB4 (30 t) waits in Hopper H2"
+     ],
+     [
+      438,
+      "UB4 departs"
+     ],
+     [
+      438,
+      "UB5 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      438,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      439,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      439,
+      "UB6 departs"
+     ],
+     [
+      439,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      440,
+      "Grain lot GUB5 (30 t) waits in Hopper H2"
+     ],
+     [
+      440,
+      "UB5 departs"
+     ],
+     [
+      440,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      440,
+      "UB7 departs"
+     ],
+     [
+      444,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      444,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      453,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      453,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      462,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      462,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      471,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      471,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      480,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      480,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      489,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ],
+     [
+      489,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      498,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "two_shared_opening_grain/tip=feasible",
+   "layout": "two_shared_opening_grain",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "two_shared_opening_grain",
+    "name": "two_shared_opening_grain",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper H2",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       2,
+       2,
+       2
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "level0": 20,
+      "levelCommodity": "WM"
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "Transfer 20.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB1 departs"
+     ],
+     [
+      421,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB0 (30 t) waits in Hopper H2"
+     ],
+     [
+      422,
+      "UB0 departs"
+     ],
+     [
+      422,
+      "UB5 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      422,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB4 departs"
+     ],
+     [
+      424,
+      "Grain lot GUB5 (30 t) waits in Hopper H2"
+     ],
+     [
+      424,
+      "UB5 departs"
+     ],
+     [
+      426,
+      "Grain lot L0-H2 reaches storage in Bin 2"
+     ],
+     [
+      426,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      435,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      435,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      444,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      444,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      444,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      445,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      445,
+      "UB2 departs"
+     ],
+     [
+      445,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      446,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      446,
+      "UB3 departs"
+     ],
+     [
+      446,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      447,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      447,
+      "UB6 departs"
+     ],
+     [
+      447,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      448,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      448,
+      "UB7 departs"
+     ],
+     [
+      453,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      453,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      462,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      462,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      471,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      471,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      480,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      480,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      489,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      489,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      498,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "weighbridge/tip=fifo",
+   "layout": "weighbridge",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "weighbridge",
+    "name": "weighbridge",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 2,
+      "time": [
+       2,
+       2,
+       2
+      ]
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       3,
+       3,
+       3
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "fifo",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts weigh-in at Weighbridge"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB1 starts weigh-in at Weighbridge"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      422,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "UB2 starts weigh-in at Weighbridge"
+     ],
+     [
+      422,
+      "UB3 starts weigh-in at Weighbridge"
+     ],
+     [
+      424,
+      "UB4 starts weigh-in at Weighbridge"
+     ],
+     [
+      424,
+      "UB5 starts weigh-in at Weighbridge"
+     ],
+     [
+      425,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      425,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      425,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      426,
+      "UB6 starts weigh-in at Weighbridge"
+     ],
+     [
+      426,
+      "UB7 starts weigh-in at Weighbridge"
+     ],
+     [
+      428,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      428,
+      "UB0 starts weigh-out at Weighbridge"
+     ],
+     [
+      428,
+      "UB1 starts weigh-out at Weighbridge"
+     ],
+     [
+      430,
+      "UB0 departs"
+     ],
+     [
+      430,
+      "UB1 departs"
+     ],
+     [
+      434,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      434,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      443,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      443,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      446,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      446,
+      "UB2 starts weigh-out at Weighbridge"
+     ],
+     [
+      446,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      446,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      448,
+      "UB2 departs"
+     ],
+     [
+      449,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      449,
+      "UB3 starts weigh-out at Weighbridge"
+     ],
+     [
+      451,
+      "UB3 departs"
+     ],
+     [
+      455,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      455,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      464,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      464,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      467,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      467,
+      "UB4 starts weigh-out at Weighbridge"
+     ],
+     [
+      467,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      467,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      469,
+      "UB4 departs"
+     ],
+     [
+      470,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      470,
+      "UB5 starts weigh-out at Weighbridge"
+     ],
+     [
+      472,
+      "UB5 departs"
+     ],
+     [
+      476,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      476,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      485,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      485,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      488,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      488,
+      "UB6 starts weigh-out at Weighbridge"
+     ],
+     [
+      488,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      488,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      490,
+      "UB6 departs"
+     ],
+     [
+      491,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      491,
+      "UB7 starts weigh-out at Weighbridge"
+     ],
+     [
+      493,
+      "UB7 departs"
+     ],
+     [
+      497,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      497,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      506,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "weighbridge/tip=feasible",
+   "layout": "weighbridge",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "weighbridge",
+    "name": "weighbridge",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 2,
+      "time": [
+       2,
+       2,
+       2
+      ]
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       3,
+       3,
+       3
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts weigh-in at Weighbridge"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB1 starts weigh-in at Weighbridge"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      422,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "UB2 starts weigh-in at Weighbridge"
+     ],
+     [
+      422,
+      "UB3 starts weigh-in at Weighbridge"
+     ],
+     [
+      424,
+      "UB4 starts weigh-in at Weighbridge"
+     ],
+     [
+      424,
+      "UB5 starts weigh-in at Weighbridge"
+     ],
+     [
+      425,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      425,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      425,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      426,
+      "UB6 starts weigh-in at Weighbridge"
+     ],
+     [
+      426,
+      "UB7 starts weigh-in at Weighbridge"
+     ],
+     [
+      428,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      428,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      428,
+      "UB0 starts weigh-out at Weighbridge"
+     ],
+     [
+      428,
+      "UB1 starts weigh-out at Weighbridge"
+     ],
+     [
+      430,
+      "UB0 departs"
+     ],
+     [
+      430,
+      "UB1 departs"
+     ],
+     [
+      431,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      431,
+      "UB4 starts weigh-out at Weighbridge"
+     ],
+     [
+      431,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      433,
+      "UB4 departs"
+     ],
+     [
+      434,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      434,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      434,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      434,
+      "UB5 starts weigh-out at Weighbridge"
+     ],
+     [
+      436,
+      "UB5 departs"
+     ],
+     [
+      443,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      443,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      452,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      452,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      461,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      461,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      464,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      464,
+      "UB2 starts weigh-out at Weighbridge"
+     ],
+     [
+      464,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      464,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      466,
+      "UB2 departs"
+     ],
+     [
+      467,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      467,
+      "UB3 starts weigh-out at Weighbridge"
+     ],
+     [
+      467,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      469,
+      "UB3 departs"
+     ],
+     [
+      470,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      470,
+      "UB6 starts weigh-out at Weighbridge"
+     ],
+     [
+      470,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      472,
+      "UB6 departs"
+     ],
+     [
+      473,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      473,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      473,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      473,
+      "UB7 starts weigh-out at Weighbridge"
+     ],
+     [
+      475,
+      "UB7 departs"
+     ],
+     [
+      482,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      482,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      491,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      491,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      500,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "loading_shared_elevator/tip=fifo",
+   "layout": "loading_shared_elevator",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "loading_shared_elevator",
+    "name": "loading_shared_elevator",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 100,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       5,
+       5,
+       5
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ],
+     "load": [
+      "load"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 1
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "load": {
+      "daily": 1,
+      "mix": {
+       "YM": 1
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "fifo",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 4,
+      "load": 4
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB0 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB0 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      420,
+      "LB1 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB2 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB3 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB0 departs"
+     ],
+     [
+      421,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB1 departs"
+     ],
+     [
+      422,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      423,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      423,
+      "UB2 departs"
+     ],
+     [
+      423,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      424,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      424,
+      "UB3 departs"
+     ],
+     [
+      434,
+      "LB0 loaded 30 t from Bin 1"
+     ],
+     [
+      434,
+      "LB0 departs"
+     ],
+     [
+      434,
+      "LB1 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      448,
+      "LB1 loaded 30 t from Bin 1"
+     ],
+     [
+      448,
+      "LB1 departs"
+     ],
+     [
+      448,
+      "LB2 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      462,
+      "LB2 loaded 30 t from Bin 1"
+     ],
+     [
+      462,
+      "LB2 departs"
+     ],
+     [
+      462,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      471,
+      "Grain lot GUB0 reaches storage in Bin 1"
+     ],
+     [
+      471,
+      "LB3 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      485,
+      "LB3 loaded 30 t from Bin 1"
+     ],
+     [
+      485,
+      "LB3 departs"
+     ],
+     [
+      485,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      494,
+      "Grain lot GUB1 reaches storage in Bin 1"
+     ],
+     [
+      494,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      503,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      503,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      512,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "loading_shared_elevator/tip=feasible",
+   "layout": "loading_shared_elevator",
+   "seed": 11,
+   "supported": true,
+   "config": {
+    "id": "loading_shared_elevator",
+    "name": "loading_shared_elevator",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 100,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       5,
+       5,
+       5
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ],
+     "load": [
+      "load"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 1
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "load": {
+      "daily": 1,
+      "mix": {
+       "YM": 1
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 4,
+      "load": 4
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB0 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB0 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      420,
+      "LB1 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB2 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB3 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB0 departs"
+     ],
+     [
+      421,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB1 departs"
+     ],
+     [
+      422,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      423,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      423,
+      "UB2 departs"
+     ],
+     [
+      423,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      424,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      424,
+      "UB3 departs"
+     ],
+     [
+      434,
+      "LB0 loaded 30 t from Bin 1"
+     ],
+     [
+      434,
+      "LB0 departs"
+     ],
+     [
+      434,
+      "LB1 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      448,
+      "LB1 loaded 30 t from Bin 1"
+     ],
+     [
+      448,
+      "LB1 departs"
+     ],
+     [
+      448,
+      "LB2 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      462,
+      "LB2 loaded 30 t from Bin 1"
+     ],
+     [
+      462,
+      "LB2 departs"
+     ],
+     [
+      462,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      471,
+      "Grain lot GUB0 reaches storage in Bin 1"
+     ],
+     [
+      471,
+      "LB3 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      485,
+      "LB3 loaded 30 t from Bin 1"
+     ],
+     [
+      485,
+      "LB3 departs"
+     ],
+     [
+      485,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      494,
+      "Grain lot GUB1 reaches storage in Bin 1"
+     ],
+     [
+      494,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      503,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      503,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      512,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "one_hopper/tip=batch",
+   "layout": "one_hopper",
+   "seed": 11,
+   "supported": false,
+   "config": {
+    "id": "one_hopper",
+    "name": "one_hopper",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "batch",
+     "weigh": "fifo",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB0 departs"
+     ],
+     [
+      421,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      421,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB1 departs"
+     ],
+     [
+      422,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      423,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      423,
+      "UB4 departs"
+     ],
+     [
+      423,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      424,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      424,
+      "UB5 departs"
+     ],
+     [
+      430,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      430,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      439,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      439,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      448,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      448,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      457,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      457,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      458,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      458,
+      "UB2 departs"
+     ],
+     [
+      458,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      458,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      459,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      459,
+      "UB3 departs"
+     ],
+     [
+      459,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      460,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      460,
+      "UB6 departs"
+     ],
+     [
+      460,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      461,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      461,
+      "UB7 departs"
+     ],
+     [
+      467,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      467,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      476,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      476,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      485,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      485,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      494,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "two_shared_opening_grain/tip=feasible,transfer=batch",
+   "layout": "two_shared_opening_grain",
+   "seed": 11,
+   "supported": false,
+   "config": {
+    "id": "two_shared_opening_grain",
+    "name": "two_shared_opening_grain",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "H2",
+      "type": "hopper",
+      "name": "Hopper H2",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       2,
+       2,
+       2
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ],
+      "level0": 20,
+      "levelCommodity": "WM"
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "H2",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "batch"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "Transfer 20.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB1 departs"
+     ],
+     [
+      421,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB0 (30 t) waits in Hopper H2"
+     ],
+     [
+      422,
+      "UB0 departs"
+     ],
+     [
+      422,
+      "UB5 starts tipping 30 t into Hopper H2"
+     ],
+     [
+      422,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB4 departs"
+     ],
+     [
+      424,
+      "Grain lot GUB5 (30 t) waits in Hopper H2"
+     ],
+     [
+      424,
+      "UB5 departs"
+     ],
+     [
+      426,
+      "Grain lot L0-H2 reaches storage in Bin 2"
+     ],
+     [
+      426,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      435,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      435,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      444,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      444,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      444,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      445,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      445,
+      "UB2 departs"
+     ],
+     [
+      445,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      446,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      446,
+      "UB3 departs"
+     ],
+     [
+      446,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      447,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      447,
+      "UB6 departs"
+     ],
+     [
+      447,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      448,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      448,
+      "UB7 departs"
+     ],
+     [
+      453,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      453,
+      "Transfer 30.00 t White maize: Hopper H2 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      462,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      462,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      471,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      471,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      480,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      480,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      489,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      489,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      498,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "weighbridge/tip=feasible,weigh=out_first",
+   "layout": "weighbridge",
+   "seed": 11,
+   "supported": false,
+   "config": {
+    "id": "weighbridge",
+    "name": "weighbridge",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "WB1",
+      "type": "weighbridge",
+      "name": "Weighbridge",
+      "cap": 2,
+      "time": [
+       2,
+       2,
+       2
+      ]
+     },
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       3,
+       3,
+       3
+      ],
+      "commodities": [
+       "YM",
+       "WM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "B2",
+      "type": "bin",
+      "name": "Bin 2",
+      "capT": 5000,
+      "commodities": [
+       "WM"
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "E1",
+      "B2"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "weigh_in",
+      "tip",
+      "weigh_out"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 0.5,
+       "WM": 0.5
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "out_first",
+     "transfer": "fifo"
+    },
+    "initial": {
+     "queue": {
+      "unload": 8
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts weigh-in at Weighbridge"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB1 starts weigh-in at Weighbridge"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB4 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB5 arrives (Unloading, White maize 30 t)"
+     ],
+     [
+      420,
+      "UB6 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB7 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      422,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "UB2 starts weigh-in at Weighbridge"
+     ],
+     [
+      422,
+      "UB3 starts weigh-in at Weighbridge"
+     ],
+     [
+      424,
+      "UB4 starts weigh-in at Weighbridge"
+     ],
+     [
+      424,
+      "UB5 starts weigh-in at Weighbridge"
+     ],
+     [
+      425,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      425,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      425,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      426,
+      "UB0 starts weigh-out at Weighbridge"
+     ],
+     [
+      426,
+      "UB6 starts weigh-in at Weighbridge"
+     ],
+     [
+      428,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      428,
+      "UB4 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      428,
+      "UB0 departs"
+     ],
+     [
+      428,
+      "UB1 starts weigh-out at Weighbridge"
+     ],
+     [
+      428,
+      "UB7 starts weigh-in at Weighbridge"
+     ],
+     [
+      430,
+      "UB1 departs"
+     ],
+     [
+      431,
+      "Grain lot GUB4 (30 t) waits in Hopper H1"
+     ],
+     [
+      431,
+      "UB4 starts weigh-out at Weighbridge"
+     ],
+     [
+      431,
+      "UB5 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      433,
+      "UB4 departs"
+     ],
+     [
+      434,
+      "Grain lot GUB0 reaches storage in Bin 2"
+     ],
+     [
+      434,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      434,
+      "Grain lot GUB5 (30 t) waits in Hopper H1"
+     ],
+     [
+      434,
+      "UB5 starts weigh-out at Weighbridge"
+     ],
+     [
+      436,
+      "UB5 departs"
+     ],
+     [
+      443,
+      "Grain lot GUB1 reaches storage in Bin 2"
+     ],
+     [
+      443,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      452,
+      "Grain lot GUB4 reaches storage in Bin 2"
+     ],
+     [
+      452,
+      "Transfer 30.00 t White maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 2"
+     ],
+     [
+      461,
+      "Grain lot GUB5 reaches storage in Bin 2"
+     ],
+     [
+      461,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      464,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      464,
+      "UB2 starts weigh-out at Weighbridge"
+     ],
+     [
+      464,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      464,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      466,
+      "UB2 departs"
+     ],
+     [
+      467,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      467,
+      "UB3 starts weigh-out at Weighbridge"
+     ],
+     [
+      467,
+      "UB6 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      469,
+      "UB3 departs"
+     ],
+     [
+      470,
+      "Grain lot GUB6 (30 t) waits in Hopper H1"
+     ],
+     [
+      470,
+      "UB6 starts weigh-out at Weighbridge"
+     ],
+     [
+      470,
+      "UB7 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      472,
+      "UB6 departs"
+     ],
+     [
+      473,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      473,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      473,
+      "Grain lot GUB7 (30 t) waits in Hopper H1"
+     ],
+     [
+      473,
+      "UB7 starts weigh-out at Weighbridge"
+     ],
+     [
+      475,
+      "UB7 departs"
+     ],
+     [
+      482,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ],
+     [
+      482,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      491,
+      "Grain lot GUB6 reaches storage in Bin 1"
+     ],
+     [
+      491,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      500,
+      "Grain lot GUB7 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  },
+  {
+   "name": "loading_shared_elevator/tip=feasible,transfer=load_first",
+   "layout": "loading_shared_elevator",
+   "seed": 11,
+   "supported": false,
+   "config": {
+    "id": "loading_shared_elevator",
+    "name": "loading_shared_elevator",
+    "version": 1,
+    "hours": {
+     "open": 7,
+     "close": 18,
+     "overtime": 0
+    },
+    "commodities": [
+     {
+      "id": "YM",
+      "name": "Yellow maize"
+     },
+     {
+      "id": "WM",
+      "name": "White maize"
+     }
+    ],
+    "equipment": [
+     {
+      "id": "H1",
+      "type": "hopper",
+      "name": "Hopper H1",
+      "capT": 1000,
+      "rate": 400,
+      "tip": [
+       1,
+       1,
+       1
+      ],
+      "commodities": [
+       "YM"
+      ]
+     },
+     {
+      "id": "C1",
+      "type": "conveyor",
+      "name": "Conveyor 1",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "E1",
+      "type": "elevator",
+      "name": "Elevator 1",
+      "rate": 200,
+      "changeover": 0
+     },
+     {
+      "id": "B1",
+      "type": "bin",
+      "name": "Bin 1",
+      "capT": 5000,
+      "commodities": [
+       "YM"
+      ],
+      "inv": 100,
+      "invCommodity": "YM"
+     },
+     {
+      "id": "R1",
+      "type": "conveyor",
+      "name": "Reclaim",
+      "rate": 300,
+      "changeover": 0
+     },
+     {
+      "id": "L1",
+      "type": "loadpoint",
+      "name": "Load-out",
+      "rate": 250,
+      "setup": [
+       5,
+       5,
+       5
+      ]
+     }
+    ],
+    "edges": [
+     [
+      "H1",
+      "C1"
+     ],
+     [
+      "C1",
+      "E1"
+     ],
+     [
+      "E1",
+      "B1"
+     ],
+     [
+      "B1",
+      "R1"
+     ],
+     [
+      "R1",
+      "E1"
+     ],
+     [
+      "E1",
+      "L1"
+     ]
+    ],
+    "sequences": {
+     "unload": [
+      "tip"
+     ],
+     "load": [
+      "load"
+     ]
+    },
+    "demand": {
+     "unload": {
+      "daily": 1,
+      "mix": {
+       "YM": 1
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     },
+     "load": {
+      "daily": 1,
+      "mix": {
+       "YM": 1
+      },
+      "payload": [
+       30,
+       30,
+       30
+      ],
+      "profile": [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     }
+    },
+    "policies": {
+     "tip": "feasible",
+     "weigh": "fifo",
+     "transfer": "load_first"
+    },
+    "initial": {
+     "queue": {
+      "unload": 4,
+      "load": 4
+     }
+    }
+   },
+   "prototype": {
+    "trace": [
+     [
+      420,
+      "UB0 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB0 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      420,
+      "UB1 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB2 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "UB3 arrives (Unloading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB0 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB0 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      420,
+      "LB1 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB2 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      420,
+      "LB3 arrives (Loading, Yellow maize 30 t)"
+     ],
+     [
+      421,
+      "Grain lot GUB0 (30 t) waits in Hopper H1"
+     ],
+     [
+      421,
+      "UB0 departs"
+     ],
+     [
+      421,
+      "UB1 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      422,
+      "Grain lot GUB1 (30 t) waits in Hopper H1"
+     ],
+     [
+      422,
+      "UB1 departs"
+     ],
+     [
+      422,
+      "UB2 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      423,
+      "Grain lot GUB2 (30 t) waits in Hopper H1"
+     ],
+     [
+      423,
+      "UB2 departs"
+     ],
+     [
+      423,
+      "UB3 starts tipping 30 t into Hopper H1"
+     ],
+     [
+      424,
+      "Grain lot GUB3 (30 t) waits in Hopper H1"
+     ],
+     [
+      424,
+      "UB3 departs"
+     ],
+     [
+      434,
+      "LB0 loaded 30 t from Bin 1"
+     ],
+     [
+      434,
+      "LB0 departs"
+     ],
+     [
+      434,
+      "LB1 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      448,
+      "LB1 loaded 30 t from Bin 1"
+     ],
+     [
+      448,
+      "LB1 departs"
+     ],
+     [
+      448,
+      "LB2 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      462,
+      "LB2 loaded 30 t from Bin 1"
+     ],
+     [
+      462,
+      "LB2 departs"
+     ],
+     [
+      462,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      471,
+      "Grain lot GUB0 reaches storage in Bin 1"
+     ],
+     [
+      471,
+      "LB3 starts loading from Bin 1 via Reclaim > Elevator 1 > Load-out"
+     ],
+     [
+      485,
+      "LB3 loaded 30 t from Bin 1"
+     ],
+     [
+      485,
+      "LB3 departs"
+     ],
+     [
+      485,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      494,
+      "Grain lot GUB1 reaches storage in Bin 1"
+     ],
+     [
+      494,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      503,
+      "Grain lot GUB2 reaches storage in Bin 1"
+     ],
+     [
+      503,
+      "Transfer 30.00 t Yellow maize: Hopper H1 > Conveyor 1 > Elevator 1 > Bin 1"
+     ],
+     [
+      512,
+      "Grain lot GUB3 reaches storage in Bin 1"
+     ]
+    ],
+    "violations": [],
+    "balanceError": 0
+   }
+  }
+ ]
+}
