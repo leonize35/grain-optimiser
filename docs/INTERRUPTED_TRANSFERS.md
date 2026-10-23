@@ -154,3 +154,30 @@ on the first run):
 - Configuration hashes and the fairness baseline are unchanged; prototype selftests 12/12.
 
 **Still to confirm operationally:** decisions I1-I7 (§6).
+
+## 8. Domain decisions of 2026-10-23: provisional modelling assumptions
+
+Interrupted-transfer handling is accepted as a **verified simplified modelling capability**. The decisions below are
+**provisional modelling assumptions, not confirmed real-silo operating practice**. The tested engine is not changed
+by them.
+
+| Id | Provisional assumption | Status / future work |
+|---|---|---|
+| I1 | **Hold-and-resume** is the default recovery policy. | Alternatives (stop, empty or clean, credit and release) are future configurable recovery policies. |
+| I2 | The **accounting abstraction is kept for now**. Three quantities are distinguished (below). The simulator does **not** track grain positions inside individual conveyors or elevators. | Equipment-level contents are future work. |
+| I3 | A changeover under way **keeps elapsing** during an outage; flow starts at the later of the planned start and the restart. | Future configurable rule; current behaviour kept for compatibility. |
+| I4 | A load's **setup pauses** with the rest of the load clock. | Future configurable rule; current behaviour kept for compatibility. |
+| I5 | **Coordinated whole-route stoppage.** The route halts together. | Equipment-level accumulation and PLC interlock or start-up sequences are **not represented**. |
+| I6 | **Immediate restart.** | Restart delay and safety permissives are future configuration requirements. |
+| I7 | Only **transfer equipment** (route segments) can have outages. | Outages of hoppers, bins, load points and truck stations are extensions. |
+
+**I2: the three quantities** (per lot, `TruckFlowResult.lots`):
+
+| Quantity | Meaning | Field |
+|---|---|---|
+| **Source inventory** | Still in the source pit, not yet sent: not assigned to a transfer, plus the part of a running transfer that has not left the pit | `in_pit_kg + (in_transit_kg - on_route_kg)` |
+| **Modelled in-transit mass** | Has left the source pit and not yet been credited to the destination bin. A bookkeeping quantity, **not** a located position on a belt or in a leg. | `on_route_kg` |
+| **Destination inventory** | Credited to bins | `stored_kg`; per bin: `result.bins` |
+
+Note: for mass balance, `result.pits` (per pit) still includes the modelled in-transit mass of a running transfer.
+That is the same abstraction as before, now stated explicitly.

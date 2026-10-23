@@ -291,6 +291,17 @@ The questions as originally raised:
 5. **Waiting before opening.** Time at the gate before the plant opens counts as waiting and towards starvation. Should it?
 6. **Unfinished trucks.** Their waiting runs to the last day's hard stop, so it is a lower bound. Turned-away trucks stop counting when sent away.
 
+## 10. Interrupted transfers I1-I7 (2026-10-23): provisional
+
+Accepted as a verified simplified modelling capability. I1-I7 are recorded as **provisional modelling assumptions**,
+not confirmed silo practice; see `docs/INTERRUPTED_TRANSFERS.md` §8. In short:
+- hold-and-resume is the default recovery;
+- source, in-transit and destination quantities are accounted, without grain positions on equipment;
+- changeover and setup behaviour during outages are future configurable rules;
+- whole-route stoppage, with no accumulation or PLC sequences;
+- immediate restart; restart delay and permissives come later;
+- outages of transfer equipment only.
+
 ## Engineering decisions already taken
 
 | Decision | Choice | Where |
