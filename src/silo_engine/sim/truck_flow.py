@@ -189,23 +189,34 @@ class ActivitySummary:
 @dataclass(frozen=True)
 class TruckMetrics:
     """Fairness record for one truck (Q1). Waiting = time on site not in service, up to departure or the end of
-    the run (gate waits, queues, waiting for a grading result, and time blocked on a station all count)."""
+    the run (gate waits, queues, waiting for a grading result, and time blocked on a station all count).
+
+    Overtaking: truck X overtakes truck Y when X starts a step while Y is still waiting in the same queue group,
+    Y entered that queue before X (queue position), and Y arrived at the gate before X (arrival order; equal
+    arrival times keep script order). Completion order plays no part: finishing first is not overtaking."""
     truck_id: str
     activity: str
     commodity: str | None
-    grade: str | None
-    arrived: int
+    grade: str | None  # grain class
+    arrived: int  # at the gate
+    gate_admitted: int | None  # let in through the gate (None: never admitted)
+    queue_entered: dict[str, int]  # step -> time the truck reached it and began waiting (first visit)
+    hopper_queue_entered: int | None  # joined the hopper queue (unloading trucks)
+    hopper_admitted: int | None  # started tipping (None: never reached a hopper)
     departed: int | None
     total_waiting_min: float
     hopper_wait_min: float | None  # queueing for a hopper (unloading trucks)
     overtaken_by_later: int  # times a later-arriving truck started a step this truck was already waiting for
-    unfinished: bool  # still on site (or at the gate) when the run ended
+    overtaken_at_hopper: int  # the part of overtaken_by_later where the step was tipping
+    status: str  # "completed", "unfinished" (on site or at the gate when the run ended) or "turned_away"
+    unfinished: bool
     turned_away: bool
-    starved: bool  # against the site's starvation threshold
+    starved: bool  # against the site's starvation threshold (reporting only; never affects the simulation)
 
 
 @dataclass(frozen=True)
 class CommodityFairness:
+    """Waits include unfinished trucks' waiting so far (so they are lower bounds). Percentiles: nearest rank."""
     trucks: int
     mean_total_wait_min: float | None
     max_total_wait_min: float | None
@@ -213,6 +224,15 @@ class CommodityFairness:
     max_hopper_wait_min: float | None
     mean_turnaround_min: float | None  # completed trucks only
     still_waiting: int  # unfinished at the end of the run
+    median_total_wait_min: float | None = None
+    p95_total_wait_min: float | None = None
+    median_hopper_wait_min: float | None = None
+    p95_hopper_wait_min: float | None = None
+    mean_overtaken: float | None = None
+    max_overtaken: int = 0
+    max_overtaken_at_hopper: int = 0
+    starved: int = 0
+    turned_away: int = 0
 
 
 @dataclass(frozen=True)
@@ -950,10 +970,13 @@ class TruckFlowModel:
             return tid if tid in order else None
 
         overtaken = {tid: 0 for tid in order}
+        at_hopper = {tid: 0 for tid in order}
         for victim, by in self.dispatcher.overtake_log:
             v, b = owner(victim), owner(by)
             if v is not None and b is not None and order[b] > order[v]:
                 overtaken[v] += 1
+                if victim.endswith("/tip"):
+                    at_hopper[v] += 1
         limit_min, limit_overtakes = self.site.fairness.starvation_wait_minutes, self.site.fairness.starvation_overtakes
         trucks = {t.id: t for t in self.trucks}
         metrics: dict[str, TruckMetrics] = {}
@@ -968,11 +991,20 @@ class TruckFlowModel:
             waiting = (stop - rec.arrived - service) / MS_PER_MINUTE
             starved = waiting >= limit_min or (limit_overtakes is not None and overtaken[tid] >= limit_overtakes)
             truck = trucks[tid]
-            metrics[tid] = TruckMetrics(tid, rec.activity, truck.commodity, truck.grade, rec.arrived, rec.departed,
-                                        waiting, hopper, overtaken[tid],
-                                        rec.departed is None and rec.turned_away is None, rec.turned_away is not None,
-                                        starved)
+            status = "turned_away" if rec.turned_away is not None else "completed" if rec.departed is not None else "unfinished"
+            entered: dict[str, int] = {}
+            for s in rec.steps:
+                entered.setdefault(s.step, s.entered)
+            metrics[tid] = TruckMetrics(
+                truck_id=tid, activity=rec.activity, commodity=truck.commodity, grade=truck.grade,
+                arrived=rec.arrived, gate_admitted=rec.admitted, queue_entered=entered,
+                hopper_queue_entered=None if tip is None else tip.entered,
+                hopper_admitted=None if tip is None else tip.started, departed=rec.departed,
+                total_waiting_min=waiting, hopper_wait_min=hopper, overtaken_by_later=overtaken[tid],
+                overtaken_at_hopper=at_hopper[tid], status=status, unfinished=status == "unfinished",
+                turned_away=status == "turned_away", starved=starved)
         mean = lambda xs: sum(xs) / len(xs) if xs else None  # noqa: E731
+        rank = lambda xs, p: sorted(xs)[max(0, math.ceil(p * len(xs)) - 1)] if xs else None  # noqa: E731 nearest rank
         fairness: dict[str, ActivityFairness] = {}
         for act in ACTIVITY_LABEL:
             ms = [x for x in metrics.values() if x.activity == act]
@@ -984,8 +1016,15 @@ class TruckFlowModel:
                 waits = [x.total_waiting_min for x in group]
                 hops = [x.hopper_wait_min for x in group if x.hopper_wait_min is not None]
                 turn = [(x.departed - x.arrived) / MS_PER_MINUTE for x in group if x.departed is not None]
-                by[c] = CommodityFairness(len(group), mean(waits), max(waits), mean(hops), max(hops) if hops else None,
-                                          mean(turn), sum(1 for x in group if x.unfinished))
+                over = [x.overtaken_by_later for x in group]
+                by[c] = CommodityFairness(
+                    len(group), mean(waits), max(waits), mean(hops), max(hops) if hops else None, mean(turn),
+                    sum(1 for x in group if x.unfinished),
+                    median_total_wait_min=rank(waits, 0.5), p95_total_wait_min=rank(waits, 0.95),
+                    median_hopper_wait_min=rank(hops, 0.5), p95_hopper_wait_min=rank(hops, 0.95),
+                    mean_overtaken=mean(over), max_overtaken=max(over),
+                    max_overtaken_at_hopper=max(x.overtaken_at_hopper for x in group),
+                    starved=sum(1 for x in group if x.starved), turned_away=sum(1 for x in group if x.turned_away))
             worst = max(ms, key=lambda x: (x.overtaken_by_later, -order[x.truck_id]))
             fairness[act] = ActivityFairness(by, worst.overtaken_by_later,
                                              worst.truck_id if worst.overtaken_by_later else None,

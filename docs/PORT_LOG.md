@@ -474,6 +474,53 @@ A replication-day went from about 4.9 s to 1.85 s under the profiler (about 1 s 
 - loading streams cannot share segments concurrently (by the merge rule they never can);
 - grading rejection is not modelled.
 
+## Step 13 — verification of the starvation and overtaking diagnostics
+
+**No policy or dispatch change.** Reporting fields only:
+- Per truck: `gate_admitted`, `queue_entered` (per step), `hopper_queue_entered`, `hopper_admitted`, `overtaken_at_hopper`, `status`.
+- Per commodity: median and 95th-percentile waits (nearest rank), mean/max overtakes, max hopper overtakes, starved and turned-away counts.
+- New experiment figures for these.
+- `tools/fairness_report.py` writes `docs/audit/FAIRNESS_BASELINE.md`.
+
+**Deterministic tests** (`tests/test_starvation_diagnostics.py`, 13 tests, each hand-traced before running):
+- every field for a waiting truck;
+- strict FIFO: no overtaking, admission order = completion order;
+- feasible-first with incompatible commodities: one overtake;
+- two hoppers where completion order differs from admission order: no overtakes;
+- a later truck admitted to another hopper the waiting truck could not use: counted;
+- shared conveyor holding a hopper's lot back: one overtake by a later truck at the other hopper;
+- a truck unfinished at the end of the operating day;
+- the threshold changes only the classification (hand cases, and a generated Site A day under both policies);
+- per-commodity mean/median/p95/max;
+- gate arrival versus queue entry (the ambiguity case);
+- load-point overtakes not counted as hopper overtakes;
+- nearest-rank percentiles on a generated day.
+
+All hand traces matched on the first run. One test of mine was wrong: it compared trace events including their callbacks, which differ between runs.
+
+**Fault injection** (9 faults, all detected):
+- earlier arrivals counted;
+- every step counted as a hopper overtake;
+- cross-group overtakes;
+- queue position ignored;
+- admission = queue entry;
+- waiting = turnaround;
+- unfinished waiting not stopped at the hard stop;
+- `>` for `>=`;
+- wrong percentile.
+
+The first two, and the percentile fault, went undetected at first; three tests were added for them.
+
+**Regression:** the full suite passes (231). An engine-decision fingerprint (event trace, transfers, loads, truck records, grain received and dispatched, summaries, raw overtakes) over 16 runs (2 policies × 2 demand levels × 4 seeds, Site A) is byte-identical before and after. Prototype selftests 12/12.
+
+**Baseline across 20 replications** (`FAIRNESS_BASELINE.md`, Site A demo, demand ×1):
+- strict FIFO: no overtakes; mean waits 178–192 min for every commodity; 55 trucks completed per day; 1,743 t received.
+- feasible-first: 59 trucks; 1,851 t received. Soybeans wait 341 min on average (80% starved at 120 min, mean 15.9 overtakes), against 141 / 115 min for yellow / white maize. One soybean truck arrived 06:03 and was still waiting at the 22:00 hard stop.
+
+These are verification figures, not validation.
+
+**Ambiguities:** recorded in DOMAIN_DECISIONS §9.1 (gate arrival versus queue entry; several hoppers as one queue; what strict FIFO means with several hoppers; ties; waiting before opening; unfinished lower bounds).
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

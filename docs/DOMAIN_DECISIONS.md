@@ -263,6 +263,26 @@ recorded; no limit is applied.
 - Per-commodity waits, maximum overtakes and starved counts are experiment figures, so they can be compared across replications.
 - **Later:** overtaking limits as an *optional* queue-management policy (e.g. no further overtaking after N overtakes or M minutes), so fairness and throughput can be compared across silo configurations. Not implemented yet.
 
+**Observed case-study practice (2026-10-23, domain owner): trucks are served in queue order.** This is recorded as the case-study baseline, *not* hardcoded:
+- Queue-order service corresponds to the dispatch policy `strict_fifo`. The policy stays a run setting: `TruckFlowModel(policy=...)` and `run_experiment(policy=...)`, either one policy for every queue or a mapping per queue group (`sample`, `grade`, `weigh`, `tip`, `load`, `move`, `intake`).
+- To reproduce the case study, run with `policy="strict_fifo"`. **Not changed:** `run_experiment`'s default is still `feasible_first`, so existing results do not shift silently. Whether to make `strict_fifo` the default (or move the policy into the site configuration) is open.
+- No fairness intervention is active. Baseline figures for both policies are in `docs/audit/FAIRNESS_BASELINE.md`.
+
+### 9.1 How queue order and overtaking are defined (verified 2026-10-23; ambiguities open)
+
+Current definitions (`TruckMetrics`; tests in `tests/test_starvation_diagnostics.py`):
+- **Queue entry**: the moment a truck reaches a step and starts waiting for it (`queue_entered[step]`). For the hopper this is `hopper_queue_entered`; **hopper admission** is the start of tipping (`hopper_admitted`, when the tipping lane and pit space are reserved), not entry through the gate (`gate_admitted`).
+- **Overtake**: truck X overtakes truck Y when X starts a step while Y is still waiting in the same queue group, Y entered that queue first, **and** Y arrived at the gate first. Each start counts once per waiting truck. Completion order is irrelevant.
+- `overtaken_by_later` counts every queue group; `overtaken_at_hopper` counts tipping only.
+
+Ambiguities to confirm with the domain owner:
+1. **Gate arrival versus queue entry.** Q arrives 07:01 and reaches the hopper queue at 07:02. P arrived 07:00 but weighed slowly and reaches the hopper queue at 07:05. If P then tips before Q, it is **not** counted as an overtake, because P arrived first. Counting by queue entry alone would count it. Which does the site consider fair?
+2. **Several hoppers form one queue.** A later truck admitted to *any* hopper while an earlier truck waits counts as an overtake, even if the waiting truck could not use that hopper (for example, a commodity the hopper does not take). An alternative is to count only hoppers the waiting truck could have used.
+3. **What strict FIFO means with several hoppers.** `strict_fifo` is head-of-line across the whole hopper queue: a truck waiting for a busy or incompatible hopper also holds back later trucks that could use an idle one. Is this what "queue order" means on site? Or do trucks for a free hopper go ahead (e.g. separate queues per hopper or per commodity)? The prototype's weighbridge rule called `fifo` actually behaves like `feasible_first`.
+4. **Ties.** Trucks with the same arrival time keep the order in the arrival script (or generation order).
+5. **Waiting before opening.** Time at the gate before the plant opens counts as waiting and towards starvation. Should it?
+6. **Unfinished trucks.** Their waiting runs to the last day's hard stop, so it is a lower bound. Turned-away trucks stop counting when sent away.
+
 ## Engineering decisions already taken
 
 | Decision | Choice | Where |

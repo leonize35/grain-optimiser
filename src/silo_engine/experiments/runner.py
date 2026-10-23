@@ -112,6 +112,12 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
             out[f"{act}.{c}.mean_hopper_wait_min"] = cf.mean_hopper_wait_min
             out[f"{act}.{c}.max_hopper_wait_min"] = cf.max_hopper_wait_min
             out[f"{act}.{c}.still_waiting"] = cf.still_waiting
+            out[f"{act}.{c}.median_total_wait_min"] = cf.median_total_wait_min
+            out[f"{act}.{c}.p95_total_wait_min"] = cf.p95_total_wait_min
+            out[f"{act}.{c}.p95_hopper_wait_min"] = cf.p95_hopper_wait_min
+            out[f"{act}.{c}.mean_overtaken"] = cf.mean_overtaken
+            out[f"{act}.{c}.max_overtaken"] = cf.max_overtaken
+            out[f"{act}.{c}.starved"] = cf.starved
     return out
 
 
