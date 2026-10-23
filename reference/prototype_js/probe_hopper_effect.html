@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Prototype probe: extra hopper under +20 % demand</title></head>
+<body><pre id="out">running</pre>
+<script src="silo_engine_v0.2.0.js"></script>
+<script>
+// Differential probe (not part of the prototype). Site A, loading off, demand x1.2, 10 replications,
+// demand-only vs. an extra hopper on Pit conveyor 1. Reports per-replication means of turnaround (completed trucks
+// only, the prototype's definition), unfinished trucks, grain received and elevator/conveyor changeovers.
+const E = SiloEngine;
+const base = E.samples.siteA(); base.demand.load.daily = 0;
+const plus = E.applyScenario(base, [{ op: 'add', item: { id: 'H3', type: 'hopper', name: 'Hopper 3', capT: 60, rate: 400, tip: [4, 6, 9], commodities: ['YM', 'WM'] }, edgesOut: ['C1'] }]);
+const arms = { demand: base, hopper: plus };
+const out = {};
+for (const [name, cfg] of Object.entries(arms)) {
+  const x = E.runExperiment(cfg, { reps: 10, demandFactor: 1.2, seed: 7 });
+  const m = (f) => x.reps.reduce((a, r) => a + f(r), 0) / x.reps.length;
+  out[name] = { tat_completed: m((r) => r.tat.unload.mean), unfinished: m((r) => r.trucks.unfinished),
+    received_t: m((r) => r.grain.received), changeovers: m((r) => Object.values(r.changeovers).reduce((a, b) => a + b, 0)),
+    violations: x.summary.violations };
+}
+document.getElementById('out').textContent = JSON.stringify(out);
+</script></body></html>

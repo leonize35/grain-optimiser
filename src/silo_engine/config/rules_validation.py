@@ -168,12 +168,38 @@ def _validate_hours(site: SiteConfig, result: RulesResult) -> None:
                                    f"({_clock(h.open)}) and closing ({_clock(h.close)})."))
 
 
+def _validate_demand(site: SiteConfig, result: RulesResult) -> None:
+    """Demand used to generate arrivals: 24-value profiles, grade mixes for graded commodities."""
+    policy = GradePolicy(site)
+    names = {c.id: c.name for c in site.commodities}
+    for act, label in (("unload", "unloading"), ("load", "loading"), ("weigh", "weighbridge-only")):
+        d = getattr(site.demand, act)
+        if d is None or not d.daily > 0:
+            continue
+        if d.profile is not None and len(d.profile) != 24:
+            result.errors.append(Issue(f"The {label} arrival profile needs 24 hourly values (it has {len(d.profile)})."))
+        if act != "unload":
+            continue
+        for c, share in d.mix.items():
+            if share > 0 and policy.is_graded(c):
+                mix = d.grade_mix.get(c)
+                if not mix:
+                    result.errors.append(Issue(f"Unloading trucks bring {names.get(c, c)}, which has grades, but the "
+                                               "demand has no grade mix for it."))
+                    continue
+                for g in mix:
+                    if g not in policy.grades[c]:
+                        result.errors.append(Issue(f"The grade mix for {names.get(c, c)} refers to grade {g}, which "
+                                                   "is not one of its grades."))
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
     equipment_names = {e.id: (e.name or e.id) for e in site.equipment}
     policy = GradePolicy(site)
     _validate_hours(site, result)
+    _validate_demand(site, result)
     _validate_grades(site, result)
     _validate_truck_paths(site, result)
 

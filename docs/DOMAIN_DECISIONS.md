@@ -234,6 +234,28 @@ Field names below are proposals for the configuration schema (schema v2). Existi
 | A7 | A service in progress at the hard stop is completed; transfers may run until clear | Everything stops at the hard stop |
 | A8 | Out-of-service bin: no new reservations; existing ones honoured | Existing reservations are also cancelled |
 
+## 9. Open question found by simulation (2026-10-23)
+
+**Q1. Starvation under feasible-first with single-commodity pits.** On prototype Site A at +20 % demand, under
+feasible-first, white maize and soybean trucks waited on average 165–170 min for a hopper, against 63 min for
+yellow maize, with worst cases over 8 hours. Three rules combine to cause this:
+- feasible-first lets later trucks overtake blocked ones;
+- each pit holds one commodity at a time (A4);
+- trucks prefer a pit that already holds their grain (the prototype's rule).
+
+With continuous drain (A3), yellow maize keeps both pits busy, so other commodities rarely get one. Under strict
+FIFO the waits even out (about 127–159 min mean for every commodity). The overtake count per truck is already
+recorded; no limit is applied.
+
+**Options to decide:**
+- (a) leave as is, and report fairness (per-commodity waits, maximum overtakes);
+- (b) an anti-starvation rule: after a truck has been overtaken N times, or has waited M minutes, it may not be
+  overtaken any further;
+- (c) reserve a pit for a commodity that has waited too long;
+- (d) a different default policy.
+
+**What happens at real silos?** Do staff hold back trucks of the main commodity to let others in?
+
 ## Engineering decisions already taken
 
 | Decision | Choice | Where |

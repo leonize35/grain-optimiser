@@ -100,6 +100,7 @@ class ActivityDemand(_Model):
     profile: list[float] | None = None  # 24 hourly weights
     payload: list[float] | None = None  # triangular [min, mode, max] tonnes
     mix: dict[str, float] = {}
+    grade_mix: dict[str, dict[str, float]] = {}  # R4: per graded commodity, share of each grade
 
 
 class Demand(_Model):

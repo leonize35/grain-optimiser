@@ -40,7 +40,11 @@ class _Pending:
     created: int
     seq: int
     attempt: Attempt = field(repr=False)
+    order: Callable[[], int] | None = field(default=None, repr=False)  # queue position key; default: `created`
     reasons: list[WaitReason] = field(default_factory=list)
+
+    def position(self) -> tuple[int, int]:
+        return (self.order() if self.order else self.created, self.seq)
 
 
 class DispatcherError(RuntimeError):
@@ -57,12 +61,16 @@ class Dispatcher:
         self._seq = 0
         self._overtaken: dict[str, int] = {}
 
-    def submit(self, request_id: str, group: str, now: int, attempt: Attempt) -> None:
+    def submit(self, request_id: str, group: str, now: int, attempt: Attempt,
+               order: Callable[[], int] | None = None) -> None:
+        """Queue a request. Requests are considered by (order key, submission sequence); the order key defaults to
+        the submission time, so by default this is plain submission order. Grain transfers pass the age of their
+        grain instead, giving "oldest grain first" across pits (the prototype's transfer rule)."""
         if group not in self._policies:
             raise DispatcherError(f"No dispatch policy configured for queue group '{group}'")
         if any(p.id == request_id for p in self._pending):
             raise DispatcherError(f"Request {request_id} is already waiting")
-        self._pending.append(_Pending(request_id, group, now, self._seq, attempt))
+        self._pending.append(_Pending(request_id, group, now, self._seq, attempt, order))
         self._seq += 1
 
     def reconsider(self, now: int) -> None:
@@ -72,15 +80,16 @@ class Dispatcher:
 
     def _one_pass(self, now: int) -> bool:
         blocked_groups: set[str] = set()
-        for req in self._pending:  # kept in submission order
+        for req in sorted(self._pending, key=_Pending.position):
             if self._policies[req.group] == "strict_fifo" and req.group in blocked_groups:
                 req.reasons = [WaitReason("QUEUE_ORDER", None, "waiting behind an earlier truck in the same queue")]
                 continue
+            position = req.position()
             reasons = req.attempt(now)
             if not reasons:
                 self._pending.remove(req)
                 for earlier in self._pending:
-                    if earlier.seq < req.seq and earlier.group == req.group:
+                    if earlier.position() < position and earlier.group == req.group:
                         self._overtaken[earlier.id] = self._overtaken.get(earlier.id, 0) + 1
                 return True
             req.reasons = reasons

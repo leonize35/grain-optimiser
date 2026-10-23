@@ -59,6 +59,12 @@ class Pit:
         self.lots: deque[Lot] = deque(lots or [])
         self.claims: dict[str, tuple[GradedCommodity, int]] = {}
         self.draining: Drain | None = None
+        self._version = 0  # bumped on every change; keys the free-space cache
+        self._free_cache: tuple[int, int, Fraction] | None = None
+
+    def _changed(self) -> None:
+        self._version += 1
+        self._free_cache = None
 
     # ---- level ----
     @property
@@ -76,7 +82,12 @@ class Pit:
         return self.committed_kg - self.drained_at(now)
 
     def free_space_at(self, now: int) -> Fraction:
-        return self.capacity_kg - self.level_at(now) - sum(kg for _, kg in self.claims.values())
+        cached = self._free_cache
+        if cached is not None and cached[0] == now and cached[1] == self._version:
+            return cached[2]
+        free = self.capacity_kg - self.level_at(now) - sum(kg for _, kg in self.claims.values())
+        self._free_cache = (now, self._version, free)
+        return free
 
     def _combined(self, extra: list[GradedCommodity]) -> tuple[bool, GradedCommodity | None]:
         identity = None
@@ -128,15 +139,18 @@ class Pit:
         if reservation_id in self.claims:
             raise PitError(f"{self.id}: claim {reservation_id} already exists")
         self.claims[reservation_id] = (grain, kg)
+        self._changed()
 
     def release_claim(self, reservation_id: str) -> None:
         self.claims.pop(reservation_id, None)
+        self._changed()
 
     def claim_to_lot(self, reservation_id: str, lot: Lot) -> None:
         grain, kg = self.claims.pop(reservation_id)
         if (grain, kg) != (lot.grain, lot.kg):
             raise PitError(f"{self.id}: lot {lot.id} does not match claim {reservation_id}")
         self.lots.append(lot)
+        self._changed()
 
     # ---- draining ----
     def start_drain(self, kg: int, start: int, duration: int | None = None) -> None:
@@ -148,6 +162,7 @@ class Pit:
             raise PitError(f"{self.id}: cannot drain {kg} kg from the head lot")
         rate = Fraction(kg, duration) if duration else Fraction(0)
         self.draining = Drain(self.lots[0].id, kg, start, rate, start)
+        self._changed()
 
     def set_rate(self, now: int, rate: Fraction) -> None:
         d = self.draining
@@ -156,6 +171,7 @@ class Pit:
         d.drained_before = self.drained_at(now)
         d.since = max(now, d.start)
         d.rate = rate
+        self._changed()
 
     def remaining_drain_kg(self, now: int) -> Fraction:
         d = self.draining
@@ -170,6 +186,7 @@ class Pit:
         self.draining = None
         if head.kg == 0:
             self.lots.popleft()
+        self._changed()
         return head
 
     def check_invariants(self, now: int) -> list[str]:

@@ -349,6 +349,81 @@ The prototype's demo sites A and B still pass `validate_rules` with no errors.
 - overtime that runs past midnight is not handled;
 - during closed hours a deadlocked truck's reason shows as `PLANT_CLOSED`, so a deadlock forming late on the last day is reported only as unfinished work.
 
+## Step 11 — stochastic service times, generated arrivals and multi-replication experiments
+
+**Implemented:**
+- `sim/random_streams.py`:
+  - streams keyed per entity: each truck by (seed, activity, day, index); each service draw by (seed, truck, step); arrivals by (seed, activity, day);
+  - BLAKE2b key hashing plus Python's stable `random()`;
+  - triangular and exponential inverse CDFs written out (the triangular uses the prototype's formula);
+  - weighted choice, and derived replication seeds.
+- `sim/service_times.py`, `StochasticServiceTimes`: triangular `time` / `tip` from the configuration, one draw per (truck, step), rounded to the millisecond.
+- `inputs/generated.py`, the prototype method:
+  - hourly-profile Poisson arrivals over opening hours, redrawn at hour boundaries, scaled to `daily` × demand factor, for each day;
+  - commodity, payload (kilograms) and grade (new `grade_mix`) from each truck's own stream;
+  - the opening queue on day 1;
+  - the equipment layout plays no part (common random numbers).
+- `experiments/runner.py`:
+  - `run_experiment` with derived seeds;
+  - each replication checked, with stalls and invalid runs excluded and counted;
+  - 95 % Student t intervals (the prototype's table) and paired differences with a significance flag;
+  - metadata: engine version, config hash, base seed and seeds, replications, days, demand factor, policy, assumptions.
+- `validate_rules`: 24-value arrival profiles; a grade mix required for graded unloading commodities, with valid grades.
+
+**Porting bug found by differential testing against the prototype, and fixed:** pit transfers were ordered by when the request was filed. Pits refile after every lot, so the elevator rotated between pits, unlike the prototype's "oldest grain first" rule. The dispatcher now accepts an ordering key: transfers queue by the age of their grain, and everything else keeps filing order, so all hand-traced timelines are unchanged. A hand-computed test was added (`test_transfer_order.py`).
+
+**Operational finding (not a bug), recorded as open question Q1 in DOMAIN_DECISIONS.md:** under feasible-first, single-commodity pits and the "prefer a pit holding my grain" rule, minority commodities starve. On Site A at +20 %, white maize and soybeans waited 165–170 min on average for a hopper, against 63 min for yellow, with worst cases over 8 h. An extra hopper there *raises* elevator changeovers (about 49 → 95 per day) and lowers throughput, while making waits fairer. Under strict FIFO the waits even out and the extra hopper helps every commodity. The three-arm test therefore checks common random numbers and that growth increases turnaround, but does not assert the hopper effect's sign.
+
+**Differential comparison after the fix** (Site A, loading off, demand ×1.2, 10 replications per engine; each engine uses its own random streams, so only statistical agreement is expected):
+
+| | Changeovers/day | Grain received | Unfinished trucks |
+|---|---|---|---|
+| Prototype, demand-only | 75.6 | 2,172 t | 10.7 |
+| Python, demand-only | 71.3 | 2,274 t | 9.0 |
+| Prototype, + extra hopper | 83.0 | 2,199 t | 9.8 |
+| Python, + extra hopper | 89.4 | 2,216 t | 10.9 |
+
+The engines broadly agree. The remaining difference with the extra hopper (+6 changeovers, about +1 unfinished truck) is consistent with the one intended modelling difference, continuous pit drain (A3) against the prototype's stepwise release, which lets same-commodity trucks re-tip sooner. A run with stepwise draining patched in for comparison was still in progress when this step was committed.
+
+**Performance:** profiling showed tip retries dominating (about 29,000 attempts per Site A day). Two optimisations leave every result unchanged:
+- the tipping lane is checked before the pit;
+- pit free space is cached per instant, invalidated on every change.
+
+A replication-day went from about 4.9 s to 1.85 s under the profiler (about 1 s without). The remaining cost is the dispatcher re-trying every waiting truck after each start, which can be optimised later.
+
+**Behaviour proved (19 new tests, 205 in total):**
+- stream reproducibility and independence;
+- triangular and exponential values by hand;
+- service times in range, with the right mean and independent of draw order;
+- the prototype's arrival test 6 ported (200/day, 30 days, mean within ±12, hourly shares within 2 points);
+- arrivals reproducible and identical with and without an extra hopper;
+- the demand factor;
+- commodity mix and payload;
+- the opening queue;
+- the grade mix and its validation;
+- CI and paired difference by hand;
+- experiment reproducibility and metadata;
+- stalled replications excluded and counted;
+- the three-arm common-random-numbers check;
+- oldest-grain-first ordering;
+- the pit free-space cache.
+
+**Fault injection:**
+- one shared service stream fails 1 test;
+- the profile ignored fails 1;
+- failed replications averaged in fails 1;
+- a normal instead of a t quantile fails 2;
+- transfers ordered by filing time fails 1;
+- the cache not invalidated first went undetected (masked by the single tipping lane), so a unit test was added, and it now fails 1.
+
+**Commands run:** `pytest -q` → 205 passed, about 10 s; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged. `reference/prototype_js/probe_hopper_effect.html` was added as a read-only differential probe; the prototype engine is untouched.
+
+**Limitations:**
+- service times are triangular only (fitted distributions come with data import);
+- grading rejections are not modelled;
+- arrivals are generated only within opening hours (as in the prototype);
+- the dispatcher re-try cost is noted above.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

@@ -187,6 +187,7 @@ class TruckFlowResult:
     assumptions: list[str]  # simplifications this run relied on (e.g. unlimited waiting space)
     area_peak: dict[str, int]  # configured waiting area -> most trucks in it at once
     summary: dict[str, ActivitySummary]  # activity -> completed / unfinished / turned away and turnaround
+    received_kg: int = 0  # grain tipped by trucks during the run
 
 
 def _hours_ms(hours: float) -> int:
@@ -604,7 +605,13 @@ class TruckFlowModel:
         grain, kg, res_id = self._grain(truck), truck.kg, f"{truck.id}/tip"
         reasons: list[WaitReason] = []
         for pit in self._hopper_candidates(truck):
-            got = self._reserve_service(truck, res_id, [LaneClaim(f"{pit.id}:tip"), PitSpaceClaim(pit.id, grain, kg)])
+            lane = f"{pit.id}:tip"
+            if not self.ledger.lane_free(lane):  # cheap check first; a lane coming free triggers a re-check anyway
+                busy = WaitReason("EQUIPMENT_BUSY", lane, f"{lane} busy")
+                if busy not in reasons:
+                    reasons.append(busy)
+                continue
+            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, kg)])
             if not got:
                 self._occupy_station(truck, res_id, step_rec)
                 step_rec.unit, step_rec.started = pit.id, self.cal.now
@@ -637,7 +644,10 @@ class TruckFlowModel:
         self._intake_active.add(pit_id)
         self._transfer_count += 1
         req_id = f"{pit_id}/intake#{self._transfer_count}"
-        self.dispatcher.submit(req_id, "intake", self.cal.now, lambda now: self._try_intake(pit_id, req_id))
+        pit = self.pits[pit_id]
+        # Oldest grain first across pits: queue position is the age of the pit's head lot (prototype 'fifo' rule).
+        self.dispatcher.submit(req_id, "intake", self.cal.now, lambda now: self._try_intake(pit_id, req_id),
+                               order=lambda: pit.lots[0].created if pit.lots else self.cal.now)
 
     def _try_intake(self, pit_id: str, req_id: str) -> list[WaitReason]:
         if not self.site.end_of_day.transfers_after_close and not self._serving(self.cal.now):
@@ -778,7 +788,7 @@ class TruckFlowModel:
             material_balance_kg=self._opening_kg + self._tipped_kg - closing,
             violations=list(self.violations), stall=self.stall, assumptions=list(self.assumptions),
             area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas},
-            summary=self._summaries())
+            summary=self._summaries(), received_kg=self._tipped_kg)
 
     def _summaries(self) -> dict[str, ActivitySummary]:
         """R6: completed, unfinished and turned-away trucks per activity; unfinished are never silently dropped."""

@@ -78,6 +78,19 @@ def test_pit_holds_one_commodity_at_a_time():
     assert [r.code for r in p.check_claim(hm("07:00"), WM, t(10))] == ["PIT_INCOMPATIBLE"]
 
 
+def test_free_space_reflects_every_change_at_the_same_instant():
+    # 60 t pit holding 40 t: 20 t free. A 15 t claim at the same instant leaves 5 t; releasing it gives 20 t back.
+    p = make_pit(level=40)
+    assert p.free_space_at(hm("07:00")) == t(20)
+    p.claim("R1", YM, t(15))
+    assert p.free_space_at(hm("07:00")) == t(5)
+    p.release_claim("R1")
+    assert p.free_space_at(hm("07:00")) == t(20)
+    p.start_drain(t(40), hm("07:00"), m(12))
+    p.set_rate(hm("07:00"), Fraction(t(40), m(6)))  # twice as fast: after 3 min, 20 t gone
+    assert p.free_space_at(hm("07:03")) == t(40)
+
+
 def test_claim_becomes_a_lot_when_tipping_ends():
     p = make_pit()
     p.claim("R1", YM, t(30))
