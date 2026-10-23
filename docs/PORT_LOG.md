@@ -570,6 +570,21 @@ Details: `docs/MATERIAL_FLOW_AUDIT.md`.
   - prototype selftests 12/12.
 - No engine defect found and no behaviour changed. Remaining gaps are in the audit document §6.
 
+## Step 17 — interrupted transfers (scheduled equipment outages)
+
+Specification and results: `docs/INTERRUPTED_TRANSFERS.md`.
+- Deterministic outages of route equipment (`outages` in the site configuration).
+- Recovery rule "hold": a suspended transfer or load keeps its route, bin and load-point reservations, so no incompatible grain can enter the uncleared route. The same transfer resumes when the equipment is available again.
+- Grain left the pit but not delivered is reported as on the route; mass balance holds at every point.
+- Verified:
+  - 19 new hand-traced tests;
+  - 20 generated days with outages audited clean;
+  - 8/8 injected faults detected;
+  - 310 passed, 2 expected failures;
+  - version-tolerant fingerprint, configuration hashes and fairness baseline unchanged;
+  - prototype selftests 12/12.
+- Decisions I1-I7 need operational confirmation.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

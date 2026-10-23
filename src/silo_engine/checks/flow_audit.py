@@ -11,7 +11,9 @@ Checks:
 - shared segments over time: one commodity at a time, at most `max_concurrent_feeds` streams, merging streams share the
   rest of the route, and a route is released no earlier than its clear time after the last grain;
 - order: a transfer starts only after its lot was tipped; each load belongs to a loading truck and moves its tonnes;
-- completion: finished >= flow start >= start; released only after finishing.
+- completion: finished >= flow start >= start; released only after finishing;
+- outages (docs/INTERRUPTED_TRANSFERS.md §5): no grain flows through equipment while it is unavailable (I-A), no
+  route containing unavailable equipment is reserved during the outage (I-B), suspensions are well formed (I-C).
 
 Conveyors and elevators hold no inventory in this model: grain still in transit is counted in its source pit until
 the transfer ends (the same as the prototype).
@@ -23,7 +25,7 @@ from decimal import Decimal
 from ..config.schema import SiteConfig
 from ..domain.quantities import tonnes_to_kg
 from ..inputs.scripted import ScriptedTruck
-from ..sim.time import m
+from ..sim.time import MS_PER_DAY, hm, m
 
 INF = float("inf")
 
@@ -128,6 +130,7 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
             a.problems.append(f"{x.id}: route released at {x.released} before the grain finished ({x.finished})")
 
     _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity)
+    _audit_outages(a, site, [*transfers, *loads])
     _audit_segments(a, eq, transfers, loads, lot_commodity, truck)
     a.checked = {"lots": len(lot_kg), "transfers": len(transfers), "loads": len(loads), "bins": len(opening_bins),
                  "pits": len(result.pits)}
@@ -204,3 +207,33 @@ def _audit_segments(a, eq, transfers, loads, lot_commodity, truck) -> None:
                 a.problems.append(f"segment {seg}: commodities {sorted({str(s[3]) for s in active})} together at {t}")
             if len({s[4] for s in active}) > 1:
                 a.problems.append(f"segment {seg}: streams with different onward routes together at {t}")
+
+
+def _audit_outages(a, site, streams) -> None:
+    windows = defaultdict(list)  # equipment -> [(start, end)]
+    for o in site.outages:
+        start = (o.day - 1) * MS_PER_DAY + hm(o.start)
+        windows[o.equipment].append((start, INF if o.end is None else (o.day - 1) * MS_PER_DAY + hm(o.end)))
+    for x in streams:
+        stops = [tuple(i) for i in getattr(x, "interruptions", [])]
+        # I-C: ordered, inside the stream's life, only the last one may be open.
+        for k, (stop, restart) in enumerate(stops):
+            if stop < x.started or (restart is not None and restart < stop) or (restart is None and k != len(stops) - 1):
+                a.problems.append(f"{x.id}: malformed suspension {stop}-{restart}")
+            if x.finished is not None and (restart is None or restart > x.finished):
+                a.problems.append(f"{x.id}: finished at {x.finished} while suspended ({stop}-{restart})")
+        # Flowing time = [flow start, finish) minus suspensions.
+        flowing, t = [], x.flow_started
+        for stop, restart in sorted(stops, key=lambda v: v[0]):
+            if stop > t:
+                flowing.append((t, stop))
+            t = max(t, INF if restart is None else restart)
+        end = INF if x.finished is None else x.finished
+        if t < end:
+            flowing.append((t, end))
+        for seg in x.path[1:-1]:
+            for w0, w1 in windows.get(seg, []):
+                if any(f0 < w1 and w0 < f1 for f0, f1 in flowing):  # I-A
+                    a.problems.append(f"{x.id}: grain flowed while {seg} was unavailable ({w0}-{w1})")
+                if w0 <= x.started < w1:  # I-B
+                    a.problems.append(f"{x.id}: route reserved at {x.started} through {seg}, unavailable {w0}-{w1}")

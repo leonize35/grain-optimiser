@@ -92,6 +92,7 @@ class ReservationLedger:
         self._area_holders: dict[str, set[str]] = {a: set() for a in self._area_capacity}
         self.area_peak: dict[str, int] = {a: 0 for a in self._area_capacity}
         self._segments = {sid: _Segment(cap) for sid, cap in segments.items()}
+        self.down: set[str] = set()  # segments currently unavailable (step 17): no new reservations through them
         self.pits = pits
         self.bins = bins
         self._held: dict[str, tuple[Claim, ...]] = {}
@@ -109,6 +110,10 @@ class ReservationLedger:
 
     def segment_streams(self, segment_id: str) -> list[GradedCommodity]:
         return list(self._segments[segment_id].streams.values())
+
+    def holders(self, segment_id: str) -> list[str]:
+        """Reservations holding a segment now (including suspended streams)."""
+        return sorted(self._segments[segment_id].streams)
 
     def last_grain(self, segment_id: str) -> GradedCommodity | None:
         return self._segments[segment_id].last
@@ -135,6 +140,8 @@ class ReservationLedger:
             if claim.equipment_id not in self._segments:
                 raise LedgerError(f"Unknown segment {claim.equipment_id}")
             seg = self._segments[claim.equipment_id]
+            if claim.equipment_id in self.down:
+                return [WaitReason("EQUIPMENT_DOWN", claim.equipment_id, f"{claim.equipment_id} is unavailable")]
             if len(seg.streams) >= seg.capacity:
                 return [WaitReason("EQUIPMENT_BUSY", claim.equipment_id, f"{claim.equipment_id} busy")]
             if any(g != claim.grain for g in seg.streams.values()):

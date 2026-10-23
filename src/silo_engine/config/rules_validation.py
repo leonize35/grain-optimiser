@@ -193,6 +193,43 @@ def _validate_demand(site: SiteConfig, result: RulesResult) -> None:
                                                    "is not one of its grades."))
 
 
+NOT_ROUTE_EQUIPMENT = ("hopper", "bin", "loadpoint", "weighbridge", "sampler", "grader")
+
+
+def _validate_outages(site: SiteConfig, result: RulesResult) -> None:
+    """Step 17: outages name route equipment, use clock times, end after they start, and do not overlap."""
+    from ..sim.time import MS_PER_DAY, TimeFormatError, hm
+    by_id = {e.id: e for e in site.equipment}
+    spans: dict[str, list[tuple[int, float, int]]] = {}
+    for i, o in enumerate(site.outages, start=1):
+        e = by_id.get(o.equipment)
+        if e is None:
+            result.errors.append(Issue(f"Outage {i} refers to unknown equipment {o.equipment}."))
+            continue
+        name = e.name or e.id
+        if e.type in NOT_ROUTE_EQUIPMENT:
+            result.errors.append(Issue(f"Outage {i}: {name} is a {e.type} and cannot be scheduled as unavailable; "
+                                       "only route equipment between hoppers, bins and load points (conveyors, "
+                                       "elevators, ...) can be.", [e.id]))
+            continue
+        try:
+            start = (o.day - 1) * MS_PER_DAY + hm(o.start)
+            end = float("inf") if o.end is None else (o.day - 1) * MS_PER_DAY + hm(o.end)
+        except TimeFormatError:
+            result.errors.append(Issue(f"Outage {i} of {name}: times must be clock times like HH:MM "
+                                       f"(got '{o.start}', '{o.end}')."))
+            continue
+        if end <= start:
+            result.errors.append(Issue(f"Outage {i} of {name} must end after it starts ({o.start} to {o.end}).", [e.id]))
+            continue
+        spans.setdefault(e.id, []).append((start, end, i))
+    for eid, items in spans.items():
+        items.sort()
+        for (s1, e1, i1), (s2, _, i2) in zip(items, items[1:]):
+            if s2 < e1:
+                result.errors.append(Issue(f"Outages {i1} and {i2} of {by_id[eid].name or eid} overlap.", [eid]))
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
@@ -202,6 +239,7 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_demand(site, result)
     _validate_grades(site, result)
     _validate_truck_paths(site, result)
+    _validate_outages(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

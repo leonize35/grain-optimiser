@@ -121,8 +121,11 @@ until the transfer ends; the bin receives it all at the end. The prototype does 
    modelled. This matters for very long routes and for stopping mid-transfer.
 2. **One bin per load** (no multi-bin loads). **One outlet per pit** (one transfer at a time, head lot first).
    **Fixed bin preference** (same grain first, then route order). Dynamic allocation is out of scope by decision.
-3. **No partial or interrupted transfer** (breakdown, a bin stopping mid-flow, an operator abort). A transfer always
-   completes once started. The bin's `release_incoming` exists but nothing in the model uses it.
+3. **Interrupted transfers: done in step 17** for scheduled outages of route equipment (hold and resume; see
+   `docs/INTERRUPTED_TRANSFERS.md`). Still missing:
+   - random breakdowns;
+   - outages of hoppers, bins or load points;
+   - an operator abort that releases the route and credits what reached the bin.
 4. **Grain left in a pit when every eligible bin is full** is reported as a stall. No overflow rule, emergency bin
    or operator action is modelled.
 5. **No authorised adjustments** (shrinkage, moisture loss, cleaning losses, stock counts). CLAUDE.md requires these

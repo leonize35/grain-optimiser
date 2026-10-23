@@ -74,7 +74,7 @@ from .pit import Lot, Pit
 from .queue_policy import DEFAULT_POLICY, UnsupportedPrototypePolicy, from_prototype
 from .routing import RoutePlanner
 from .service_times import ServiceTimes
-from .time import MS_PER_DAY, MS_PER_MINUTE, m
+from .time import MS_PER_DAY, MS_PER_MINUTE, hm, m
 
 STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
 QUEUE_GROUP = {"sample": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
@@ -146,6 +146,7 @@ class TransferRecord:
     changeover_segments: dict[str, int]  # segment -> changeover ms (0-minute changeovers included)
     finished: int | None = None  # last grain fed; grain in the bin
     released: int | None = None  # route free again (after clear time)
+    interruptions: list[list[int | None]] = field(default_factory=list)  # [suspended, resumed or None] (step 17)
 
 
 @dataclass
@@ -160,6 +161,7 @@ class LoadRecord:
     changeover_segments: dict[str, int]
     finished: int | None = None  # truck loaded; stock left the bin
     released: int | None = None  # route free again (after clear time)
+    interruptions: list[list[int | None]] = field(default_factory=list)  # [suspended, resumed or None] (step 17)
 
 
 @dataclass(frozen=True)
@@ -290,6 +292,7 @@ class LotFlow:
     in_transit_kg: int  # in transfers still running at the end (counted in the pit until they finish)
     in_pit_kg: int  # not yet sent
     bins: tuple[str, ...]  # bins it went to, in order (more than one when a bin filled)
+    on_route_kg: int = 0  # part of in_transit_kg that has left the pit but not reached the bin (whole kg, rounded down)
 
 
 @dataclass(frozen=True)
@@ -429,6 +432,11 @@ class TruckFlowModel:
         self._rechecks: set[tuple[str, int]] = set()
         self._flowing: dict[str, TransferRecord] = {}  # transfers whose grain is moving now
         self._completion: dict[str, Event] = {}  # transfer id -> its (re)scheduled completion event
+        # Step 17: suspended transfers and loads (route held), and each running load's completion.
+        self._suspended: dict[str, TransferRecord | LoadRecord] = {}
+        self._load_end: dict[str, tuple[Event, int]] = {}  # load id -> (completion event, end time)
+        self._load_left: dict[str, int] = {}  # suspended load id -> ms of its clock still to run
+        self._load_owner: dict[str, tuple[ScriptedTruck, StepRecord]] = {}
         self.transfers: list[TransferRecord] = []
         self.violations: list[tuple[int, str]] = []
         self._opening_kg = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
@@ -444,6 +452,12 @@ class TruckFlowModel:
             ev_stop = self.cal.schedule(stops, CONTROL, lambda c, d=d: self._service_stops(d), f"day {d + 1}: service stops")
             self._day_events |= {ev_open, ev_stop}
         schedule_arrivals(self.cal, trucks, self._arrive)
+        for o in site.outages:  # validated by validate_rules
+            start = (o.day - 1) * MS_PER_DAY + hm(o.start)
+            self.cal.schedule(start, CONTROL, lambda c, e=o.equipment: self._equipment_down(e), f"{o.equipment} unavailable")
+            if o.end is not None:
+                end = (o.day - 1) * MS_PER_DAY + hm(o.end)
+                self.cal.schedule(end, CONTROL, lambda c, e=o.equipment: self._equipment_up(e), f"{o.equipment} available")
 
     # ---- construction ----
     def _prototype_policy_note(self, site: SiteConfig) -> str | None:
@@ -576,6 +590,7 @@ class TruckFlowModel:
         held, self._held = self._held, []
         for truck in held:
             self._admit(truck)
+        self._resume_suspended()
         self._after_event()
 
     def _service_stops(self, day: int) -> None:
@@ -872,12 +887,18 @@ class TruckFlowModel:
             end = flow_start + math.ceil(Fraction(truck.kg) * 3600 / rate)
             record = LoadRecord(route_res, truck.id, bin_id, path, truck.kg, self.cal.now, flow_start, changeovers)
             self.loads.append(record)
-            self.cal.schedule(end, RELEASE, lambda c: self._load_done(truck, step_rec, record),
-                              f"{truck.id} loaded {truck.kg} kg from {bin_id}")
+            self._schedule_load_end(record, truck, step_rec, end)
             return []
         return reasons
 
+    def _schedule_load_end(self, record: LoadRecord, truck: ScriptedTruck, step_rec: StepRecord, end: int) -> None:
+        ev = self.cal.schedule(end, RELEASE, lambda c: self._load_done(truck, step_rec, record),
+                               f"{truck.id} loaded {truck.kg} kg from {record.bin}")
+        self._load_end[record.id] = (ev, end)
+        self._load_owner[record.id] = (truck, step_rec)
+
     def _load_done(self, truck: ScriptedTruck, step_rec: StepRecord, record: LoadRecord) -> None:
+        self._load_end.pop(record.id, None)
         self.bins[record.bin].dispatch(record.id, record.kg)
         self._dispatched_kg += record.kg
         record.finished = step_rec.finished = self.cal.now
@@ -968,6 +989,8 @@ class TruckFlowModel:
                     if x.finished is None and shared & set(x.path[1:-1])), default=self.cal.now)
 
     def _start_flow(self, record: TransferRecord) -> None:
+        if record.id in self._suspended:  # the route went down during the changeover: flow starts on resume
+            return
         self._flowing[record.id] = record
         self._recompute_rates()
 
@@ -1017,6 +1040,66 @@ class TruckFlowModel:
         if in_event:
             self._after_event()
 
+    # ---- equipment outages (step 17, docs/INTERRUPTED_TRANSFERS.md) ----
+    def _equipment_down(self, equipment: str) -> None:
+        """Suspend every active transfer and load whose route contains the equipment; they keep their reservations."""
+        self.ledger.down.add(equipment)
+        now = self.cal.now
+        for rec in [*self.transfers, *self.loads]:
+            if rec.finished is not None or rec.id in self._suspended or equipment not in rec.path[1:-1]:
+                continue
+            rec.interruptions.append([now, None])
+            self._suspended[rec.id] = rec
+            if isinstance(rec, TransferRecord):
+                pit = self.pits[rec.pit]
+                if rec.id in self._flowing:
+                    del self._flowing[rec.id]
+                    pit.set_rate(now, Fraction(0))
+                    self.cal.cancel(self._completion.pop(rec.id))
+            else:
+                ev, end = self._load_end.pop(rec.id)
+                self.cal.cancel(ev)
+                self._load_left[rec.id] = end - now
+        self._recompute_rates()  # streams still flowing on shared segments take the capacity
+        self._after_event()
+
+    def _equipment_up(self, equipment: str) -> None:
+        self.ledger.down.discard(equipment)
+        self._resume_suspended()
+        self._after_event()
+
+    def _resume_suspended(self) -> None:
+        """Resume the same transfers and loads once no equipment on their route is unavailable. A transfer resumes
+        only when transfers may run (open, or transfers continue after close); a load always may (A7)."""
+        now = self.cal.now
+        resumed = False
+        for rec in list(self._suspended.values()):
+            if any(s in self.ledger.down for s in rec.path[1:-1]):
+                continue
+            stopped = rec.interruptions[-1][0]
+            if isinstance(rec, TransferRecord):
+                if not self.site.end_of_day.transfers_after_close and not self._serving(now):
+                    continue
+                del self._suspended[rec.id]
+                rec.interruptions[-1][1] = now
+                if rec.flow_started <= stopped:  # it was flowing: continue from where it stopped
+                    self._flowing[rec.id] = rec
+                    resumed = True
+                elif rec.flow_started <= now:  # the changeover ended during the stoppage (I3): flow starts now
+                    rec.flow_started = now
+                    self._flowing[rec.id] = rec
+                    resumed = True
+                # otherwise the changeover is still running and its scheduled event starts the flow
+            else:
+                del self._suspended[rec.id]
+                rec.interruptions[-1][1] = now
+                if rec.flow_started > stopped:  # paused during setup or changeover (I4): flow starts later too
+                    rec.flow_started += now - stopped
+                truck, step_rec = self._load_owner[rec.id]
+                self._schedule_load_end(rec, truck, step_rec, now + self._load_left.pop(rec.id))
+        if resumed:
+            self._recompute_rates()
+
     # ---- running and results ----
     def run(self, until: int | None = None) -> TruckFlowResult:
         self.cal.run(until)
@@ -1055,10 +1138,14 @@ class TruckFlowModel:
             parts = [x for x in self.transfers if x.lot_id == lot_id]
             stored = sum(x.kg for x in parts if x.finished is not None)
             moving = sum(x.kg for x in parts if x.finished is None)
+            pit = self.pits[pit_id]
+            running = [x for x in parts if x.finished is None]
+            on_route = math.floor(pit.drained_at(self.cal.now)) if running and pit.draining is not None else 0
             out[lot_id] = LotFlow(lot_id, truck_id, pit_id, grain.commodity, grain.grade, kg, tipped,
                                   min((x.started for x in parts), default=None),
                                   max(x.finished for x in parts) if stored == kg else None,
-                                  stored, moving, kg - stored - moving, tuple(dict.fromkeys(x.bin for x in parts)))
+                                  stored, moving, kg - stored - moving, tuple(dict.fromkeys(x.bin for x in parts)),
+                                  on_route_kg=on_route)
         return out
 
     def _fairness(self) -> dict:

@@ -165,6 +165,15 @@ class FairnessReporting(_Model):
     starvation_overtakes: int | None = Field(default=None, ge=1)
 
 
+class Outage(_Model):
+    """A scheduled period during which one piece of route equipment is unavailable (docs/INTERRUPTED_TRANSFERS.md).
+    `end` None: not available again before the end of the run."""
+    equipment: str
+    day: int = Field(default=1, ge=1)
+    start: str  # "HH:MM"
+    end: str | None = None
+
+
 class TruckArea(_Model):
     """R5: a physical waiting area for trucks. capacity None = unlimited (reported as a simplification)."""
     id: str
@@ -207,6 +216,7 @@ class SiteConfig(_Model):
     end_of_day: EndOfDay = EndOfDay()
     fairness: FairnessReporting = FairnessReporting()
     queue_policies: QueuePolicies | None = None  # None: the run's argument, else feasible_first
+    outages: list[Outage] = []  # scheduled equipment unavailability (step 17)
 
 
 class ConfigSchemaError(ValueError):
@@ -229,7 +239,8 @@ def load_site_config(raw: dict[str, Any]) -> SiteConfig:
 def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
     data = cfg.model_dump(mode="json", by_alias=True)
-    if data.get("queue_policies") is None:  # not set: hash as before the setting existed
-        data.pop("queue_policies", None)
+    for added, unset in (("queue_policies", None), ("outages", [])):  # not set: hash as before the setting existed
+        if data.get(added) == unset:
+            data.pop(added, None)
     canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
