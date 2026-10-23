@@ -273,6 +273,26 @@ class ActivityFairness:
 
 
 @dataclass(frozen=True)
+class LotFlow:
+    """One grain lot from tipping to storage (docs/MATERIAL_FLOW_AUDIT.md). A truck's unloading is complete when it
+    finishes tipping (`tipped_at`); its grain is in storage only when every kilogram has reached a bin (`stored_at`).
+    Opening pit contents are lots without a truck (tipped_at None)."""
+    lot_id: str
+    truck_id: str | None
+    pit: str
+    commodity: str
+    grade: str | None
+    kg: int
+    tipped_at: int | None
+    first_transfer_at: int | None  # route reserved for the first part of the lot
+    stored_at: int | None  # the last kilogram reached a bin (None: not all stored when the run ended)
+    stored_kg: int
+    in_transit_kg: int  # in transfers still running at the end (counted in the pit until they finish)
+    in_pit_kg: int  # not yet sent
+    bins: tuple[str, ...]  # bins it went to, in order (more than one when a bin filled)
+
+
+@dataclass(frozen=True)
 class Stall:
     """Waiting work that nothing left in the simulation can unblock (deadlock, or a plant jammed for good)."""
     time: int
@@ -302,6 +322,7 @@ class TruckFlowResult:
     loads: list[LoadRecord] = field(default_factory=list)
     dispatched_kg: int = 0  # grain loaded onto trucks during the run
     queue_policies: dict[str, str] = field(default_factory=dict)  # queue group -> policy used
+    lots: dict[str, LotFlow] = field(default_factory=dict)  # lot id -> tipping-to-storage record
     policy_source: str = ""  # "argument", "site" or "default"
 
 
@@ -351,6 +372,7 @@ class TruckFlowModel:
         self.units = [_Unit(e.id, lane, e.type, e.moves or "both")
                       for e in eq if e.type in ("sampler", "grader", "weighbridge") for lane in range(int(e.cap or 0))]
         self.bins = {e.id: self._make_bin(e) for e in eq if e.type == "bin"}
+        self._lots_seen: dict[str, tuple] = {}  # lot id -> (truck, pit, grain, kg, tipped at); reporting only
         self.pits = {e.id: self._make_pit(e) for e in eq if e.type == "hopper"}
         self.planner = RoutePlanner(build_routes(site), self.bins)
         self._area_caps: dict[str, int | None] = {a.id: a.capacity for a in site.truck_areas}
@@ -448,6 +470,7 @@ class TruckFlowModel:
         if e.level0:
             grain = self.grades.grain(e.level_commodity, e.level_grade)
             lots.append(Lot(f"L0-{e.id}", None, grain, tonnes_to_kg(e.level0), 0))
+            self._lots_seen[f"L0-{e.id}"] = (None, e.id, grain, tonnes_to_kg(e.level0), None)
         return Pit(e.id, tonnes_to_kg(e.cap_t), Fraction(str(e.rate)), e.tip_admission, set(e.commodities or []), lots,
                    self.mixing)
 
@@ -800,6 +823,7 @@ class TruckFlowModel:
 
     def _tip_done(self, truck: ScriptedTruck, step_rec: StepRecord, pit: Pit, res_id: str) -> None:
         pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
+        self._lots_seen[f"L-{truck.id}"] = (truck.id, pit.id, self._grain(truck), truck.kg, self.cal.now)
         self._tipped_kg += truck.kg  # the truck keeps the tipping lane until it can move on
         step_rec.finished = self.cal.now
         if pit.id not in self._intake_active:
@@ -1023,7 +1047,19 @@ class TruckFlowModel:
             area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas},
             summary=self._summaries(), received_kg=self._tipped_kg, loads=list(self.loads),
             dispatched_kg=self._dispatched_kg, queue_policies=dict(self.queue_policies),
-            policy_source=self.policy_source, **self._fairness())
+            policy_source=self.policy_source, lots=self._lot_flows(), **self._fairness())
+
+    def _lot_flows(self) -> dict[str, LotFlow]:
+        out = {}
+        for lot_id, (truck_id, pit_id, grain, kg, tipped) in self._lots_seen.items():
+            parts = [x for x in self.transfers if x.lot_id == lot_id]
+            stored = sum(x.kg for x in parts if x.finished is not None)
+            moving = sum(x.kg for x in parts if x.finished is None)
+            out[lot_id] = LotFlow(lot_id, truck_id, pit_id, grain.commodity, grain.grade, kg, tipped,
+                                  min((x.started for x in parts), default=None),
+                                  max(x.finished for x in parts) if stored == kg else None,
+                                  stored, moving, kg - stored - moving, tuple(dict.fromkeys(x.bin for x in parts)))
+        return out
 
     def _fairness(self) -> dict:
         """Q1 reporting: per-truck waiting, overtakes by later arrivals and completion; per-commodity summaries."""

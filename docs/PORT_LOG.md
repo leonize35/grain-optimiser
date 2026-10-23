@@ -551,6 +551,25 @@ Details: `docs/QUEUE_POLICY_DESIGN.md` §9.
   - prototype selftests 12/12.
 - Open for approval: the equal-age tie-break; whether to apply the prototype `policies` field.
 
+## Step 16 — grain-flow integrity audit
+
+Details: `docs/MATERIAL_FLOW_AUDIT.md`.
+- Independent flow audit (`checks/flow_audit.py`, from records only) covering:
+  - conservation (global, pit, bin, lot);
+  - bin capacity, identity and stock over time;
+  - shared-segment compatibility, feed limit and merge rule;
+  - route clear times;
+  - transfer and load order.
+- Lot flow reporting (`result.lots`), separating a truck's unloading completion from its grain's storage completion; lot-to-storage experiment figures.
+- Verified:
+  - 19 new hand-traced tests;
+  - 40 generated runs audited clean;
+  - 4/4 engine faults and 8/8 record corruptions detected;
+  - 291 passed, 2 expected failures;
+  - fingerprint, configuration hashes and fairness baseline unchanged;
+  - prototype selftests 12/12.
+- No engine defect found and no behaviour changed. Remaining gaps are in the audit document §6.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

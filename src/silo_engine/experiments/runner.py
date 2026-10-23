@@ -103,6 +103,11 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
         out[f"{act}.p90_turnaround_min"] = s.p90_turnaround_min
         out[f"{act}.max_turnaround_min"] = s.max_turnaround_min
         out[f"{act}.mean_turnaround_incl_unfinished_min"] = s.mean_turnaround_incl_unfinished_min
+    trucks_lots = [x for x in result.lots.values() if x.truck_id is not None]  # tipping to storage
+    to_storage = [(x.stored_at - x.tipped_at) / 60000 for x in trucks_lots if x.stored_at is not None]
+    out["lots.mean_to_storage_min"] = sum(to_storage) / len(to_storage) if to_storage else None
+    out["lots.max_to_storage_min"] = max(to_storage) if to_storage else None
+    out["lots.not_stored_t"] = sum(x.kg - x.stored_kg for x in result.lots.values()) / 1000
     for act, f in result.fairness.items():  # Q1 fairness and starvation, per replication
         out[f"{act}.starved"] = f.starved
         out[f"{act}.max_overtaken"] = f.max_overtaken
