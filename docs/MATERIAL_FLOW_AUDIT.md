@@ -128,8 +128,9 @@ until the transfer ends; the bin receives it all at the end. The prototype does 
    - an operator abort that releases the route and credits what reached the bin.
 4. **Grain left in a pit when every eligible bin is full** is reported as a stall. No overflow rule, emergency bin
    or operator action is modelled.
-5. **No authorised adjustments** (shrinkage, moisture loss, cleaning losses, stock counts). CLAUDE.md requires these
-   to be explicit; none is modelled yet, so every run must balance to the kilogram.
+5. **Authorised adjustments: first increment done in step 18** (`docs/STOCK_ADJUSTMENTS.md`): explicit process
+   losses in bins, observations, authorised book corrections, and reconciliation with an explicit unexplained part.
+   Physical stock still balances to the kilogram, with losses as an explicit term.
 6. **Grading rejection is not modelled**, so no rejected grain leaves with its truck.
 7. **Lot-to-storage times** are reported, not yet summarised per commodity in experiments.
 8. **Equal-age intake tie-break** differs from the prototype (step 15). It is unchanged and still open for your

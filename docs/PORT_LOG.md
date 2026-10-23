@@ -585,6 +585,22 @@ Specification and results: `docs/INTERRUPTED_TRANSFERS.md`.
   - prototype selftests 12/12.
 - Decisions I1-I7 need operational confirmation.
 
+## Step 18 — stock adjustments and reconciliation (first increment)
+
+Specification and results: `docs/STOCK_ADJUSTMENTS.md`.
+- Independent records: physical (P), book (R) and observed (O).
+- Explicit process losses in bins: posted or unposted; refused in full if they exceed uncommitted stock; moisture is a labelled generic mass loss.
+- `stock_measurement` records observations only.
+- `book_correction` (administrative or survey-based) requires a reason and an authority, and never touches physical stock.
+- Reconciliation per bin and site, with an explicit unexplained part (0 in every run).
+- Verified:
+  - 27 new tests;
+  - 20 generated days with stock events audited clean;
+  - 9/9 injected faults detected;
+  - 337 passed, 2 expected failures;
+  - fingerprint, configuration hashes and fairness baseline unchanged;
+  - prototype selftests 12/12.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

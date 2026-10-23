@@ -197,6 +197,27 @@ class StorageBin:
         if self.tonnage_kg == 0:
             self._contents = None
 
+    # ---- process loss (step 18) ----
+    def check_loss(self, kg: int, commodity: str | None = None) -> Refused | None:
+        """A physical loss may take only uncommitted stock of the bin's contents (S6: refused in full otherwise)."""
+        if self.tonnage_kg == 0:
+            return Refused([Reason("BIN_EMPTY", f"{self.id} is empty")])
+        if commodity is not None and self._contents is not None and self._contents.commodity != commodity:
+            return Refused([Reason("BIN_INCOMPATIBLE", f"{self.id} holds {self._contents.commodity}, not {commodity}")])
+        if kg > self.available_stock_kg:
+            return Refused([Reason("STOCK_SHORT", f"{self.id} has {self.available_stock_kg} kg uncommitted, "
+                                                  f"{kg} kg loss refused")])
+        return None
+
+    def remove_loss(self, kg: int, commodity: str | None = None) -> None:
+        self._positive(kg)
+        refused = self.check_loss(kg, commodity)
+        if refused:
+            raise refused
+        self.tonnage_kg -= kg
+        if self.tonnage_kg == 0:
+            self._contents = None
+
     def has_outgoing(self, reservation_id: str) -> bool:
         return reservation_id in self._outgoing
 

@@ -230,6 +230,60 @@ def _validate_outages(site: SiteConfig, result: RulesResult) -> None:
                 result.errors.append(Issue(f"Outages {i1} and {i2} of {by_id[eid].name or eid} overlap.", [eid]))
 
 
+def _validate_stock(site: SiteConfig, result: RulesResult) -> None:
+    """Step 18: stock events and opening book refer to bins, carry what their kind needs, and book corrections
+    carry a reason and an authority (from `authorised_by` when the site lists them)."""
+    from ..sim.time import TimeFormatError, hm
+    bins = {e.id for e in site.equipment if e.type == "bin"}
+    commodities = {c.id for c in site.commodities}
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    seen_obs: set[str] = set()
+    for o in site.opening_book:
+        if o.bin not in bins:
+            err(f"The opening book refers to unknown bin {o.bin}.")
+    if len({o.bin for o in site.opening_book}) != len(site.opening_book):
+        err("The opening book lists a bin more than once.")
+    measurement_ids = [ev.id for ev in site.stock_events if ev.kind == "stock_measurement"]
+    for i, ev in enumerate(site.stock_events, start=1):
+        label = f"Stock event {i} ({ev.kind})"
+        if ev.bin not in bins:
+            err(f"{label} refers to unknown bin {ev.bin}.")
+        try:
+            hm(ev.time)
+        except TimeFormatError:
+            err(f"{label}: time must be a clock time like HH:MM (got '{ev.time}').")
+        if ev.kind == "process_loss":
+            if ev.tonnes is None or ev.tonnes <= 0:
+                err(f"{label}: the loss must be a positive number of tonnes.")
+            if ev.cause is None:
+                err(f"{label} needs a cause (moisture, cleaning, handling or other).")
+            if ev.commodity is not None and ev.commodity not in commodities:
+                err(f"{label} refers to unknown commodity {ev.commodity}.")
+        elif ev.kind == "stock_measurement":
+            if not ev.id:
+                err(f"{label} needs an id.")
+            elif ev.id in seen_obs:
+                err(f"{label}: observation id {ev.id} is used twice.")
+            seen_obs.add(ev.id or "")
+            if ev.observed_tonnes is None or ev.observed_tonnes < 0:
+                err(f"{label}: the observed quantity must be zero or more tonnes.")
+        else:
+            if not (ev.reason or "").strip():
+                err(f"{label} needs a reason.")
+            if not (ev.authority or "").strip():
+                err(f"{label} needs an authority.")
+            elif site.authorised_by is not None and ev.authority not in site.authorised_by:
+                err(f"{label}: '{ev.authority}' is not authorised for book corrections ({', '.join(site.authorised_by)}).")
+            if ev.basis == "administrative":
+                if not ev.tonnes:
+                    err(f"{label}: an administrative correction needs a non-zero number of tonnes.")
+            elif ev.basis == "measurement":
+                if ev.observation not in measurement_ids:
+                    err(f"{label} refers to unknown observation {ev.observation}.")
+            else:
+                err(f"{label} needs a basis (administrative or measurement).")
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
@@ -240,6 +294,7 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_grades(site, result)
     _validate_truck_paths(site, result)
     _validate_outages(site, result)
+    _validate_stock(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

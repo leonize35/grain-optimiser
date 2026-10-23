@@ -174,6 +174,36 @@ class Outage(_Model):
     end: str | None = None
 
 
+class StockEvent(_Model):
+    """Step 18 (docs/STOCK_ADJUSTMENTS.md): a scheduled process loss, stock measurement or book correction."""
+    kind: Literal["process_loss", "stock_measurement", "book_correction"]
+    day: int = Field(default=1, ge=1)
+    time: str  # "HH:MM"
+    bin: str
+    id: str | None = None  # required for stock_measurement (referenced by measurement-based corrections)
+    tonnes: float | None = None  # process_loss (positive) or administrative book_correction (signed)
+    cause: Literal["moisture", "cleaning", "handling", "other"] | None = None  # process_loss
+    posted: bool = True  # process_loss: also recorded in the book
+    commodity: str | None = None  # process_loss: optional check of the bin's contents
+    observed_tonnes: float | None = None  # stock_measurement
+    basis: Literal["administrative", "measurement"] | None = None  # book_correction
+    observation: str | None = None  # book_correction with basis "measurement"
+    reason: str | None = None  # book_correction (required)
+    authority: str | None = None  # book_correction (required)
+
+
+class OpeningBook(_Model):
+    bin: str
+    tonnes: float = Field(ge=0)
+
+
+class ReconciliationSettings(_Model):
+    """Reporting tolerance for survey-versus-book variances; none by default (no universal percentage). When both
+    are given, the larger allowance applies."""
+    tolerance_t: float | None = Field(default=None, ge=0)
+    tolerance_fraction: float | None = Field(default=None, ge=0)  # of the book quantity
+
+
 class TruckArea(_Model):
     """R5: a physical waiting area for trucks. capacity None = unlimited (reported as a simplification)."""
     id: str
@@ -217,6 +247,11 @@ class SiteConfig(_Model):
     fairness: FairnessReporting = FairnessReporting()
     queue_policies: QueuePolicies | None = None  # None: the run's argument, else feasible_first
     outages: list[Outage] = []  # scheduled equipment unavailability (step 17)
+    # Step 18: stock events, opening book inventory (default: equal to physical), reporting tolerance, authorities.
+    stock_events: list[StockEvent] = []
+    opening_book: list[OpeningBook] = []
+    reconciliation: ReconciliationSettings = ReconciliationSettings()
+    authorised_by: list[str] | None = None  # when set, a book correction's authority must be one of these
 
 
 class ConfigSchemaError(ValueError):
@@ -239,7 +274,9 @@ def load_site_config(raw: dict[str, Any]) -> SiteConfig:
 def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
     data = cfg.model_dump(mode="json", by_alias=True)
-    for added, unset in (("queue_policies", None), ("outages", [])):  # not set: hash as before the setting existed
+    for added, unset in (("queue_policies", None), ("outages", []), ("stock_events", []), ("opening_book", []),
+                         ("reconciliation", {"tolerance_t": None, "tolerance_fraction": None}),
+                         ("authorised_by", None)):  # not set: hash as before the setting existed
         if data.get(added) == unset:
             data.pop(added, None)
     canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))

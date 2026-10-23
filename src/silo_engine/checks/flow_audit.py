@@ -13,7 +13,11 @@ Checks:
 - order: a transfer starts only after its lot was tipped; each load belongs to a loading truck and moves its tonnes;
 - completion: finished >= flow start >= start; released only after finishing;
 - outages (docs/INTERRUPTED_TRANSFERS.md §5): no grain flows through equipment while it is unavailable (I-A), no
-  route containing unavailable equipment is reserved during the outage (I-B), suspensions are well formed (I-C).
+  route containing unavailable equipment is reserved during the outage (I-B), suspensions are well formed (I-C);
+- stock (docs/STOCK_ADJUSTMENTS.md): physical equations include process losses, which may take only uncommitted
+  stock; the book is rebuilt from its postings; the reconciliation's components are rebuilt and the unexplained part
+  must be 0; observations must match the replayed physical and book stock at their time. Book corrections and
+  observations do not appear in the physical equations, so one that changed physical stock shows as a bin imbalance.
 
 Conveyors and elevators hold no inventory in this model: grain still in transit is counted in its source pit until
 the transfer ends (the same as the prototype).
@@ -102,14 +106,20 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
         bin_in[x.bin] += x.kg
     for x in done_l:
         bin_out[x.bin] += x.kg
+    losses = list(getattr(result, "losses", []))
+    bin_lost = defaultdict(int)
+    for x in losses:
+        bin_lost[x.bin] += x.kg
     for bid, (closing, _) in result.bins.items():
-        if opening_bins[bid] + bin_in[bid] - bin_out[bid] != closing:
-            a.problems.append(f"bin {bid}: {opening_bins[bid]} + {bin_in[bid]} - {bin_out[bid]} kg != {closing} kg")
+        if opening_bins[bid] + bin_in[bid] - bin_out[bid] - bin_lost[bid] != closing:
+            a.problems.append(f"bin {bid}: {opening_bins[bid]} + {bin_in[bid]} - {bin_out[bid]} - {bin_lost[bid]} lost "
+                              f"kg != {closing} kg")
     dispatched = sum(x.kg for x in done_l)
+    lost = sum(bin_lost.values())
     opening = sum(opening_bins.values()) + sum(lot_kg[k] for k in lot_kg if k.startswith("L0-"))
     closing = sum(v[0] for v in result.bins.values()) + sum(result.pits.values())
-    if opening + received - dispatched != closing:
-        a.problems.append(f"global: {opening} + {received} - {dispatched} kg != {closing} kg closing")
+    if opening + received - dispatched - lost != closing:
+        a.problems.append(f"global: {opening} + {received} - {dispatched} - {lost} lost kg != {closing} kg closing")
     if received != result.received_kg or dispatched != result.dispatched_kg:
         a.problems.append(f"engine counters disagree: received {result.received_kg} (records {received}), "
                           f"dispatched {result.dispatched_kg} (records {dispatched})")
@@ -129,7 +139,9 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
         if x.released is not None and (x.finished is None or x.released < x.finished):
             a.problems.append(f"{x.id}: route released at {x.released} before the grain finished ({x.finished})")
 
-    _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity)
+    _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses)
+    if hasattr(result, "book"):
+        _audit_stock(a, site, opening_bins, done_t, done_l, losses, result)
     _audit_outages(a, site, [*transfers, *loads])
     _audit_segments(a, eq, transfers, loads, lot_commodity, truck)
     a.checked = {"lots": len(lot_kg), "transfers": len(transfers), "loads": len(loads), "bins": len(opening_bins),
@@ -137,7 +149,7 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
     return a
 
 
-def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity) -> None:
+def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses=()) -> None:
     """Replay each bin: at equal times completions come before starts (the engine releases before it reserves)."""
     events = defaultdict(list)  # bin -> (time, order, kind, kg, commodity, id)
     for x in transfers:
@@ -148,6 +160,8 @@ def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity) -> None:
         events[x.bin].append((x.started, 1, "commit_out", x.kg, None, x.id))
         if x.finished is not None:
             events[x.bin].append((x.finished, 0, "dispatch", x.kg, None, x.id))
+    for x in losses:  # stock events run after completions and before new reservations at the same instant
+        events[x.bin].append((x.time, 0.5, "loss", x.kg, None, x.id))
     for e in site.equipment:
         if e.type != "bin":
             continue
@@ -163,6 +177,13 @@ def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity) -> None:
             elif kind == "receive":
                 incoming -= kg
                 stock += kg
+            elif kind == "loss":
+                if stock - outgoing < kg:
+                    a.problems.append(f"bin {e.id}: loss {xid} of {kg} kg took committed stock "
+                                      f"({stock - outgoing} kg uncommitted) at {t}")
+                stock -= kg
+                if stock == 0 and incoming == 0:
+                    content = None
             elif kind == "commit_out":
                 if stock - outgoing < kg:
                     a.problems.append(f"bin {e.id}: {xid} committed {kg} kg with {stock - outgoing} kg available at {t}")
@@ -237,3 +258,67 @@ def _audit_outages(a, site, streams) -> None:
                     a.problems.append(f"{x.id}: grain flowed while {seg} was unavailable ({w0}-{w1})")
                 if w0 <= x.started < w1:  # I-B
                     a.problems.append(f"{x.id}: route reserved at {x.started} through {seg}, unavailable {w0}-{w1}")
+
+
+def _audit_stock(a, site, opening_bins, done_t, done_l, losses, result) -> None:
+    """Rebuild book and physical stock per bin over time from the records; check the book, the observations and the
+    reconciliation (docs/STOCK_ADJUSTMENTS.md §4)."""
+    book0 = {o.bin: tonnes_to_kg(o.tonnes) if o.tonnes else 0 for o in site.opening_book}
+    book = {b: book0.get(b, kg) for b, kg in opening_bins.items()}
+    phys = dict(opening_bins)
+    comps = {b: {"administrative": 0, "survey_based": 0, "unposted_loss": 0} for b in opening_bins}
+    timeline = [(x.finished, 0, "receive", x) for x in done_t] + [(x.finished, 0, "dispatch", x) for x in done_l]
+    loss_by_id = {x.id: x for x in losses}
+    timeline += [(e.time, 1 + i, "stock", e) for i, e in enumerate(result.stock_log)]
+    observations = {o.id: o for o in result.observations}
+    seen_obs: dict[str, int] = {}
+    for _, _, kind, x in sorted(timeline, key=lambda v: (v[0], v[1])):
+        if kind == "receive":
+            book[x.bin] += x.kg
+            phys[x.bin] += x.kg
+        elif kind == "dispatch":
+            book[x.bin] -= x.kg
+            phys[x.bin] -= x.kg
+        elif not x.applied:
+            if x.delta_physical_kg or x.delta_book_kg:
+                a.problems.append(f"refused stock event {x.id} changed stock")
+        elif x.kind == "process_loss":
+            lr = loss_by_id.get(x.id)
+            if lr is None:
+                a.problems.append(f"stock event {x.id}: applied loss missing from the loss records")
+                continue
+            phys[x.bin] -= lr.kg
+            if lr.posted:
+                book[x.bin] -= lr.kg
+            else:
+                comps[x.bin]["unposted_loss"] += lr.kg
+        elif x.kind == "stock_measurement":
+            o = observations.get(x.id)
+            if o is None or (o.physical_kg, o.book_kg) != (phys[x.bin], book[x.bin]) or \
+                    o.minus_book_kg != o.observed_kg - book[x.bin] or o.minus_physical_kg != o.observed_kg - phys[x.bin]:
+                a.problems.append(f"observation {x.id}: records give physical {phys[x.bin]} kg and book {book[x.bin]} kg "
+                                  f"at {x.time}; result says {o}")
+            if o is not None:
+                seen_obs[x.id] = o.observed_kg
+        else:  # book correction: never a physical change
+            if x.delta_physical_kg:
+                a.problems.append(f"book correction {x.id} changed physical stock")
+            book[x.bin] += x.delta_book_kg
+            comps[x.bin]["administrative" if x.basis == "administrative" else "survey_based"] += x.delta_book_kg
+    for b in opening_bins:
+        if book[b] != result.book.get(b):
+            a.problems.append(f"book {b}: records give {book[b]} kg, result says {result.book.get(b)} kg")
+        closing = result.bins[b][0]
+        d = book[b] - closing
+        opening_diff = book0.get(b, opening_bins[b]) - opening_bins[b]
+        unexplained = d - opening_diff - sum(comps[b].values())
+        if unexplained:
+            a.problems.append(f"bin {b}: unexplained book-physical difference {unexplained} kg")
+        rec = result.reconciliation.get(b)
+        expected = (closing, book[b], d, opening_diff, comps[b]["administrative"], comps[b]["survey_based"],
+                    comps[b]["unposted_loss"], unexplained)
+        if rec is None or (rec.physical_kg, rec.book_kg, rec.difference_kg, rec.opening_difference_kg,
+                           rec.administrative_kg, rec.survey_based_kg, rec.unposted_loss_kg,
+                           rec.unexplained_kg) != expected:
+            a.problems.append(f"reconciliation {b}: reported {rec} differs from records {expected} "
+                              f"(unexplained per records {unexplained} kg)")

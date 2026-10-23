@@ -108,6 +108,13 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
     out["lots.mean_to_storage_min"] = sum(to_storage) / len(to_storage) if to_storage else None
     out["lots.max_to_storage_min"] = max(to_storage) if to_storage else None
     out["lots.not_stored_t"] = sum(x.kg - x.stored_kg for x in result.lots.values()) / 1000
+    out["losses.total_t"] = sum(x.kg for x in result.losses) / 1000  # step 18
+    for cause in sorted({x.cause for x in result.losses}):
+        out[f"losses.{cause}_t"] = sum(x.kg for x in result.losses if x.cause == cause) / 1000
+    if "site" in result.reconciliation:
+        out["reconciliation.difference_t"] = result.reconciliation["site"].difference_kg / 1000
+        out["reconciliation.unexplained_t"] = result.reconciliation["site"].unexplained_kg / 1000
+    out["observations.flagged"] = sum(1 for o in result.observations if o.flagged)
     for act, f in result.fairness.items():  # Q1 fairness and starvation, per replication
         out[f"{act}.starved"] = f.starved
         out[f"{act}.max_overtaken"] = f.max_overtaken

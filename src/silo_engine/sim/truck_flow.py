@@ -61,7 +61,8 @@ from fractions import Fraction
 from ..config.grades import GradePolicy
 from ..config.routes import build_routes
 from ..config.rules_validation import validate_rules
-from ..config.schema import SiteConfig
+from ..config.schema import ReconciliationSettings, SiteConfig
+from ..domain.book import BookLedger
 from ..domain.changeover import ChangeoverMatrix
 from ..domain.quantities import tonnes_to_kg
 from ..domain.storage import GradedCommodity, StorageBin
@@ -296,6 +297,60 @@ class LotFlow:
 
 
 @dataclass(frozen=True)
+class LossRecord:
+    """An applied process loss (step 18). Bins are aggregates: a loss is not attributed to truck lots."""
+    id: str
+    time: int
+    bin: str
+    commodity: str | None
+    kg: int
+    cause: str  # moisture losses are generic mass losses: water content is not modelled
+    posted: bool
+
+
+@dataclass(frozen=True)
+class Observation:
+    """A stock measurement (S7): recorded beside physical and book stock; changes neither."""
+    id: str
+    time: int
+    bin: str
+    observed_kg: int
+    physical_kg: int
+    book_kg: int
+    minus_book_kg: int  # observed - book
+    minus_physical_kg: int  # observed - physical (simulation only: the model knows the physical truth)
+    tolerance_kg: int | None
+    flagged: bool  # |observed - book| > tolerance; False when no tolerance is configured
+
+
+@dataclass(frozen=True)
+class StockLogEntry:
+    id: str
+    time: int
+    kind: str
+    bin: str
+    applied: bool
+    refused_because: str | None
+    delta_physical_kg: int
+    delta_book_kg: int
+    basis: str | None = None  # book corrections
+    posted: bool | None = None  # process losses
+
+
+@dataclass(frozen=True)
+class BinReconciliation:
+    """D = book - physical, explained by its components; `unexplained_kg` is reported, never absorbed."""
+    physical_kg: int
+    book_kg: int
+    difference_kg: int
+    opening_difference_kg: int
+    administrative_kg: int
+    survey_based_kg: int
+    unposted_loss_kg: int
+    unexplained_kg: int
+
+
+@dataclass(frozen=True)
 class Stall:
     """Waiting work that nothing left in the simulation can unblock (deadlock, or a plant jammed for good)."""
     time: int
@@ -326,6 +381,12 @@ class TruckFlowResult:
     dispatched_kg: int = 0  # grain loaded onto trucks during the run
     queue_policies: dict[str, str] = field(default_factory=dict)  # queue group -> policy used
     lots: dict[str, LotFlow] = field(default_factory=dict)  # lot id -> tipping-to-storage record
+    # Step 18: process losses, book inventory per bin, observations, stock event log, reconciliation per bin + "site".
+    losses: list[LossRecord] = field(default_factory=list)
+    book: dict[str, int] = field(default_factory=dict)
+    observations: list[Observation] = field(default_factory=list)
+    stock_log: list[StockLogEntry] = field(default_factory=list)
+    reconciliation: dict[str, BinReconciliation] = field(default_factory=dict)
     policy_source: str = ""  # "argument", "site" or "default"
 
 
@@ -339,7 +400,8 @@ def _kg_per_ms(rate_tph: Fraction) -> Fraction:
 
 class TruckFlowModel:
     def __init__(self, site: SiteConfig, trucks: list[ScriptedTruck], times: ServiceTimes,
-                 policy: str | dict[str, str] | None = None, days: int = 1):
+                 policy: str | dict[str, str] | None = None, days: int = 1,
+                 reconciliation_tolerance: dict | None = None):
         if days < 1:
             raise ModelError("A run covers at least one day.")
         self.site = site
@@ -440,6 +502,16 @@ class TruckFlowModel:
         self.transfers: list[TransferRecord] = []
         self.violations: list[tuple[int, str]] = []
         self._opening_kg = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
+        # Step 18: book inventory (independent of the bins), observations, losses.
+        self._opening_bins = {bid: b.tonnage_kg for bid, b in self.bins.items()}
+        book0 = {o.bin: tonnes_to_kg(o.tonnes) if o.tonnes else 0 for o in site.opening_book}
+        self.book = BookLedger({bid: book0.get(bid, kg) for bid, kg in self._opening_bins.items()})
+        self._tolerance = ReconciliationSettings(**reconciliation_tolerance) if reconciliation_tolerance is not None \
+            else site.reconciliation
+        self._observations: dict[str, Observation] = {}
+        self.losses: list[LossRecord] = []
+        self.stock_log: list[StockLogEntry] = []
+        self._lost_kg = 0
         self._tipped_kg = 0
         self._dispatched_kg = 0
         self.loads: list[LoadRecord] = []
@@ -452,6 +524,12 @@ class TruckFlowModel:
             ev_stop = self.cal.schedule(stops, CONTROL, lambda c, d=d: self._service_stops(d), f"day {d + 1}: service stops")
             self._day_events |= {ev_open, ev_stop}
         schedule_arrivals(self.cal, trucks, self._arrive)
+        for i, ev in enumerate(site.stock_events, start=1):  # validated by validate_rules
+            when = (ev.day - 1) * MS_PER_DAY + hm(ev.time)
+            self.cal.schedule(when, CONTROL, lambda c, ev=ev, i=i: self._stock_event(ev, i), f"stock event {i}: {ev.kind}")
+        if any(ev.kind == "process_loss" and ev.cause == "moisture" for ev in site.stock_events):
+            self.assumptions.append("Moisture losses are generic physical mass losses: water content and drying are "
+                                    "not modelled, and grade and identity are unchanged.")
         for o in site.outages:  # validated by validate_rules
             start = (o.day - 1) * MS_PER_DAY + hm(o.start)
             self.cal.schedule(start, CONTROL, lambda c, e=o.equipment: self._equipment_down(e), f"{o.equipment} unavailable")
@@ -900,6 +978,7 @@ class TruckFlowModel:
     def _load_done(self, truck: ScriptedTruck, step_rec: StepRecord, record: LoadRecord) -> None:
         self._load_end.pop(record.id, None)
         self.bins[record.bin].dispatch(record.id, record.kg)
+        self.book.post(self.cal.now, record.bin, -record.kg, record.id)
         self._dispatched_kg += record.kg
         record.finished = step_rec.finished = self.cal.now
         clear = max((m(Decimal(str(self.equipment[s].clear_minutes))) for s in record.path[1:-1]), default=0)
@@ -1020,6 +1099,7 @@ class TruckFlowModel:
         del self._flowing[record.id]
         del self._completion[record.id]
         b.receive(record.id, record.kg)
+        self.book.post(self.cal.now, b.id, record.kg, record.id)
         pit.finish_drain(self.cal.now)
         record.finished = self.cal.now
         self._recompute_rates()  # the others may speed up
@@ -1039,6 +1119,75 @@ class TruckFlowModel:
         record.released = self.cal.now
         if in_event:
             self._after_event()
+
+    # ---- stock events (step 18, docs/STOCK_ADJUSTMENTS.md) ----
+    def _stock_event(self, ev, i: int) -> None:
+        now, b = self.cal.now, self.bins[ev.bin]
+        eid = ev.id or f"stock-{i}"
+        log = lambda applied, why=None, dp=0, dr=0: self.stock_log.append(StockLogEntry(  # noqa: E731
+            eid, now, ev.kind, ev.bin, applied, why, dp, dr, ev.basis, ev.posted if ev.kind == "process_loss" else None))
+        if ev.kind == "process_loss":
+            kg = tonnes_to_kg(ev.tonnes)
+            refused = b.check_loss(kg, ev.commodity)
+            if refused:
+                log(False, "; ".join(r.detail for r in refused.reasons) + " (only uncommitted stock can be lost)")
+            else:
+                commodity = b.identity.commodity if b.identity else None
+                b.remove_loss(kg, ev.commodity)
+                self._lost_kg += kg
+                self.losses.append(LossRecord(eid, now, ev.bin, commodity, kg, ev.cause, ev.posted))
+                if ev.posted:
+                    self.book.post(now, ev.bin, -kg, eid)
+                else:
+                    self.book.explain(ev.bin, "unposted_loss", kg)
+                log(True, None, -kg, -kg if ev.posted else 0)
+        elif ev.kind == "stock_measurement":
+            observed, physical, book = tonnes_to_kg(ev.observed_tonnes) if ev.observed_tonnes else 0, b.tonnage_kg, \
+                self.book.balance[ev.bin]
+            tol = self._tolerance_kg(book)
+            self._observations[eid] = Observation(eid, now, ev.bin, observed, physical, book, observed - book,
+                                                  observed - physical, tol,
+                                                  tol is not None and abs(observed - book) > tol)
+            log(True)
+        else:
+            book = self.book.balance[ev.bin]
+            if ev.basis == "administrative":
+                delta = (1 if ev.tonnes > 0 else -1) * tonnes_to_kg(abs(ev.tonnes))
+            elif ev.observation in self._observations:
+                delta = self._observations[ev.observation].observed_kg - book
+            else:
+                log(False, f"observation {ev.observation} not yet made")
+                self._after_event()
+                return
+            if book + delta < 0:
+                log(False, f"the book for {ev.bin} would become negative ({book + delta} kg)")
+            else:
+                self.book.post(now, ev.bin, delta, eid)
+                self.book.explain(ev.bin, "administrative" if ev.basis == "administrative" else "survey_based", delta)
+                log(True, None, 0, delta)
+        self._after_event()
+
+    def _tolerance_kg(self, book_kg: int) -> int | None:
+        t = self._tolerance
+        options = ([round(t.tolerance_t * 1000)] if t.tolerance_t is not None else []) + \
+                  ([round(t.tolerance_fraction * abs(book_kg))] if t.tolerance_fraction is not None else [])
+        return max(options) if options else None
+
+    def _reconciliation(self) -> dict[str, BinReconciliation]:
+        out = {}
+        for bid, b in self.bins.items():
+            p, r, e = b.tonnage_kg, self.book.balance[bid], self.book.explained[bid]
+            opening = self.book.opening[bid] - self._opening_bins[bid]
+            d = r - p
+            out[bid] = BinReconciliation(p, r, d, opening, e["administrative"], e["survey_based"], e["unposted_loss"],
+                                         d - opening - e["administrative"] - e["survey_based"] - e["unposted_loss"])
+        # Site: bins plus pits (pits have no book of their own: book = physical there).
+        pits = sum(p.committed_kg for p in self.pits.values())
+        tot = lambda f: sum(getattr(x, f) for x in out.values())  # noqa: E731
+        out["site"] = BinReconciliation(tot("physical_kg") + pits, tot("book_kg") + pits, tot("difference_kg"),
+                                        tot("opening_difference_kg"), tot("administrative_kg"), tot("survey_based_kg"),
+                                        tot("unposted_loss_kg"), tot("unexplained_kg"))
+        return out
 
     # ---- equipment outages (step 17, docs/INTERRUPTED_TRANSFERS.md) ----
     def _equipment_down(self, equipment: str) -> None:
@@ -1125,12 +1274,14 @@ class TruckFlowModel:
             pits={pid: p.committed_kg for pid, p in self.pits.items()},
             changeovers={seg: n for seg in self.ledger.segment_ids()
                          if (n := sum(1 for x in [*self.transfers, *self.loads] if seg in x.changeover_segments))},
-            material_balance_kg=self._opening_kg + self._tipped_kg - self._dispatched_kg - closing,
+            material_balance_kg=self._opening_kg + self._tipped_kg - self._dispatched_kg - self._lost_kg - closing,
             violations=list(self.violations), stall=self.stall, assumptions=list(self.assumptions),
             area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas},
             summary=self._summaries(), received_kg=self._tipped_kg, loads=list(self.loads),
             dispatched_kg=self._dispatched_kg, queue_policies=dict(self.queue_policies),
-            policy_source=self.policy_source, lots=self._lot_flows(), **self._fairness())
+            policy_source=self.policy_source, lots=self._lot_flows(), losses=list(self.losses),
+            book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
+            stock_log=list(self.stock_log), reconciliation=self._reconciliation(), **self._fairness())
 
     def _lot_flows(self) -> dict[str, LotFlow]:
         out = {}

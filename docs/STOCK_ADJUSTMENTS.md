@@ -1,148 +1,183 @@
-# Stock adjustments and inventory reconciliation: audit and design (step 18, before implementation)
+# Stock adjustments and inventory reconciliation (step 18)
 
-Status: **design for review, no code changed** (2026-10-23). Software-independent. All quantities are integer
-kilograms, as everywhere in the engine.
+Software-independent specification. Status: revised after the domain decisions S1-S9 of 2026-10-23, then implemented and
+verified; results in §10. All quantities are integer kilograms.
 
-## 1. Audit: what exists today
+## 1. Audit: what existed before this step
 
-| Topic | Current state |
+| Topic | State before step 18 |
 |---|---|
-| Inventories | One inventory only: the **simulated physical mass**. Bins hold tonnage + identity (commodity, grade). Pits hold lots (with truck identity). A running transfer's modelled in-transit mass is counted in its source pit (`INTERRUPTED_TRANSFERS.md` §8). |
-| Opening stock | Configuration: bin `inv` / `invCommodity` (/ grade), hopper `level0` / `levelCommodity`. Part of the versioned configuration and its hash. |
-| Site boundary | In: tipped trucks (`received`). Out: loaded trucks (`dispatched`). Nothing else enters or leaves. |
-| Conservation | Opening + received − dispatched = closing, exact to the kg. Checked by the engine and, independently, by `checks/flow_audit.py` (global, pit, bin, lot, over time). |
-| Adjustments | **None.** No moisture or drying shrink, cleaning or screenings, handling loss, sample removal, grading rejection, stock count, survey or administrative correction. |
-| Recorded (book) inventory | **None.** The model has no book inventory separate from physical mass, so it has no reconciliation. |
-| Lot identity | Kept in pits (one lot per truck, plus opening lots). Lost on entering a bin: a bin is an aggregate of tonnage + identity, with no lot traceability inside it. |
-| Prototype | No adjustments or reconciliation either. |
+| Inventories | One: the **simulated physical mass**. Bins hold tonnage + identity (commodity, grade). Pits hold lots with truck identity. A running transfer's modelled in-transit mass is counted in its source pit. |
+| Opening stock | Configuration: bin `inv` / `invCommodity` (/ grade), hopper `level0` / `levelCommodity`. |
+| Site boundary | In: tipped trucks. Out: loaded trucks. |
+| Conservation | Opening + received − dispatched = closing, exact to the kg; checked by the engine and by the independent `checks/flow_audit.py`. |
+| Adjustments, book inventory, observations | **None.** |
+| Moisture | **No moisture attribute** anywhere (lots, bins, commodities, trucks). |
+| Lot identity | Kept in pits; **lost inside bins** (aggregate tonnage + identity; no lot traceability). |
 
-**Gap:** CLAUDE.md requires conservation "through receive, transfer, storage, dispatch and **explicit authorised
-adjustments**". The last part does not exist yet.
+## 2. Three independent records
 
-## 2. Two ledgers: the core rule
-
-| Ledger | Symbol | Meaning | Changed by |
+| Record | Symbol | Meaning | Changed only by |
 |---|---|---|---|
-| **Physical mass** | P | The grain the simulation moves: what is really in each bin and pit (the model's truth) | Physical events only: receive, transfer, dispatch, **process loss** |
-| **Recorded inventory (book)** | R | What the silo's records say, per location, commodity and grade | Postings of the physical events, **measurement adjustments**, **administrative adjustments**, opening book |
+| **Physical stock** | P | The grain the simulation moves (the model's truth) | Physical events: receive, transfer, dispatch, **process loss** |
+| **Book inventory** | R | What the silo's records say | Postings of physical events, posted process losses, **BOOK_CORRECTION**, opening book |
+| **Observed stock** | O | What a survey measured | **STOCK_MEASUREMENT** (observations are kept as a history; never applied automatically) |
 
-**Reconciliation** is D = R − P per location, commodity and grade. It is reported, **never fed back into P**.
+**Safeguard:**
+- No book or observation event has a code path to P, so an administrative correction cannot create or destroy
+  physical grain.
+- Loading checks use P only, so stock that exists only in the book can never be loaded.
+- Conservation of P is checked to the kilogram at every event.
 
-**Safeguard:** P can change only through physical event types. A measurement or administrative adjustment has no
-code path that touches P; applying one to P is an engine error. So an administrative adjustment cannot create or
-destroy physical grain, and every difference it causes appears as a reported discrepancy.
+**Scope of R:** R is kept per **bin**. Pits and modelled in-transit mass have no book entries of their own: their
+book value equals P, and no event can correct them. Site book = Σ R(bins) + Σ P(pits).
 
-## 3. Definitions: effect of each kind of change
+## 3. Impact of the revised decisions S7 and S2 on the first proposal
 
-| Kind | Physical mass P | Recorded inventory R | Lot identity | Reconciliation D = R − P |
-|---|---|---|---|---|
-| **Physical transfer** (exists: receive, intake, load) | Moves between locations; enters at receive, leaves at dispatch | Posted identically (no measurement error yet) | Kept in pits; merged into the bin aggregate | Unchanged |
-| **Process loss**: moisture or drying shrink, cleaning losses, handling dust | **Decreases** at the location; the mass goes to a **loss sink** with a cause: `L[cause] += kg` | Decreases if the loss is *posted*; unchanged if not | Commodity and grade unchanged (mass only); a bin emptied by it clears its identity (existing rule) | Unchanged if posted; **+kg** ("unposted loss") if not |
-| **Opening-stock correction** | Only by changing the **configuration** (P0 is input data); a new configuration version and hash. Never an event during a run. | R0 may be given separately (`opening_book`); default R0 = P0 | Opening lots or bin identity as configured | Starts at R0 − P0 ("opening difference") |
-| **Measurement adjustment**: stock survey, dip or volumetric measurement | **Unchanged.** The survey measures; it does not move grain. | **Set to the measured value** (posted as a variance entry, measured − R) | Unchanged | Becomes measured − P ("measurement variance"). With no measurement error modelled yet, this is the size of the survey error. |
-| **Administrative correction**: posting error, write-off, book transfer | **Unchanged** | **+delta** (signed), with reason and authority recorded | Unchanged | **+delta** ("administrative") |
-
-**Reconciliation identity** (checked; the "unexplained" part must be exactly 0 in the simulation):
-
-```
-D_close = (R0 - P0)                       opening difference
-        + Σ administrative deltas
-        + Σ measurement variances
-        + Σ unposted process losses
-        + unexplained                     (= 0, otherwise an engine/audit failure)
-```
-
-**Physical conservation with losses**, at every event:
-`P_open + received − dispatched − Σ L = P_close`.
-
-**Book equation:** `R_open + received − dispatched − Σ posted losses + Σ admin + Σ measurement variances = R_close`.
-
-## 4. State variables to add
-
-| Variable | Where | Content |
+| Item | First proposal | Revised (implemented) |
 |---|---|---|
-| `losses` | physical side (engine) | kg per (location, cause, commodity, grade); totals per cause |
-| `book` | new `BookLedger` (domain) | R in kg per (location, commodity, grade); starts at R0 (default P0) |
-| `adjustment_log` | result | Per event: id, time, kind, location, commodity, grade, quantity (delta or measured value), cause or reason, authority, **applied or refused** (with reason), ΔP, ΔR |
-| `reconciliation` | result | Per location and commodity: P, R, D and its components (§3), at the end and after every measurement event |
-| Configuration | `SiteConfig` | `opening_book` (optional R0); `stock_events` (deterministic list, §5). Left out of the configuration hash when empty, so existing hashes stay unchanged. |
+| **S7: STOCK_MEASUREMENT** | Set R to the measured value (posted as a variance) | **Records an observation only.** It records O, P and R at that moment and the variances O − R and O − P, flagged against the configured tolerance. **P and R are unchanged.** |
+| S7: posting a survey | (part of the measurement) | New, explicitly authorised **BOOK_CORRECTION** with `basis: "measurement"` and a reference to the observation. Its delta is computed when it is posted: O − R(now). |
+| S7/S9: administrative correction | `ADMIN_ADJUSTMENT` | The same **BOOK_CORRECTION** event with `basis: "administrative"` and a signed delta. Reason and authority are required for both bases. |
+| S7: reconciliation | Components included "measurement variance" | Components: opening difference, administrative corrections, survey-based corrections, unposted losses. Observation variances are reported **beside** reconciliation, not inside it. |
+| S7: verification V7 | Survey 97 t → R becomes 97 t | Survey 97 t → R stays 100 t, P stays 100 t, variance −3 t. **New V7b:** BOOK_CORRECTION accepting the survey → R 97 t, D −3 t ("survey-based correction"). |
+| **S2: moisture** | Cause `moisture` reduces mass | No moisture attribute exists, so a `moisture` loss is an **explicitly labelled generic physical loss** (mass only). No moisture attribute is updated, and grade and identity are unchanged. Drying and shrink calculations are deferred. The run's assumptions say so. |
+| S2: verification V2 | "moisture loss 2 t" | The same quantities, plus a check that the loss is labelled generic and that bin identity and grade are unchanged. |
+| S1 | Loss sink for cleaning | Only **explicitly recorded irrecoverable losses**. Recoverable screenings and by-products are a future extension, and are not called waste. |
+| S8 | (open) | No universal percentage. Tolerances are optional, per site (`reconciliation`) or per run or experiment (an argument that overrides the site). Without a tolerance nothing is flagged, but every variance is still reported. |
+| S9 | Free-text authority | A reason and an authority are required. Optional site list `authorised_by`: when set, the authority must be one of them. Roles belong in the operator application. |
 
-No change to transfers, reservations, routing, queue policies or interruption handling.
+## 4. Definitions: effect of each kind of change
 
-## 5. Event definitions (deterministic, scheduled; no random distributions yet)
+| Kind | P | R | O | Lot / bin identity | D = R − P |
+|---|---|---|---|---|---|
+| Physical transfer (intake, load) | moves | posted identically | — | pits keep lots; bins aggregate | unchanged |
+| **PROCESS_LOSS** (`moisture`, `cleaning`, `handling`, `other`), posted | −kg in the bin; `L[cause]` +kg | −kg | — | unchanged; a bin emptied clears its identity (existing rule). **No lot attribution** (bins are aggregates). | unchanged |
+| PROCESS_LOSS, not posted | −kg; `L[cause]` +kg | unchanged | — | as above | **+kg** (unposted loss) |
+| Opening-stock correction | configuration change (P0); new version and hash | `opening_book` (R0), default P0 | — | as configured | starts at R0 − P0 |
+| **STOCK_MEASUREMENT** | unchanged | unchanged | observation recorded | unchanged | unchanged; variances O − R and O − P reported |
+| **BOOK_CORRECTION**, administrative | unchanged | +delta | — | unchanged | +delta |
+| **BOOK_CORRECTION**, measurement | unchanged | +(O − R at posting) | — | unchanged | +(O − R at posting) |
 
-| Event | Inputs | Preconditions (else **refused**, logged, nothing changes) | Effect |
+**Equations** (checked; per bin and for the site):
+- **Physical:** `P0 + received − dispatched − Σ L = P_close`, at every event and per bin.
+- **Book (per bin):** `R0 + Σ intake into the bin − Σ loads from it − Σ posted losses + Σ corrections = R_close`.
+- **Reconciliation:**
+  ```
+  D_close = (R0 − P0) + Σ administrative corrections + Σ survey-based corrections + Σ unposted losses + U
+  ```
+  where U is **unexplained**. It is reported, never absorbed. In the simulation U must be exactly 0; any other value
+  is an engine or audit failure.
+
+## 5. State variables (added)
+
+| Variable | Content |
+|---|---|
+| `losses` (result) | Applied losses: id, time, bin, kg, cause, posted |
+| `book` (result) | R per bin at the end; history of postings |
+| `observations` (result) | Per measurement: id, time, bin, O, P, R, O − R, O − P, flagged |
+| `stock_log` (result) | Every stock event: applied or **refused** (with reason), ΔP, ΔR |
+| `reconciliation` (result) | Per bin and for the site: P, R, D, components, U |
+| Configuration | `opening_book`, `stock_events`, `reconciliation` (tolerance in tonnes and/or as a fraction of book), `authorised_by`. Left out of the configuration hash when unset, so existing hashes are unchanged. |
+
+## 6. Events
+
+Deterministic and scheduled, at calendar priority CONTROL. At an equal instant completions come first, as for
+outages.
+
+| Event | Inputs | Refused (logged, nothing changes) when | Effect |
 |---|---|---|---|
-| `PROCESS_LOSS` | bin, kg, cause (`moisture`, `cleaning`, `handling`), commodity (+grade), `posted` (default true) | bin holds that grain; **available** stock (tonnage − outgoing commitments) ≥ kg | bin P −kg; `L[cause]` +kg; if posted, R −kg |
-| `STOCK_MEASUREMENT` | bin, measured kg, commodity (+grade) | measured ≥ 0 | R := measured (variance = measured − R before); P unchanged; reconciliation snapshot |
-| `ADMIN_ADJUSTMENT` | location, signed delta kg, commodity (+grade), reason, authority | R + delta ≥ 0; reason given | R +delta; P unchanged |
-| Opening correction | configuration only (P0 and/or R0) | validated with the configuration | new configuration version |
+| `process_loss` | bin, tonnes, cause, `posted` (default true), optional commodity | bin empty or holding another commodity; tonnes > **uncommitted** physical stock (S6) | P −kg; L +kg; R −kg if posted |
+| `stock_measurement` | id, bin, observed tonnes | — | observation only |
+| `book_correction` | bin, basis (`administrative` + signed tonnes, or `measurement` + observation id), reason, authority | missing reason or authority (configuration error); authority not in `authorised_by`; the observation has not happened yet; R would become negative | R +delta |
 
-**Calendar priority:** CONTROL. At an equal instant, completions come first, as for outages. Events refer to
-configured locations only: no built-in names, validated against the network.
+Physical events are never refused for book reasons. R may go negative through postings, for example when R0 < P0;
+this is reported, not prevented.
 
-**Interactions:**
-- **Loads:** a loss cannot take stock already committed to a loading truck. Loading truck checks always use **P**,
-  so stock that exists only in the book can never be loaded.
-- **Bins:** a loss frees space (capacity check unaffected). Incoming reservations are untouched.
-- **Scope:** losses apply to **bins only** in the first increment. Not to pits or modelled in-transit mass.
+## 7. Scope restrictions (not physical assumptions)
 
-## 6. Implementation plan (smallest safe steps, each test-first)
+- Physical losses are applied to **bins only** in this increment (S3). Losses also occur in pits, on conveyors,
+  in dryers and cleaners; they are not yet modelled.
+- **Explicit quantities only** (S4): no formula shrink, no commercial deductions.
+- **Not included:** regrading, reclassification (S5), recoverable by-products or screenings (S1), drying, blending.
+- **Traceability:** bins are aggregates, so a loss or correction in a bin cannot be attributed to the trucks' lots
+  that filled it.
 
-1. Configuration: `opening_book`, `stock_events` (typed by `kind`), with validation. Hash unchanged when empty.
-2. Domain:
-   - `StorageBin.remove_loss(kg)` (available-stock check, identity clears at 0);
-   - `BookLedger` with apply and refuse operations that can never touch a bin.
-3. Engine:
-   - schedule the events;
-   - physical events post to the book automatically (receive, transfer, dispatch, posted loss);
-   - measurement and admin events touch the book only;
-   - refused events are logged.
-4. Results:
-   - `losses`, `book`, `adjustment_log`, `reconciliation`;
-   - experiment figures: loss t per cause, closing discrepancy t, unexplained (must be 0).
-5. Independent audit extended:
-   - physical conservation with the loss term;
-   - book equation;
-   - reconciliation identity;
-   - **ΔP = 0 for every measurement and admin entry** (rebuilt from bin records, not from the log's own claim).
-6. Regression: all existing tests, the version-tolerant fingerprint, configuration hashes, the fairness baseline,
-   and the prototype selftests are unchanged for configurations without stock events.
+## 8. Implementation plan (smallest safe increment)
 
-## 7. Deterministic verification cases (hand-traced before implementation)
+1. Configuration and validation.
+2. `StorageBin.remove_loss` (uncommitted-stock check; identity clears at 0).
+3. `domain/book.py`: `BookLedger` and observations, which hold no reference to bins.
+4. Engine: schedule events; post physical events to the book; results; mass balance includes losses.
+5. Audit: physical equations with losses (bin replay incl. S6 check), book equation, reconciliation identity
+   (U = 0), and observations re-derived from the replay.
+6. Tests §9; full regression; version-tolerant fingerprint; fault injection.
 
-Site: one bin B1 opening 100 t yellow maize, plus the loading and intake equipment of `tests/test_loading.py`
-where needed.
+## 9. Deterministic verification cases
+
+Site: `tests/test_loading.py`. B1 opens with 100 t of yellow maize. L1 (30 t) loads 07:00-07:14. U1 tips 30 t
+from 07:00; its lot flows into B1 after the load (07:14-07:23).
 
 | Id | Case | Expected |
 |---|---|---|
-| V1 | No events | R = P everywhere at all times; D = 0; results and fingerprint unchanged |
-| V2 | Posted moisture loss 2 t at 10:00 | P 98 t, R 98 t, L[moisture] 2 t; D = 0; physical equation with loss holds |
-| V3 | Unposted loss 2 t | P 98 t, R 100 t; D = +2 t, all "unposted loss" |
-| V4 | Loss 80 t while a loading truck has 30 t committed (available 70 t) | **Refused**, logged; P, R and L unchanged; the load still completes |
-| V5 | Admin +5 t on B1, then a 103 t loading order | R 105 t, P 100 t, D = +5 t "administrative"; the truck waits `STOCK_SHORT` (phantom book stock cannot be loaded) |
-| V6 | Admin −120 t on B1 | **Refused** (R would be negative); nothing changes |
-| V7 | Survey measures 97 t while P = 100 t | R 97 t; P 100 t; D = −3 t "measurement variance"; later loads use P |
-| V8 | Opening book R0 = 105 t, P0 = 100 t | D starts at +5 t "opening difference" and carries through intake and loads |
-| V9 | Loss empties B1 | B1 identity cleared; white maize may then enter (existing bin rule) |
-| V10 | Losses, admin entries and a survey during a day of intake and loading | Physical equation, book equation and reconciliation identity hold after every event; independent audit clean |
-| V11 | Audit fed corrupted records: an admin entry that changed bin P; a loss missing from L; an unexplained D | Each detected |
-| V12 | Generated Site A day without stock events | Identical to current engine (version-tolerant fingerprint) |
+| V1 | No events | R = P per bin; D = 0; U = 0; no flags; engine fingerprint unchanged |
+| V2 | Posted `moisture` loss 2 t on B1 at 07:30 (after all flows) | P 98 t, R 98 t, L[moisture] 2 t, D 0; labelled generic; identity unchanged |
+| V3 | Same loss, not posted | P 98, R 100, D +2 t, all "unposted loss" |
+| V4 | Loss 80 t at 07:05 while 30 t are committed to L1 (70 t uncommitted) | Refused and logged; P, R, L unchanged; the load completes; B1 closes at 100 t |
+| V5 | Administrative correction +5 t at 06:00, then a 103 t loading order | R 105, P 100, D +5 t "administrative"; the order waits STOCK_SHORT (book stock cannot be loaded) |
+| V6 | Administrative correction −120 t | Refused (R negative); nothing changes |
+| V7 | Survey 97 t at 07:30 | O 97; P and R unchanged (100 t after U1 and L1); O − R = O − P = −3 t; flagged with a 1 t tolerance, not with 5 t, and not without a tolerance |
+| V7b | V7 then a measurement-based correction at 08:00 | R 97, P 100, D −3 t "survey-based correction" |
+| V8 | Opening book 105 t | D +5 t "opening difference", carried through intake and load |
+| V9 | Posted loss of all 100 t on an idle B1 | B1 identity cleared; L 100 t |
+| V10 | Mixed day: intake, load, posted and unposted losses, survey, both correction bases | All equations hold; U = 0; independent audit clean |
+| V11 | Audit fed corrupted records: a correction that changed P; a missing loss; a tampered component; a wrong observation | Each detected |
+| V12 | Validation | Missing reason or authority, unknown bin or observation, negative tonnes, authority not authorised: refused |
+| V13 | Tolerance from the run argument overrides the site | Flag follows the argument |
 
-## 8. Decisions that need operational confirmation (before or during implementation)
+## 10. Implementation and verification (step 18)
 
-- **S1** Cleaning screenings: a **loss** leaving the system, or a **by-product** kept on site? A by-product would
-  be a physical transfer to a screenings bin or commodity.
-- **S2** Moisture shrink: **mass only**, or does it also change grade or moisture class?
-- **S3** Losses in **pits and in transit** (handling losses during transfer), or **bins only** for now?
-- **S4** Book method for shrink: post the **actual** loss, or a **formula** (shrink tables)? Formulas would be
-  future work: no mechanical or process formulas in this stage.
-- **S5** Regrading or reclassifying stored grain: a **physical identity change** (affects bin compatibility), or an
-  **administrative relabel** (book only)?
-- **S6** A loss larger than available stock: **refuse whole** (proposed), apply partially, or allow it to reduce
-  committed stock?
-- **S7** Measurement adjustment: **set the book to the survey** (proposed, posted as a variance), or record the
-  survey without changing the book?
-- **S8** Tolerances: the simulation is exact to the kg. What discrepancy threshold (e.g. % of stock) should be
-  flagged in reports?
-- **S9** Authority: free text recorded with each admin entry (proposed), or a fixed list of roles?
+**Code** (no change to transfers, reservations, routing, queue policies or interruptions):
+
+| Area | Change |
+|---|---|
+| Configuration | `StockEvent`, `OpeningBook`, `ReconciliationSettings`, `authorised_by` in `config/schema.py`. Left out of the configuration hash when unset. `_validate_stock` in `config/rules_validation.py`. |
+| Domain | `StorageBin.check_loss` / `remove_loss` (uncommitted stock only; identity clears at 0). `domain/book.py`: `BookLedger` (book balance, postings, explanations), with no reference to bins. |
+| Engine | Scheduled stock events; physical intake and loads posted to the book; `losses`, `book`, `observations`, `stock_log` and `reconciliation` (per bin + site) in results; mass balance includes losses. A generic-moisture assumption is listed when moisture losses occur. Run argument `reconciliation_tolerance` overrides the site. |
+| Experiments | `losses.total_t`, `losses.<cause>_t`, `reconciliation.difference_t`, `reconciliation.unexplained_t`, `observations.flagged` |
+| Audit | Bin and global equations with losses; S6 check in the bin replay; book rebuilt from postings; reconciliation components and unexplained part rebuilt; observations checked against replayed physical and book stock; refused events must change nothing. |
+
+**Deterministic tests** (`tests/test_stock_adjustments.py`, 27, hand-traced, V1-V13 of §9):
+- Two of my own test expectations were wrong and were corrected: the book at the V10 survey is 102 t, and a
+  case-sensitive text check.
+- The first run also showed the independent audit correctly rejecting losses before it had been taught about them.
+
+**Further evidence:**
+- **Generated days with stock events** (sites A and B; 16 events per day on 4 bins: posted and unposted moisture
+  losses, surveys, survey-based and administrative corrections; both policies; 5 seeds): 20 runs, 300 events
+  applied, 20 refused (every one a loss on an empty bin), 0 audit problems, unexplained 0 kg, grain balanced
+  everywhere.
+- **Fault injection** (9 faults, all detected):
+  - a correction changing physical stock;
+  - a survey silently setting the book;
+  - a loss taking committed stock;
+  - an unposted loss not explained;
+  - a loss missing from the mass balance;
+  - intake not posted;
+  - a survey correction explained as administrative;
+  - a refused correction still applied;
+  - the flag ignoring the tolerance.
+- **Normal behaviour unchanged:**
+  - `pytest -q`: 337 passed, 2 expected failures (all 310 earlier tests unchanged);
+  - version-tolerant engine fingerprint (32 runs) identical;
+  - configuration hashes and fairness baseline unchanged;
+  - prototype selftests 12/12.
+
+**Limitations (explicit):**
+- Losses apply to bins only (scope, §7).
+- No moisture attribute: moisture losses are generic mass losses.
+- No formula shrink or commercial deductions.
+- No regrading, by-products, drying or blending.
+- Bins are aggregates: no lot attribution of losses or corrections.
+- Observations have no measurement-error model: O comes from the event.
+- The book is kept per bin only (pits: book = physical).
