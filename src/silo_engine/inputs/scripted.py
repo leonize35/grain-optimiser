@@ -20,12 +20,12 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..config.schema import SiteConfig
 from ..domain.quantities import QuantityError, tonnes_to_kg
 from ..sim.calendar import ARRIVAL, CONTROL, Calendar
-from ..sim.time import TimeFormatError, format_clock, m, parse_time
+from ..sim.time import MS_PER_DAY, TimeFormatError, format_clock, m, parse_time
 
 Activity = Literal["unload", "load", "weigh"]
 
@@ -39,6 +39,7 @@ class _TruckEntry(BaseModel):
     id: str
     activity: Activity
     arrive: str | int | float
+    day: int = Field(default=1, ge=1)  # simulated day of the arrival (1 = first day)
     commodity: str | None = None
     tonnes: str | int | float | None = None
     grade: str | None = None  # R4: needed for graded commodities when the site keeps grades apart
@@ -83,7 +84,7 @@ def load_arrival_script(raw: dict[str, Any]) -> list[ScriptedTruck]:
             raise ScriptError(f"Truck id {t.id} is used more than once.")
         seen.add(t.id)
         try:
-            arrive = parse_time(t.arrive)
+            arrive = parse_time(t.arrive) + (t.day - 1) * MS_PER_DAY
         except TimeFormatError as e:
             raise ScriptError(f"Truck {t.id}: {e}") from None
         if t.activity == "weigh":
@@ -124,8 +125,9 @@ def check_script_against_site(trucks: list[ScriptedTruck], site: SiteConfig) -> 
     for t in trucks:
         if t.commodity is not None and t.commodity not in commodities:
             problems.append(f"Truck {t.id} brings {t.commodity}, which is not a commodity at {site.name}.")
-        if t.arrive_ms > closes:
+        time_of_day = t.arrive_ms % MS_PER_DAY
+        if time_of_day > closes:
             problems.append(f"Truck {t.id} arrives at {format_clock(t.arrive_ms)}, after the site closes at {format_clock(closes)}.")
-        elif t.arrive_ms < opens:
+        elif time_of_day < opens:
             problems.append(f"Truck {t.id} arrives at {format_clock(t.arrive_ms)}, before the site opens at {format_clock(opens)}.")
     return problems

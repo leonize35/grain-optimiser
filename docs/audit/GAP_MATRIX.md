@@ -31,7 +31,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 24 | Grade segregation (DOMAIN) | **D4 confirmed; Python grades end to end: bins, pits, routing, mixing rules, grading before tipping, configuration checks (2026-10-22)** | test_grades.py, test_storage_bin.py | **Done** (intake) | — | Stochastic grade mix with generated demand still to come. |
 | 25 | Truck may leave before grain reaches bin (DOMAIN) | Assumed yes | — | **Unconfirmed** | P0 | Needs your confirmation. |
 | 26 | Opening backlog and inventories (DOMAIN) | Yes | T11 | **Done** | — | |
-| 27 | Shift end, carry-over, multi-day (VERIF 9) | Hard stop, single day | — | **Missing** | P1 | Turnaround is biased by trucks that never departed (B1). |
+| 27 | Shift end, carry-over, multi-day (VERIF 9) | **Python: admission cut-off, overtime hard stop, carry-over / send away, late arrivals, multi-day horizon (2026-10-23)** | test_operating_hours.py | **Done** | — | Single site-level cut-off. |
 | 28 | Failures / breakdowns (VERIF 9) | No | — | **Missing** | P2 | |
 | 29 | Time-of-day arrivals, commodity mix (VERIF 10) | Yes | T6 | **Done** | — | |
 | 30 | Historical data import and preparation (PRD) | CSV import, fitting, exclusions (UI) | — | **Untested** | P1 | Move to the backend; add tests with sanitised fixtures. |
@@ -44,5 +44,5 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 37 | Visual network editor (UX) | Auto-layout diagram + forms | — | **Partial** | P2 | Forms first; a drag-drop canvas is expensive. |
 | 38 | Reports (PDF/PPT/CSV) | No | — | **Missing** | P2 | |
 | 39 | Financial outcomes with explicit assumptions (UX) | NPV view | — | **Untested** | P2 | Must not infer revenue from shorter queues. |
-| 40 | Turnaround survivorship bias (found in audit) | — | — | **Defect** | P0 | Report unfinished trucks and censored waiting time. |
+| 40 | Turnaround survivorship bias (found in audit) | **Fixed in Python: summary reports completed, unfinished (waiting so far) and turned away; lower-bound turnaround includes unfinished** | test_operating_hours.py | **Done** | — | Prototype itself unchanged (reference). |
 | 41 | Deterministic fixture input for hand-checked tests (VERIF) | **Python scripted arrivals (2026-10-19)** | test_scripted_arrivals.py | **Partial** | P0 | Not yet driving truck logic. |

@@ -27,6 +27,13 @@ Build steps covered (docs/ENGINE_INTERFACES.md §7):
    In every mode, if work is waiting and nothing but new arrivals is left to happen, the run stops and reports a
    stall with each waiting request and its reasons.
 
+7. Operating hours and unfinished work (R6). The gate admits trucks from opening until the admission cut-off;
+   earlier arrivals wait at the gate, later ones wait for the next day or are turned away. Services start only
+   until closing + overtime (the hard stop); a service already running then is completed (A7). Grain transfers
+   continue after closing unless the site says otherwise. At the hard stop, trucks still on site carry over
+   (keep their place) or are sent away. ``days`` sets the horizon. Every truck ends in exactly one of: completed,
+   turned away, or unfinished (with its waiting time so far, measured to the end of the last day's service).
+
 Not built yet, and refused explicitly instead of being approximated:
 - loading (``load`` step).
 
@@ -57,7 +64,7 @@ from .ledger import AreaClaim, BinIncomingClaim, LaneClaim, PitSpaceClaim, Reser
 from .pit import Lot, Pit
 from .routing import RoutePlanner
 from .service_times import ServiceTimes
-from .time import m
+from .time import MS_PER_DAY, MS_PER_MINUTE, m
 
 STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
 QUEUE_GROUP = {"sample": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
@@ -107,9 +114,11 @@ class StepRecord:
 class TruckRecord:
     truck_id: str
     activity: str
-    arrived: int
+    arrived: int  # at the gate
     steps: list[StepRecord] = field(default_factory=list)
     departed: int | None = None
+    admitted: int | None = None  # let in through the gate (later than `arrived` for early or late arrivals)
+    turned_away: str | None = None  # why the truck left without finishing
 
 
 @dataclass
@@ -136,6 +145,22 @@ class UnfinishedTruck:
     arrived: int
     step_entered: int
     location: str | None = None  # reservation holding the truck's place (area or station lane), None if outside
+    admitted: bool = True  # False: still waiting outside the gate
+
+
+@dataclass(frozen=True)
+class ActivitySummary:
+    """R6 reporting per truck activity. Turnaround is gate arrival to departure, in minutes."""
+    completed: int
+    unfinished: int
+    turned_away: int
+    mean_turnaround_min: float | None
+    median_turnaround_min: float | None
+    p90_turnaround_min: float | None
+    max_turnaround_min: float | None
+    unfinished_waiting_min: list[float]  # time on site so far, measured to the end of the run's last service day
+    # Completed plus unfinished (waiting so far): a lower bound, because unfinished trucks are not done yet.
+    mean_turnaround_incl_unfinished_min: float | None
 
 
 @dataclass(frozen=True)
@@ -161,6 +186,7 @@ class TruckFlowResult:
     stall: Stall | None  # set when the run stopped because nothing could move any more
     assumptions: list[str]  # simplifications this run relied on (e.g. unlimited waiting space)
     area_peak: dict[str, int]  # configured waiting area -> most trucks in it at once
+    summary: dict[str, ActivitySummary]  # activity -> completed / unfinished / turned away and turnaround
 
 
 def _hours_ms(hours: float) -> int:
@@ -173,8 +199,11 @@ def _kg_per_ms(rate_tph: Fraction) -> Fraction:
 
 class TruckFlowModel:
     def __init__(self, site: SiteConfig, trucks: list[ScriptedTruck], times: ServiceTimes,
-                 policy: str | dict[str, str]):
+                 policy: str | dict[str, str], days: int = 1):
+        if days < 1:
+            raise ModelError("A run covers at least one day.")
         self.site = site
+        self.days = days
         self.trucks = trucks
         self.times = times
         self.names = {c.id: c.name for c in site.commodities}
@@ -208,6 +237,25 @@ class TruckFlowModel:
         self.assumptions = [f"{ACTIVITY_LABEL[act]} trucks have unlimited waiting space between steps "
                             "(no truck path configured)." for act in used if not getattr(site.truck_paths, act)]
         self.assumptions += [f"Waiting area {a.name} has unlimited space." for a in site.truck_areas if a.capacity is None]
+        eod, chosen = site.end_of_day, site.end_of_day.model_fields_set
+        if "unfinished_trucks" not in chosen and eod.unfinished_trucks == "carry_over":
+            self.assumptions.append("Unfinished trucks stay on site and continue the next operating day (default).")
+        if "late_arrivals" not in chosen and eod.late_arrivals == "queue_for_next_day":
+            self.assumptions.append("Trucks arriving after the admission cut-off wait for the next operating day (default).")
+        if "transfers_after_close" not in chosen and eod.transfers_after_close:
+            self.assumptions.append("Grain transfers continue after closing until the pits are empty (default).")
+        self.assumptions.append("A service already running at the hard stop is completed (assumption A7).")
+        h = site.hours
+        self.windows = []  # per day: (open, admission cut-off, hard stop) in ms
+        for d in range(days):
+            base = d * MS_PER_DAY
+            cutoff = h.admission_cutoff if h.admission_cutoff is not None else h.close
+            self.windows.append((base + _hours_ms(h.open), base + _hours_ms(cutoff), base + _hours_ms(h.close + h.overtime)))
+        self._horizon_end = self.windows[-1][2]
+        for t in trucks:
+            if t.arrive_ms // MS_PER_DAY >= days:
+                raise ModelError(f"Truck {t.id} arrives on day {t.arrive_ms // MS_PER_DAY + 1}, but the run covers "
+                                 f"{days} day{'s' if days > 1 else ''}.")
         self._check_trucks_can_run()
 
         self.cal = Calendar()
@@ -228,8 +276,14 @@ class TruckFlowModel:
         self.violations: list[tuple[int, str]] = []
         self._opening_kg = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
         self._tipped_kg = 0
-        if any(p.lots for p in self.pits.values()):
-            self.cal.schedule(_hours_ms(site.hours.open), CONTROL, self._plant_opens, "plant opens")
+        self._held: list[ScriptedTruck] = []  # arrived outside admission hours, waiting at the gate
+        self._send_away: set[str] = set()  # in service at a hard stop under 'turned_away'; leave when done
+        self._ended = False  # past the last day's hard stop
+        self._day_events: set[Event] = set()
+        for d, (opens, _, stops) in enumerate(self.windows):
+            ev_open = self.cal.schedule(opens, CONTROL, lambda c, d=d: self._plant_opens(d), f"day {d + 1}: plant opens")
+            ev_stop = self.cal.schedule(stops, CONTROL, lambda c, d=d: self._service_stops(d), f"day {d + 1}: service stops")
+            self._day_events |= {ev_open, ev_stop}
         schedule_arrivals(self.cal, trucks, self._arrive)
 
     # ---- construction ----
@@ -305,28 +359,98 @@ class TruckFlowModel:
         self.dispatcher.reconsider(self.cal.now)
         for problem in self.ledger.check_invariants(self.cal.now):
             self.violations.append((self.cal.now, problem))
-        # Stall: work is waiting but nothing other than new arrivals is left to happen; arrivals only add load.
-        if self.stall is None and self.dispatcher.pending_ids() and \
-                not any(e.priority != ARRIVAL for e in self.cal.pending_events()):
-            self.stall = Stall(self.cal.now, self.dispatcher.waiting_reasons())
-            self.cal.cancel_all()
+        # Stall: work is waiting and nothing is left that could change it. New arrivals and the daily open/stop
+        # events do not count, except that tomorrow's opening resolves waits for a closed plant. After the last
+        # day's hard stop, waiting work is reported as unfinished instead.
+        waiting = self.dispatcher.waiting_reasons()
+        if self.stall is None and not self._ended and waiting and not any(
+                e.priority != ARRIVAL and e not in self._day_events for e in self.cal.pending_events()):
+            # A wait for a closed plant ends at the next opening, or becomes unfinished work when the run ends.
+            closed = any(r.code == "PLANT_CLOSED" for rs in waiting.values() for r in rs)
+            day_event_ahead = any(not e.cancelled and not e.done for e in self._day_events)
+            if not (closed and day_event_ahead):
+                self.stall = Stall(self.cal.now, waiting)
+                self.cal.cancel_all()
 
-    def _plant_opens(self, cal: Calendar) -> None:
-        for pit in self.pits.values():
-            if pit.lots:
-                self._submit_intake(pit.id)
+    # ---- operating hours (R6) ----
+    def _admitting(self, t: int) -> bool:
+        return any(opens <= t < cutoff for opens, cutoff, _ in self.windows)
+
+    def _serving(self, t: int) -> bool:
+        return any(opens <= t < stops for opens, _, stops in self.windows)
+
+    def _after_cutoff(self, t: int) -> bool:
+        """Later than the admission cut-off of the truck's arrival day (as opposed to before opening)."""
+        opens, cutoff, _ = self.windows[t // MS_PER_DAY]
+        return t >= cutoff
+
+    def _closed(self) -> list[WaitReason]:
+        return [WaitReason("PLANT_CLOSED", None, "outside operating hours; waiting for the next opening")]
+
+    def _plant_opens(self, day: int) -> None:
+        if day == 0:
+            for pit in self.pits.values():
+                if pit.lots:
+                    self._submit_intake(pit.id)
+        held, self._held = self._held, []
+        for truck in held:
+            self._admit(truck)
         self._after_event()
+
+    def _service_stops(self, day: int) -> None:
+        if self.site.end_of_day.unfinished_trucks == "turned_away":
+            for rec in self.records.values():
+                if rec.admitted is None or rec.departed is not None or rec.turned_away is not None:
+                    continue
+                loc = self._location.get(rec.truck_id)
+                if loc is not None and loc[1] is not None and loc[1].finished is None:
+                    self._send_away.add(rec.truck_id)  # in service: completes first (A7)
+                else:
+                    self._send_away_now(rec.truck_id)
+        if day == self.days - 1:
+            self._ended = True
+        self._after_event()
+
+    def _send_away_now(self, truck_id: str) -> None:
+        for rid in self.dispatcher.pending_ids():
+            if rid.startswith(f"{truck_id}/"):
+                self.dispatcher.withdraw(rid)
+        held_area = self._next_area_held.pop(truck_id, None)
+        if held_area is not None:
+            self.ledger.release(held_area, self.cal.now, "cancelled")
+        truck = next(t for t in self.trucks if t.id == truck_id)
+        self._leave_location(truck)
+        self._awaiting_result.pop(truck_id, None)
+        self._send_away.discard(truck_id)
+        self.records[truck_id].turned_away = "still on site when service stopped"
+
+    def _leave_or_send_away(self, truck: ScriptedTruck) -> None:
+        """After a service: continue, unless the truck must leave and still has steps to do."""
+        if truck.id in self._send_away and self._position[truck.id] + 1 < len(self.paths[truck.activity]):
+            self._send_away_now(truck.id)
+        else:
+            self._send_away.discard(truck.id)
+            self._advance(truck)
 
     # ---- trucks: movement along the truck path (R5) ----
     # A truck holds exactly one place at a time: a place in a waiting area, or a station/hopper lane. It gives a
     # place up only when it has the next one, so a truck that finished a service but cannot move on stays on the
     # station and blocks it (A6).
     def _arrive(self, cal: Calendar, truck: ScriptedTruck) -> None:
-        self.records[truck.id] = TruckRecord(truck.id, truck.activity, cal.now)
+        rec = self.records[truck.id] = TruckRecord(truck.id, truck.activity, cal.now)
+        if self._admitting(cal.now):
+            self._admit(truck)
+        elif self.site.end_of_day.late_arrivals == "turned_away" and self._after_cutoff(cal.now):
+            rec.turned_away = "arrived after the admission cut-off"
+        else:
+            self._held.append(truck)  # before opening, or late with queue_for_next_day: wait at the gate
+        self._after_event()
+
+    def _admit(self, truck: ScriptedTruck) -> None:
+        self.records[truck.id].admitted = self.cal.now
         self._position[truck.id] = -1
         self._location[truck.id] = None
         self._advance(truck)
-        self._after_event()
 
     def _advance(self, truck: ScriptedTruck) -> None:
         """Ask for the next element of the truck's path (a waiting area or a step)."""
@@ -421,6 +545,8 @@ class TruckFlowModel:
         return None, [WaitReason("EQUIPMENT_BUSY", ",".join(ids), f"{', '.join(ids)} busy")]
 
     def _try_truck_station(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
+        if not self._serving(self.cal.now):
+            return self._closed()
         res_id = f"{truck.id}/{step_rec.step}"
         compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)]
         for u in compatible:
@@ -444,11 +570,13 @@ class TruckFlowModel:
             sample_id = f"S-{truck.id}"
             self.dispatcher.submit(f"{sample_id}/grade", "grade", self.cal.now,
                                    lambda now: self._try_grade(sample_id, truck))
-        self._advance(truck)
+        self._leave_or_send_away(truck)
         self._after_event()
 
     # ---- samples ----
     def _try_grade(self, sample_id: str, truck: ScriptedTruck) -> list[WaitReason]:
+        if not self._serving(self.cal.now):
+            return self._closed()
         res_id = f"{sample_id}/grade"
         unit, reasons = self._try_lane(res_id, "grader", "grade")
         if unit is None:
@@ -471,6 +599,8 @@ class TruckFlowModel:
 
     # ---- tipping ----
     def _try_tip(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
+        if not self._serving(self.cal.now):
+            return self._closed()
         grain, kg, res_id = self._grain(truck), truck.kg, f"{truck.id}/tip"
         reasons: list[WaitReason] = []
         for pit in self._hopper_candidates(truck):
@@ -499,7 +629,7 @@ class TruckFlowModel:
         step_rec.finished = self.cal.now
         if pit.id not in self._intake_active:
             self._submit_intake(pit.id)
-        self._advance(truck)
+        self._leave_or_send_away(truck)
         self._after_event()
 
     # ---- intake transfers ----
@@ -510,6 +640,8 @@ class TruckFlowModel:
         self.dispatcher.submit(req_id, "intake", self.cal.now, lambda now: self._try_intake(pit_id, req_id))
 
     def _try_intake(self, pit_id: str, req_id: str) -> list[WaitReason]:
+        if not self.site.end_of_day.transfers_after_close and not self._serving(self.cal.now):
+            return self._closed()
         pit = self.pits[pit_id]
         lot = pit.lots[0]
         candidates = self.planner.intake_candidates(pit_id, lot.grain)
@@ -629,12 +761,12 @@ class TruckFlowModel:
     def result(self) -> TruckFlowResult:
         unfinished = []
         for rec in self.records.values():
-            if rec.departed is None:
+            if rec.departed is None and rec.turned_away is None:
                 s = rec.steps[-1] if rec.steps else StepRecord("arrival", rec.arrived)
                 in_service = s.started is not None and s.finished is None and s.unit is not None
                 loc = self._location.get(rec.truck_id)
                 unfinished.append(UnfinishedTruck(rec.truck_id, s.step, in_service, rec.arrived, s.entered,
-                                                  loc[0] if loc else None))
+                                                  loc[0] if loc else None, rec.admitted is not None))
         closing = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
         return TruckFlowResult(
             records=list(self.records.values()), unfinished=unfinished, samples=dict(self._results),
@@ -645,4 +777,28 @@ class TruckFlowModel:
                          if (n := sum(1 for x in self.transfers if seg in x.changeover_segments))},
             material_balance_kg=self._opening_kg + self._tipped_kg - closing,
             violations=list(self.violations), stall=self.stall, assumptions=list(self.assumptions),
-            area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas})
+            area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas},
+            summary=self._summaries())
+
+    def _summaries(self) -> dict[str, ActivitySummary]:
+        """R6: completed, unfinished and turned-away trucks per activity; unfinished are never silently dropped."""
+        end = min(self.cal.now, self._horizon_end)  # waiting is measured to the last day's hard stop at most
+        out = {}
+        for act in ACTIVITY_LABEL:
+            recs = [r for r in self.records.values() if r.activity == act]
+            if not recs and not any(t.activity == act for t in self.trucks):
+                continue
+            done = sorted((r.departed - r.arrived) / MS_PER_MINUTE for r in recs if r.departed is not None)
+            waiting = [(end - r.arrived) / MS_PER_MINUTE for r in recs
+                       if r.departed is None and r.turned_away is None]
+            pct = lambda p: done[max(0, math.ceil(p * len(done)) - 1)] if done else None  # noqa: E731 nearest rank
+            both = done + waiting
+            out[act] = ActivitySummary(
+                completed=len(done), unfinished=len(waiting),
+                turned_away=sum(1 for r in recs if r.turned_away is not None),
+                mean_turnaround_min=sum(done) / len(done) if done else None,
+                median_turnaround_min=pct(0.5), p90_turnaround_min=pct(0.9),
+                max_turnaround_min=done[-1] if done else None,
+                unfinished_waiting_min=waiting,
+                mean_turnaround_incl_unfinished_min=sum(both) / len(both) if both else None)
+        return out

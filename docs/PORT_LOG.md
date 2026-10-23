@@ -304,4 +304,53 @@ The prototype's demo sites A and B still pass `validate_rules` with no errors.
 - a stall cancels the rest of the run, including later arrivals;
 - trucks waiting to enter an area queue under the run's dispatch policy.
 
-**Next step:** build step 7: operating hours, admission cut-off, overtime and unfinished work (R6). Turnaround reporting must include unfinished trucks, fixing the audit's survivorship-bias finding.
+## Step 10 — operating hours, admission cut-off, overtime and unfinished work (build step 7)
+
+**Implemented:**
+- Schema: `hours.admission_cutoff` (default = close), plus `hours.overtime`, which already existed in the prototype format and is in hours. `end_of_day.unfinished_trucks` (`carry_over` default / `turned_away`), `end_of_day.late_arrivals` (`queue_for_next_day` default / `turned_away`) and `end_of_day.transfers_after_close` (default true). Scripted trucks gain `day`.
+- `sim/truck_flow.py`:
+  - The gate admits trucks only between opening and the cut-off. Early arrivals wait at the gate; late ones wait for the next day or are turned away.
+  - Truck services and grading start only until the hard stop (close + overtime). A service already running then completes (A7).
+  - Grain transfers continue after close unless switched off.
+  - At each hard stop, trucks still on site carry over (keeping their place) or are sent away. A truck in service when sent away finishes that service first.
+  - `days` sets the horizon, and trucks arriving after it are refused.
+  - Waiting reason `PLANT_CLOSED`.
+  - Default end-of-day rules and A7 are listed in the run's assumptions.
+- **Turnaround reporting** (`result.summary` per activity), which fixes the audit's survivorship-bias finding (GAP_MATRIX row 40). It gives completed count, mean, median, p90 and max turnaround from gate arrival; unfinished trucks with their waiting time so far, measured to the last hard stop; turned-away trucks; and a turnaround including unfinished trucks, labelled as a lower bound. Every truck is in exactly one group.
+- **Stall detection** now ignores the daily open/stop events. A wait for a closed plant is not a stall while a day event is still ahead, and after the last hard stop waiting work is reported as unfinished. A real deadlock during the day is still detected (T5.3 still passes).
+- `validate_rules` (R6): opening before closing; cut-off between opening and closing.
+
+**Behaviour proved (13 new tests, 186 in total), hand-computed:**
+- early arrival admitted at opening (turnaround 20 min);
+- T6.1 overtime serving until 08:30, with T6 unfinished after 50 min waiting, completed mean 30 min, and a lower bound of 200/6;
+- T6.2 carry-over to day 2 (1410 min turnaround);
+- sending away at the hard stop, with the in-service truck finishing at 08:40;
+- a late arrival queued to day 2 (1400 min) or turned away;
+- a late arrival on the last day reported as not admitted;
+- grain moving after close (08:30–08:48), or waiting until day 2 at 07:00 when switched off;
+- an overnight wait not reported as a stall;
+- refusal of arrivals beyond the horizon;
+- hours validation and the assumptions list.
+
+**Fault injection:**
+- gate always open fails 3 tests;
+- no hard stop fails 4;
+- unfinished trucks left out of the lower bound fails 1;
+- always sending trucks away fails 3;
+- a closed-plant wait treated as a stall fails 4;
+- an in-service truck sent away immediately fails 1.
+
+**Found and fixed during testing:** at a hard stop, a completion processed a moment before the "service stops" event made a closed-plant wait look like a stall. A closed-plant wait is now never a stall while a day event is still ahead.
+
+**Commands run:** `pytest -q` → 186 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged. The scenario viewer rebuilds with identical results.
+
+**Limitations:**
+- one admission cut-off per site (not per activity);
+- overtime that runs past midnight is not handled;
+- during closed hours a deadlocked truck's reason shows as `PLANT_CLOSED`, so a deadlock forming late on the last day is reported only as unfinished work.
+
+**The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
+1. loading trucks (grain out of bins);
+2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;
+3. the independent replay checker over the ledger log;
+4. multi-replication experiments.

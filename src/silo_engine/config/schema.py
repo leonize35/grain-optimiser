@@ -74,9 +74,19 @@ class Equipment(_Model):
 
 
 class Hours(_Model):
+    """Clock hours (7.5 = 07:30). R6: the gate admits trucks from `open` until `admission_cutoff` (default:
+    `close`); services may start until `close` + `overtime` hours (the hard stop)."""
     open: float
     close: float
-    overtime: float = 0
+    overtime: float = Field(default=0, ge=0)
+    admission_cutoff: float | None = None
+
+
+class EndOfDay(_Model):
+    """R6 end-of-day policies (site input)."""
+    unfinished_trucks: Literal["carry_over", "turned_away"] = "carry_over"
+    late_arrivals: Literal["queue_for_next_day", "turned_away"] = "queue_for_next_day"
+    transfers_after_close: bool = True
 
 
 class Sequences(_Model):
@@ -171,6 +181,7 @@ class SiteConfig(_Model):
     truck_areas: list[TruckArea] = []
     truck_paths: TruckPaths = TruckPaths()
     deadlock_prevention: Literal["reserve_next_space", "detect_only"] = "reserve_next_space"
+    end_of_day: EndOfDay = EndOfDay()
 
 
 class ConfigSchemaError(ValueError):

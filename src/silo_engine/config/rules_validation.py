@@ -153,11 +153,27 @@ def _validate_truck_paths(site: SiteConfig, result: RulesResult) -> None:
                                        f"{label} sequence ({', '.join(sequence)})."))
 
 
+def _clock(hours: float) -> str:
+    total = round(hours * 60)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+def _validate_hours(site: SiteConfig, result: RulesResult) -> None:
+    """R6: opening, admission cut-off and closing must be in order."""
+    h = site.hours
+    if h.open >= h.close:
+        result.errors.append(Issue(f"Opening time ({_clock(h.open)}) must be before closing time ({_clock(h.close)})."))
+    elif h.admission_cutoff is not None and not h.open <= h.admission_cutoff <= h.close:
+        result.errors.append(Issue(f"The admission cut-off ({_clock(h.admission_cutoff)}) must be between opening "
+                                   f"({_clock(h.open)}) and closing ({_clock(h.close)})."))
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
     equipment_names = {e.id: (e.name or e.id) for e in site.equipment}
     policy = GradePolicy(site)
+    _validate_hours(site, result)
     _validate_grades(site, result)
     _validate_truck_paths(site, result)
 

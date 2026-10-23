@@ -87,6 +87,14 @@ class Dispatcher:
             blocked_groups.add(req.group)
         return False
 
+    def withdraw(self, request_id: str) -> bool:
+        """Remove a waiting request (e.g. a truck sent away). Returns whether it was waiting."""
+        for p in self._pending:
+            if p.id == request_id:
+                self._pending.remove(p)
+                return True
+        return False
+
     def pending_ids(self) -> list[str]:
         return [p.id for p in self._pending]
 
