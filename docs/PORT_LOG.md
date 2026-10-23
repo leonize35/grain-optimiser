@@ -521,6 +521,23 @@ These are verification figures, not validation.
 
 **Ambiguities:** recorded in DOMAIN_DECISIONS §9.1 (gate arrival versus queue entry; several hoppers as one queue; what strict FIFO means with several hoppers; ties; waiting before opening; unfinished lower bounds).
 
+## Step 14 — queue-policy architecture (no new scheduling intervention)
+
+Design and results: `docs/QUEUE_POLICY_DESIGN.md`. In brief:
+- One interface: a policy receives a read-only snapshot of a queue group's waiting requests and returns a recommendation (order to try, and whether to stop at the first blocked request). The engine keeps every physical check and reservation.
+- `strict_fifo` and `feasible_first` are re-expressed through the interface.
+- Policies are selectable per site (`queue_policies`) and per run or experiment. The argument wins over the site, which wins over the unchanged default `feasible_first`. The resolved policy is recorded in results and experiment metadata.
+- Reporting for the six domain decisions of 2026-10-23: gate and queue order, feasible/infeasible overtakes, deterministic ties, pre-opening versus operational waiting, right-censoring.
+
+Audit: the prototype's BATCH is a hopper-led tip rule plus a route-choice transfer rule; neither is ported. The prototype `policies` field is ignored by the Python engine (flagged).
+
+Verified:
+- 253 tests (231 existing, unchanged);
+- engine fingerprint byte-identical (policy as argument and from the site);
+- configuration hashes and the published fairness baseline unchanged;
+- 13/13 injected faults detected (2 after adding tests);
+- prototype selftests 12/12.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

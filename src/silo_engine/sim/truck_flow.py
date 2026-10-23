@@ -53,6 +53,7 @@ Events: completions and releases use RELEASE priority, the opening of the plant 
 arrivals ARRIVAL. After every event the dispatcher reconsiders and the ledger invariants are checked.
 """
 import math
+import dataclasses
 from dataclasses import dataclass, field
 from decimal import Decimal
 from fractions import Fraction
@@ -70,6 +71,7 @@ from .dispatcher import Dispatcher, DispatcherError, WaitReason
 from .ledger import (AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
                      SegmentClaim)
 from .pit import Lot, Pit
+from .queue_policy import DEFAULT_POLICY
 from .routing import RoutePlanner
 from .service_times import ServiceTimes
 from .time import MS_PER_DAY, MS_PER_MINUTE, m
@@ -212,6 +214,16 @@ class TruckMetrics:
     unfinished: bool
     turned_away: bool
     starved: bool  # against the site's starvation threshold (reporting only; never affects the simulation)
+    # Domain decisions of 2026-10-23 (docs/QUEUE_POLICY_DESIGN.md §4); the fields above keep their definitions.
+    arrival_seq: int = 0  # gate arrival order (0 = first)
+    queue_seq: dict[str, int] = field(default_factory=dict)  # step -> queue-entry order (dispatcher submission number)
+    overtaken_in_queue: int = 0  # queue-stage count: later queue entrants that started first (gate order ignored)
+    hopper_admitted_ahead_by_later_arrivals: int = 0  # gate-arrival fairness: later gate arrivals that tipped first
+    overtaken_feasible: int = 0  # part of overtaken_by_later on equipment this truck is configured to be able to use
+    overtaken_infeasible: int = 0  # the rest (e.g. a hopper that does not take this commodity)
+    pre_opening_wait_min: float = 0  # held at the gate until it opened (before opening, or after the cut-off)
+    operational_wait_min: float = 0  # total_waiting_min - pre_opening_wait_min
+    wait_censored: bool = False  # right-censored at the end of the run: the waiting time is a lower bound
 
 
 @dataclass(frozen=True)
@@ -233,6 +245,21 @@ class CommodityFairness:
     max_overtaken_at_hopper: int = 0
     starved: int = 0
     turned_away: int = 0
+    # Right-censoring (2026-10-23): completed trucks only, and censored (unfinished) trucks apart. Turned-away
+    # trucks are in neither group.
+    completed_mean_wait_min: float | None = None
+    completed_median_wait_min: float | None = None
+    completed_p95_wait_min: float | None = None
+    completed_max_wait_min: float | None = None
+    censored: int = 0
+    censored_mean_wait_min: float | None = None  # lower bound
+    censored_max_wait_min: float | None = None  # lower bound
+    mean_pre_opening_wait_min: float | None = None
+    mean_operational_wait_min: float | None = None
+    mean_admitted_ahead_by_later_arrivals: float | None = None
+    max_admitted_ahead_by_later_arrivals: int = 0
+    overtaken_feasible: int = 0  # totals over the commodity's trucks
+    overtaken_infeasible: int = 0
 
 
 @dataclass(frozen=True)
@@ -274,6 +301,8 @@ class TruckFlowResult:
     fairness: dict[str, ActivityFairness] = field(default_factory=dict)
     loads: list[LoadRecord] = field(default_factory=list)
     dispatched_kg: int = 0  # grain loaded onto trucks during the run
+    queue_policies: dict[str, str] = field(default_factory=dict)  # queue group -> policy used
+    policy_source: str = ""  # "argument", "site" or "default"
 
 
 def _hours_ms(hours: float) -> int:
@@ -286,7 +315,7 @@ def _kg_per_ms(rate_tph: Fraction) -> Fraction:
 
 class TruckFlowModel:
     def __init__(self, site: SiteConfig, trucks: list[ScriptedTruck], times: ServiceTimes,
-                 policy: str | dict[str, str], days: int = 1):
+                 policy: str | dict[str, str] | None = None, days: int = 1):
         if days < 1:
             raise ModelError("A run covers at least one day.")
         self.site = site
@@ -295,7 +324,17 @@ class TruckFlowModel:
         self.times = times
         self.names = {c.id: c.name for c in site.commodities}
         groups = sorted(set(QUEUE_GROUP.values()))
-        policies = {g: policy for g in groups} if isinstance(policy, str) else dict(policy)
+        # Precedence: the run's argument, then the site's queue_policies, then the unchanged default.
+        if policy is not None:
+            self.policy_source = "argument"
+            policies = {g: policy for g in groups} if isinstance(policy, str) else dict(policy)
+        elif site.queue_policies is not None:
+            self.policy_source = "site"
+            policies = {g: site.queue_policies.groups.get(g, site.queue_policies.default) for g in groups}
+        else:
+            self.policy_source = "default"
+            policies = {g: DEFAULT_POLICY for g in groups}
+        self.queue_policies = {g: p if isinstance(p, str) else p.name for g, p in policies.items()}
         try:
             self.dispatcher = Dispatcher(policies)
         except DispatcherError as e:
@@ -351,6 +390,8 @@ class TruckFlowModel:
 
         self.cal = Calendar()
         self.records: dict[str, TruckRecord] = {}
+        self._arrival_seq: dict[str, int] = {}  # gate arrival order (simultaneous arrivals: script order)
+        self._queue_seq: dict[str, dict[str, int]] = {}  # truck -> step -> submission sequence (queue-entry order)
         self._position: dict[str, int] = {}  # index of the truck's current element in its path (-1 = outside)
         self._location: dict[str, tuple[str, StepRecord | None] | None] = {}  # reservation holding its place
         self._next_area_held: dict[str, str] = {}  # reserve_next_space: area place reserved for after the service
@@ -539,6 +580,7 @@ class TruckFlowModel:
     # station and blocks it (A6).
     def _arrive(self, cal: Calendar, truck: ScriptedTruck) -> None:
         rec = self.records[truck.id] = TruckRecord(truck.id, truck.activity, cal.now)  # dict order = arrival order
+        self._arrival_seq[truck.id] = len(self.records) - 1
         if self._admitting(cal.now):
             self._admit(truck)
         elif self.site.end_of_day.late_arrivals == "turned_away" and self._after_cutoff(cal.now):
@@ -568,8 +610,8 @@ class TruckFlowModel:
             if held is not None:
                 self._move_into_area(truck, held)
             else:
-                self.dispatcher.submit(f"{truck.id}/enter:{element}", "move", self.cal.now,
-                                       lambda now, tr=truck, a=element: self._try_enter(tr, a))
+                self._submit_for(truck, f"enter:{element}", f"{truck.id}/enter:{element}", "move",
+                                 lambda now, tr=truck, a=element: self._try_enter(tr, a))
             return
         step_rec = StepRecord(element, self.cal.now)
         rec.steps.append(step_rec)
@@ -583,7 +625,14 @@ class TruckFlowModel:
             return
         handler = {"tip": self._try_tip, "load": self._try_load}.get(element, self._try_truck_station)
         attempt = lambda now, tr=truck, sr=step_rec, h=handler: h(tr, sr)  # noqa: E731
-        self.dispatcher.submit(f"{truck.id}/{element}", QUEUE_GROUP[element], self.cal.now, attempt)
+        self._submit_for(truck, element, f"{truck.id}/{element}", QUEUE_GROUP[element], attempt)
+
+    def _submit_for(self, truck: ScriptedTruck, step: str, request_id: str, group: str, attempt) -> None:
+        """Queue a truck's request; record its queue-entry order and show the policy read-only truck facts."""
+        seq = self.dispatcher.submit(request_id, group, self.cal.now, attempt, info={
+            "truck_id": truck.id, "arrival_seq": self._arrival_seq[truck.id], "activity": truck.activity,
+            "commodity": truck.commodity, "grade": truck.grade, "step": step})
+        self._queue_seq.setdefault(truck.id, {}).setdefault(step, seq)
 
     def _result_reached_truck(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
         step_rec.started = step_rec.finished = self.cal.now
@@ -672,8 +721,7 @@ class TruckFlowModel:
         step_rec.finished = self.cal.now  # the truck keeps the lane until it can move on
         if step_rec.step == "sample":
             sample_id = f"S-{truck.id}"
-            self.dispatcher.submit(f"{sample_id}/grade", "grade", self.cal.now,
-                                   lambda now: self._try_grade(sample_id, truck))
+            self._submit_for(truck, "grade", f"{sample_id}/grade", "grade", lambda now: self._try_grade(sample_id, truck))
         self._leave_or_send_away(truck)
         self._after_event()
 
@@ -957,7 +1005,8 @@ class TruckFlowModel:
             violations=list(self.violations), stall=self.stall, assumptions=list(self.assumptions),
             area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas},
             summary=self._summaries(), received_kg=self._tipped_kg, loads=list(self.loads),
-            dispatched_kg=self._dispatched_kg, **self._fairness())
+            dispatched_kg=self._dispatched_kg, queue_policies=dict(self.queue_policies),
+            policy_source=self.policy_source, **self._fairness())
 
     def _fairness(self) -> dict:
         """Q1 reporting: per-truck waiting, overtakes by later arrivals and completion; per-commodity summaries."""
@@ -971,12 +1020,19 @@ class TruckFlowModel:
 
         overtaken = {tid: 0 for tid in order}
         at_hopper = {tid: 0 for tid in order}
+        in_queue = {tid: 0 for tid in order}
+        feasible = {tid: 0 for tid in order}
         for victim, by in self.dispatcher.overtake_log:
             v, b = owner(victim), owner(by)
-            if v is not None and b is not None and order[b] > order[v]:
+            if v is None or b is None:
+                continue
+            in_queue[v] += 1
+            if order[b] > order[v]:
                 overtaken[v] += 1
                 if victim.endswith("/tip"):
                     at_hopper[v] += 1
+                if self._could_use(v, victim.split("/", 1)[1], b, by.split("/", 1)[1]):
+                    feasible[v] += 1
         limit_min, limit_overtakes = self.site.fairness.starvation_wait_minutes, self.site.fairness.starvation_overtakes
         trucks = {t.id: t for t in self.trucks}
         metrics: dict[str, TruckMetrics] = {}
@@ -995,6 +1051,7 @@ class TruckFlowModel:
             entered: dict[str, int] = {}
             for s in rec.steps:
                 entered.setdefault(s.step, s.entered)
+            gate = (rec.admitted if rec.admitted is not None else stop) - rec.arrived
             metrics[tid] = TruckMetrics(
                 truck_id=tid, activity=rec.activity, commodity=truck.commodity, grade=truck.grade,
                 arrived=rec.arrived, gate_admitted=rec.admitted, queue_entered=entered,
@@ -1002,7 +1059,23 @@ class TruckFlowModel:
                 hopper_admitted=None if tip is None else tip.started, departed=rec.departed,
                 total_waiting_min=waiting, hopper_wait_min=hopper, overtaken_by_later=overtaken[tid],
                 overtaken_at_hopper=at_hopper[tid], status=status, unfinished=status == "unfinished",
-                turned_away=status == "turned_away", starved=starved)
+                turned_away=status == "turned_away", starved=starved,
+                arrival_seq=order[tid], queue_seq=dict(self._queue_seq.get(tid, {})),
+                overtaken_in_queue=in_queue[tid], overtaken_feasible=feasible[tid],
+                overtaken_infeasible=overtaken[tid] - feasible[tid],
+                pre_opening_wait_min=gate / MS_PER_MINUTE, operational_wait_min=waiting - gate / MS_PER_MINUTE,
+                wait_censored=status == "unfinished")
+        # Gate-arrival fairness at the hopper: later gate arrivals that started tipping before this truck did (or
+        # before it left or the run ended, if it never tipped).
+        tipped = sorted((x.hopper_admitted, order[t]) for t, x in metrics.items() if x.hopper_admitted is not None)
+        for tid, x in metrics.items():
+            if x.hopper_queue_entered is None and x.activity != "unload":
+                continue
+            rec = self.records[tid]
+            until = x.hopper_admitted if x.hopper_admitted is not None else (
+                rec.turned_away_at if rec.turned_away is not None else end)
+            ahead = sum(1 for at, seq in tipped if at < until and seq > order[tid])
+            metrics[tid] = dataclasses.replace(x, hopper_admitted_ahead_by_later_arrivals=ahead)
         mean = lambda xs: sum(xs) / len(xs) if xs else None  # noqa: E731
         rank = lambda xs, p: sorted(xs)[max(0, math.ceil(p * len(xs)) - 1)] if xs else None  # noqa: E731 nearest rank
         fairness: dict[str, ActivityFairness] = {}
@@ -1024,12 +1097,42 @@ class TruckFlowModel:
                     median_hopper_wait_min=rank(hops, 0.5), p95_hopper_wait_min=rank(hops, 0.95),
                     mean_overtaken=mean(over), max_overtaken=max(over),
                     max_overtaken_at_hopper=max(x.overtaken_at_hopper for x in group),
-                    starved=sum(1 for x in group if x.starved), turned_away=sum(1 for x in group if x.turned_away))
+                    starved=sum(1 for x in group if x.starved), turned_away=sum(1 for x in group if x.turned_away),
+                    **self._censoring_split(group, mean, rank))
             worst = max(ms, key=lambda x: (x.overtaken_by_later, -order[x.truck_id]))
             fairness[act] = ActivityFairness(by, worst.overtaken_by_later,
                                              worst.truck_id if worst.overtaken_by_later else None,
                                              sum(1 for x in ms if x.starved), limit_min, limit_overtakes)
         return {"truck_metrics": metrics, "fairness": fairness}
+
+    @staticmethod
+    def _censoring_split(group: list[TruckMetrics], mean, rank) -> dict:
+        done = [x.total_waiting_min for x in group if x.status == "completed"]
+        cens = [x.total_waiting_min for x in group if x.wait_censored]
+        ahead = [x.hopper_admitted_ahead_by_later_arrivals for x in group]
+        return dict(
+            completed_mean_wait_min=mean(done), completed_median_wait_min=rank(done, 0.5),
+            completed_p95_wait_min=rank(done, 0.95), completed_max_wait_min=max(done) if done else None,
+            censored=len(cens), censored_mean_wait_min=mean(cens), censored_max_wait_min=max(cens) if cens else None,
+            mean_pre_opening_wait_min=mean([x.pre_opening_wait_min for x in group]),
+            mean_operational_wait_min=mean([x.operational_wait_min for x in group]),
+            mean_admitted_ahead_by_later_arrivals=mean(ahead), max_admitted_ahead_by_later_arrivals=max(ahead),
+            overtaken_feasible=sum(x.overtaken_feasible for x in group),
+            overtaken_infeasible=sum(x.overtaken_infeasible for x in group))
+
+    def _could_use(self, victim: str, victim_step: str, by: str, by_step: str) -> bool:
+        """Static (configuration) test: is the equipment the overtaking truck obtained for `by_step` equipment the
+        waiting truck could ever use for its own step? Not a test of whether it could have started at that moment."""
+        unit = next((s.unit for s in self.records[by].steps if s.step == by_step and s.started is not None), None)
+        truck = next(t for t in self.trucks if t.id == victim)
+        if by_step == "tip" and unit in self.pits:
+            return truck.commodity in self.pits[unit].accepts and self.planner.has_intake_route(unit, self._grain(truck))
+        if by_step == "load" and unit is not None:
+            return any(path[-1] == unit and any(g.commodity == truck.commodity for g in self.bins[b].accepts)
+                       for b, paths in self.planner.routes.load.items() for path in paths)
+        if by_step in STATION_TYPE and unit is not None:
+            return any(u.resource == unit and u.serves(victim_step) for u in self.units)
+        return True  # waiting areas and grading: any truck can use them
 
     def _summaries(self) -> dict[str, ActivitySummary]:
         """R6: completed, unfinished and turned-away trucks per activity; unfinished are never silently dropped."""

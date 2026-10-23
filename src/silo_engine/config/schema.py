@@ -115,6 +115,18 @@ class Policies(_Model):
     transfer: Literal["fifo", "batch", "load_first"] = "fifo"
 
 
+QueueGroupName = Literal["sample", "grade", "weigh", "tip", "intake", "move", "load"]
+QueuePolicyName = Literal["strict_fifo", "feasible_first"]
+
+
+class QueuePolicies(_Model):
+    """Queue policy per queue group (docs/QUEUE_POLICY_DESIGN.md), Python names. `strict_fifo` = strict global
+    FIFO; `feasible_first` = work-conserving feasible-first FIFO. A run or experiment argument overrides this.
+    (The prototype-format `policies` field is validated but not used by the Python engine.)"""
+    default: QueuePolicyName = "feasible_first"
+    groups: dict[QueueGroupName, QueuePolicyName] = {}
+
+
 class ChangeoverRule(_Model):
     """R3: minutes needed on equipment before `to` grain may follow `from` grain.
 
@@ -191,6 +203,7 @@ class SiteConfig(_Model):
     deadlock_prevention: Literal["reserve_next_space", "detect_only"] = "reserve_next_space"
     end_of_day: EndOfDay = EndOfDay()
     fairness: FairnessReporting = FairnessReporting()
+    queue_policies: QueuePolicies | None = None  # None: the run's argument, else feasible_first
 
 
 class ConfigSchemaError(ValueError):
@@ -212,5 +225,8 @@ def load_site_config(raw: dict[str, Any]) -> SiteConfig:
 
 def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
-    canonical = json.dumps(cfg.model_dump(mode="json", by_alias=True), sort_keys=True, separators=(",", ":"))
+    data = cfg.model_dump(mode="json", by_alias=True)
+    if data.get("queue_policies") is None:  # not set: hash as before the setting existed
+        data.pop("queue_policies", None)
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

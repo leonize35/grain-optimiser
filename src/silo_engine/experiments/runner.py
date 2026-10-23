@@ -118,17 +118,28 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
             out[f"{act}.{c}.mean_overtaken"] = cf.mean_overtaken
             out[f"{act}.{c}.max_overtaken"] = cf.max_overtaken
             out[f"{act}.{c}.starved"] = cf.starved
+            out[f"{act}.{c}.completed_mean_wait_min"] = cf.completed_mean_wait_min
+            out[f"{act}.{c}.completed_p95_wait_min"] = cf.completed_p95_wait_min
+            out[f"{act}.{c}.completed_max_wait_min"] = cf.completed_max_wait_min
+            out[f"{act}.{c}.censored"] = cf.censored
+            out[f"{act}.{c}.censored_mean_wait_min"] = cf.censored_mean_wait_min
+            out[f"{act}.{c}.mean_pre_opening_wait_min"] = cf.mean_pre_opening_wait_min
+            out[f"{act}.{c}.mean_admitted_ahead_by_later_arrivals"] = cf.mean_admitted_ahead_by_later_arrivals
+            out[f"{act}.{c}.overtaken_infeasible"] = cf.overtaken_infeasible
     return out
 
 
 def run_experiment(site: SiteConfig, replications: int = 10, base_seed: int = 20261019, days: int = 1,
-                   demand_factor: float = 1.0, policy: str = "feasible_first") -> ExperimentResult:
+                   demand_factor: float = 1.0, policy: str | dict[str, str] | None = None) -> ExperimentResult:
     reps: list[Replication] = []
     assumptions: list[str] = []
+    resolved: dict[str, str] = {}
+    source = ""
     for i in range(replications):
         seed = derived_seed(base_seed, "replication", i)
         trucks = generate_arrivals(site, seed, days=days, demand_factor=demand_factor)
         model = TruckFlowModel(site, trucks, StochasticServiceTimes(site, seed), policy=policy, days=days)
+        resolved, source = model.queue_policies, model.policy_source
         result = model.run()
         assumptions = assumptions or result.assumptions
         if result.stall is not None:
@@ -142,7 +153,10 @@ def run_experiment(site: SiteConfig, replications: int = 10, base_seed: int = 20
     summary = {k: ci([r.kpis[k] for r in good]) for k in (good[0].kpis if good else {})}
     metadata = {"engine_version": VERSION, "config_hash": config_hash(site), "base_seed": base_seed,
                 "seeds": [r.seed for r in reps], "replications": replications, "days": days,
-                "demand_factor": demand_factor, "policy": policy,
+                "demand_factor": demand_factor,
+                "policy": policy if policy is not None else (
+                    next(iter(set(resolved.values()))) if len(set(resolved.values())) == 1 else dict(resolved)),
+                "queue_policies": dict(resolved), "policy_source": source,
                 "deadlock_prevention": site.deadlock_prevention, "assumptions": assumptions,
                 "successful": len(good), "failed": len(reps) - len(good)}
     return ExperimentResult(reps, summary, len(reps) - len(good), metadata)

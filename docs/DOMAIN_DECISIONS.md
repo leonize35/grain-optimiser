@@ -275,7 +275,15 @@ Current definitions (`TruckMetrics`; tests in `tests/test_starvation_diagnostics
 - **Overtake**: truck X overtakes truck Y when X starts a step while Y is still waiting in the same queue group, Y entered that queue first, **and** Y arrived at the gate first. Each start counts once per waiting truck. Completion order is irrelevant.
 - `overtaken_by_later` counts every queue group; `overtaken_at_hopper` counts tipping only.
 
-Ambiguities to confirm with the domain owner:
+**Decisions (2026-10-23, domain owner)**, implemented as reporting in step 14 (docs/QUEUE_POLICY_DESIGN.md §4):
+1. Record both gate-arrival order (`arrival_seq`) and queue-entry order (`queue_seq`). FIFO applies at the configured physical queue stage (per queue group). Gate-arrival fairness is reported separately (`hopper_admitted_ahead_by_later_arrivals`); the queue-stage count is `overtaken_in_queue`.
+2. `overtaken_by_later` keeps its definition. It is optionally split into `overtaken_feasible` / `overtaken_infeasible` (configuration test of whether the waiting truck could use the overtaker's equipment).
+3. Strict global FIFO (`strict_fifo`) and work-conserving feasible-first FIFO (`feasible_first`) stay distinct and configurable. The case-study description does not settle head-of-line blocking at parallel hoppers.
+4. Simultaneous arrivals: deterministic arrival-sequence tie-breaker (script order; generated arrivals by time, backlog, activity, truck id).
+5. `pre_opening_wait_min` and `operational_wait_min` are separated; `total_waiting_min` is unchanged.
+6. Unfinished trucks' waits are right-censored (`wait_censored`), with completed-only and censored statistics kept apart.
+
+The questions as originally raised:
 1. **Gate arrival versus queue entry.** Q arrives 07:01 and reaches the hopper queue at 07:02. P arrived 07:00 but weighed slowly and reaches the hopper queue at 07:05. If P then tips before Q, it is **not** counted as an overtake, because P arrived first. Counting by queue entry alone would count it. Which does the site consider fair?
 2. **Several hoppers form one queue.** A later truck admitted to *any* hopper while an earlier truck waits counts as an overtake, even if the waiting truck could not use that hopper (for example, a commodity the hopper does not take). An alternative is to count only hoppers the waiting truck could have used.
 3. **What strict FIFO means with several hoppers.** `strict_fifo` is head-of-line across the whole hopper queue: a truck waiting for a busy or incompatible hopper also holds back later trucks that could use an idle one. Is this what "queue order" means on site? Or do trucks for a free hopper go ahead (e.g. separate queues per hopper or per commodity)? The prototype's weighbridge rule called `fifo` actually behaves like `feasible_first`.
