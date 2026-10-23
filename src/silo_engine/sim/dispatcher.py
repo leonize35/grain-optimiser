@@ -60,6 +60,7 @@ class Dispatcher:
         self._pending: list[_Pending] = []
         self._seq = 0
         self._overtaken: dict[str, int] = {}
+        self.overtake_log: list[tuple[str, str]] = []  # (overtaken request, request that started ahead of it)
 
     def submit(self, request_id: str, group: str, now: int, attempt: Attempt,
                order: Callable[[], int] | None = None) -> None:
@@ -91,6 +92,7 @@ class Dispatcher:
                 for earlier in self._pending:
                     if earlier.position() < position and earlier.group == req.group:
                         self._overtaken[earlier.id] = self._overtaken.get(earlier.id, 0) + 1
+                        self.overtake_log.append((earlier.id, req.id))
                 return True
             req.reasons = reasons
             blocked_groups.add(req.group)

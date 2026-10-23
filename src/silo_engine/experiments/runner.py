@@ -103,6 +103,15 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
         out[f"{act}.p90_turnaround_min"] = s.p90_turnaround_min
         out[f"{act}.max_turnaround_min"] = s.max_turnaround_min
         out[f"{act}.mean_turnaround_incl_unfinished_min"] = s.mean_turnaround_incl_unfinished_min
+    for act, f in result.fairness.items():  # Q1 fairness and starvation, per replication
+        out[f"{act}.starved"] = f.starved
+        out[f"{act}.max_overtaken"] = f.max_overtaken
+        for c, cf in f.by_commodity.items():
+            out[f"{act}.{c}.mean_total_wait_min"] = cf.mean_total_wait_min
+            out[f"{act}.{c}.max_total_wait_min"] = cf.max_total_wait_min
+            out[f"{act}.{c}.mean_hopper_wait_min"] = cf.mean_hopper_wait_min
+            out[f"{act}.{c}.max_hopper_wait_min"] = cf.max_hopper_wait_min
+            out[f"{act}.{c}.still_waiting"] = cf.still_waiting
     return out
 
 

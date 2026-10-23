@@ -9,7 +9,7 @@ from silo_engine.config import load_site_config
 from silo_engine.inputs.scripted import load_arrival_script
 from silo_engine.sim.service_times import FixedServiceTimes
 from silo_engine.sim.time import hm
-from silo_engine.sim.truck_flow import ModelError, NotYetSupported, TruckFlowModel
+from silo_engine.sim.truck_flow import ModelError, TruckFlowModel
 
 
 def site(equipment, sequences):
@@ -173,10 +173,10 @@ def test_identical_inputs_give_identical_results():
     assert run() == run()
 
 
-def test_steps_not_built_yet_are_refused_explicitly():
-    # Tipping is built from step 2; loading is still to come.
+def test_loading_truck_without_a_load_out_route_is_refused():
+    # Every truck step is now built; a site without a bin connected to a load point cannot serve loading trucks.
     s = site([wb("WB1")], {"load": ["weigh_in", "load", "weigh_out"]})
-    with pytest.raises(NotYetSupported, match="load"):
+    with pytest.raises(ModelError, match="load point"):
         TruckFlowModel(s, trucks(("T1", "load", "07:00")), TWO_MIN, policy="feasible_first")
 
 

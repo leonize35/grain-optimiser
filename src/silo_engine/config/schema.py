@@ -143,6 +143,13 @@ class Initial(_Model):
     queue: OpeningQueue = OpeningQueue()
 
 
+class FairnessReporting(_Model):
+    """Q1: starvation is reported, not prevented. A truck counts as starved when its total waiting reaches
+    `starvation_wait_minutes`, or (if set) when later arrivals have overtaken it `starvation_overtakes` times."""
+    starvation_wait_minutes: float = Field(default=120, ge=0)
+    starvation_overtakes: int | None = Field(default=None, ge=1)
+
+
 class TruckArea(_Model):
     """R5: a physical waiting area for trucks. capacity None = unlimited (reported as a simplification)."""
     id: str
@@ -183,6 +190,7 @@ class SiteConfig(_Model):
     truck_paths: TruckPaths = TruckPaths()
     deadlock_prevention: Literal["reserve_next_space", "detect_only"] = "reserve_next_space"
     end_of_day: EndOfDay = EndOfDay()
+    fairness: FairnessReporting = FairnessReporting()
 
 
 class ConfigSchemaError(ValueError):

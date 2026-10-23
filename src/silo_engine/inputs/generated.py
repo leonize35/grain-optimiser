@@ -40,8 +40,9 @@ def _attributes(site: SiteConfig, act: str, d: ActivityDemand, stream: Stream) -
         mix = d.grade_mix.get(commodity)
         if mix:
             grade = pick_weighted(u_grade, mix)
-        elif site.grade_segregation != "none":
+        elif act == "unload" and site.grade_segregation != "none":
             raise ValueError(f"No grade mix for {commodity}; the site keeps its grades apart")
+        # a loading order without a grade mix takes any grade of the commodity
     return commodity, kg, grade
 
 

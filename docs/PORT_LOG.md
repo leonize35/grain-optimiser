@@ -424,6 +424,56 @@ A replication-day went from about 4.9 s to 1.85 s under the profiler (about 1 s 
 - arrivals are generated only within opening hours (as in the prototype);
 - the dispatcher re-try cost is noted above.
 
+## Step 12 — fairness and starvation reporting; loading trucks
+
+**Fairness (Q1 decided: report only, queue selection unchanged):**
+- `result.truck_metrics` per truck: total waiting (time on site not in service, including gate, queues, waiting for a grading result and blocked time), hopper wait, times overtaken by **later-arriving** trucks (from the dispatcher's new overtake log, attributed by arrival order; a truck's sample in the lab queue counts for the truck), unfinished, turned away, starved.
+- `result.fairness` per activity: per-commodity mean/max total and hopper waits, mean turnaround, still waiting; maximum overtakes and the most-overtaken truck; starved count.
+- Site setting `fairness.starvation_wait_minutes` (default 120, listed in assumptions) and optional `fairness.starvation_overtakes`.
+- Experiment figures: `{activity}.starved`, `{activity}.max_overtaken`, `{activity}.{commodity}.mean_total_wait_min` / `max_total_wait_min` / `mean_hopper_wait_min` / `max_hopper_wait_min` / `still_waiting`.
+- An optional overtaking-limit policy is recorded for later (DOMAIN_DECISIONS §9).
+
+**Loading trucks (the `load` step is built; no truck step remains unbuilt):**
+- New ledger claim `BinOutgoingClaim` (stock committed to a truck).
+- A load reserves, in one transaction, the load point (the truck's place), the load-out route segments and the stock. Route preference: fewest changeover minutes, then shortest (as in the prototype). Duration = setup (load point `setup`) + changeover + tonnes / route rate.
+- The stock leaves the bin at the end of loading. The route is released then (after any clear time), even if the truck stays blocked at the load point.
+- A loading order may name a grade (only bins of that grade) or leave it open.
+- Material balance now accounts for dispatched grain.
+- Stall detection treats "stock short" as resolvable while unloading trucks are still to arrive.
+- Generated loading demand from the site's profile; prototype Site A now runs with its loading demand switched on.
+
+**Behaviour proved (14 new tests, 218 in total), hand-computed:**
+- per-truck waiting (0 / 19 / 1 min), including gate and weighbridge waits (10 and 2 min), with overtakes by a later arrival (W1 overtaken once by Y2);
+- per-commodity summary;
+- unfinished trucks counted with waiting so far;
+- the threshold configurable by minutes and by overtakes;
+- the default listed in assumptions;
+- fairness figures in experiment summaries across replications;
+- a load taking setup + flow (07:02 → 07:17:12) and removing 34 t;
+- loading waiting for stock brought by intake (07:10 → 07:24, no false stall);
+- intake and loading sharing the elevator;
+- a grade-specific load from the right bin;
+- "never coming" stock reported as a stall;
+- a generated Site A day with loading running clean.
+
+**Fault injection:**
+- dispatched grain left out of the balance fails 4 tests;
+- the ordered grade ignored fails 1;
+- awaited stock treated as a stall fails 1;
+- overtakes counted for earlier arrivals fails 4;
+- the threshold hardcoded fails 2;
+- "waiting = hopper queue only" first went undetected, so the gate-and-weighbridge test was added, and it now fails 1.
+
+**Test changes:** the "loading not built yet" test is replaced by one requiring a clear error for a loading truck on a site without a load-out route. The stock-shortage test checks that stock shortage is *among* the reasons (the elevator was also busy at that moment, which is also true).
+
+**Commands run:** `pytest -q` → 218 passed; `tools\run_prototype_selftests.ps1` → 12/12 passed, engine sha256 unchanged. The scenario viewer rebuilds; its figures reflect the step-11 transfer-order fix.
+
+**Limitations:**
+- the prototype's `load_first` and `batch` transfer policies are not ported;
+- a load comes from a single bin;
+- loading streams cannot share segments concurrently (by the merge rule they never can);
+- grading rejection is not modelled.
+
 **The receiving engine (build steps 1–7) is complete.** Next, per the roadmap (M1–M2 completion):
 1. loading trucks (grain out of bins);
 2. stochastic service times and generated arrivals from demand profiles, with seeded per-entity random streams as in the prototype;

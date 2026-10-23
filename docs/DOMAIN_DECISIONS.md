@@ -256,6 +256,13 @@ recorded; no limit is applied.
 
 **What happens at real silos?** Do staff hold back trucks of the main commodity to let others in?
 
+**Decision (2026-10-23, domain owner): report only, for now.**
+- Starvation reporting stays separate from queue selection. The FIFO and feasible-first policies are unchanged. (The prototype's batch policy has not been ported yet.)
+- Every result records, per truck: total waiting time (time on site not in service, including gate, queues, waiting for a grading result and time blocked on a station); the number of times later-arriving trucks overtook it; and whether it was still unfinished (or turned away) at the end.
+- The starvation threshold is configurable per site: `fairness.starvation_wait_minutes` (default 120, listed in the run's assumptions when not set) and optionally `fairness.starvation_overtakes`. A truck is counted as starved when it reaches either.
+- Per-commodity waits, maximum overtakes and starved counts are experiment figures, so they can be compared across replications.
+- **Later:** overtaking limits as an *optional* queue-management policy (e.g. no further overtaking after N overtakes or M minutes), so fairness and throughput can be compared across silo configurations. Not implemented yet.
+
 ## Engineering decisions already taken
 
 | Decision | Choice | Where |

@@ -53,7 +53,15 @@ class BinIncomingClaim:
     kg: int
 
 
-Claim = LaneClaim | SegmentClaim | PitSpaceClaim | BinIncomingClaim | AreaClaim
+@dataclass(frozen=True)
+class BinOutgoingClaim:
+    """Stock committed to a loading truck (R7): `kg` of `commodity` from the bin."""
+    bin_id: str
+    commodity: str
+    kg: int
+
+
+Claim = LaneClaim | SegmentClaim | PitSpaceClaim | BinIncomingClaim | AreaClaim | BinOutgoingClaim
 
 
 @dataclass(frozen=True)
@@ -148,6 +156,9 @@ class ReservationLedger:
         if isinstance(claim, BinIncomingClaim):
             refused = self.bins[claim.bin_id].check_incoming(claim.grain, claim.kg)
             return [] if refused is None else [WaitReason(r.code, claim.bin_id, r.detail) for r in refused.reasons]
+        if isinstance(claim, BinOutgoingClaim):
+            refused = self.bins[claim.bin_id].check_outgoing(claim.commodity, claim.kg)
+            return [] if refused is None else [WaitReason(r.code, claim.bin_id, r.detail) for r in refused.reasons]
         raise LedgerError(f"Unknown claim {claim!r}")
 
     def check(self, claims: list[Claim], now: int) -> list[WaitReason]:
@@ -191,6 +202,8 @@ class ReservationLedger:
                 self.pits[claim.pit_id].claim(reservation_id, claim.grain, claim.kg)
             elif isinstance(claim, BinIncomingClaim):
                 self.bins[claim.bin_id].reserve_incoming(reservation_id, claim.grain, claim.kg)
+            elif isinstance(claim, BinOutgoingClaim):
+                self.bins[claim.bin_id].reserve_outgoing(reservation_id, claim.commodity, claim.kg)
         self._held[reservation_id] = tuple(claims)
         self.log.append(LedgerEntry(now, "reserve", reservation_id, tuple(claims)))
 
@@ -215,6 +228,10 @@ class ReservationLedger:
                 b = self.bins[claim.bin_id]
                 if b.has_incoming(reservation_id):  # unused remainder of a partial or cancelled transfer
                     b.release_incoming(reservation_id)
+            elif isinstance(claim, BinOutgoingClaim):
+                b = self.bins[claim.bin_id]
+                if b.has_outgoing(reservation_id):  # stock not dispatched (cancelled or failed load)
+                    b.release_outgoing(reservation_id)
         self.log.append(LedgerEntry(now, f"release:{outcome}", reservation_id, claims))
 
     # ---- independent checks ----

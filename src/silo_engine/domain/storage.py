@@ -197,6 +197,9 @@ class StorageBin:
         if self.tonnage_kg == 0:
             self._contents = None
 
+    def has_outgoing(self, reservation_id: str) -> bool:
+        return reservation_id in self._outgoing
+
     def release_outgoing(self, reservation_id: str) -> None:
         self._known(self._outgoing, reservation_id)
         del self._outgoing[reservation_id]

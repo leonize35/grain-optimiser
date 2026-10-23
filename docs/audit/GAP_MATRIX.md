@@ -10,7 +10,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 3 | Central dispatcher over pending requests (CLAUDE §2) | **Python Dispatcher: stations, tipping and intake transfers through one dispatcher with reasons** | test_dispatcher.py, test_truck_stations.py | **Partial** | P0 | Loading and batching policy still to come. |
 | 4 | Feasible-first can overtake a blocked truck (CLAUDE §2) | Hoppers, weighbridges | B2 probe only | **Untested** | P0 | No deterministic fixture. |
 | 5 | FIFO as a distinct documented policy (CLAUDE §2) | Yes | — | **Untested** | P0 | |
-| 6 | Starvation and fairness measured (DOMAIN) | No | — | **Missing** | P1 | Max-overtake count, age at service. |
+| 6 | Starvation and fairness measured (DOMAIN) | **Python: per-truck waiting, overtakes by later arrivals, unfinished; per-commodity waits; configurable starvation threshold; experiment figures (2026-10-23)** | test_fairness.py | **Done** (reporting) | P2 | Optional overtaking-limit policy to come. |
 | 7 | Atomic whole-route reservation (CLAUDE §3) | **Python ReservationLedger (2026-10-22): all-or-nothing over lanes, pit space, segments, bin space; release on completed/cancelled/failed** | test_ledger_and_pit.py, test_intake_transfers.py | **Partial** | P0 | Failure/interruption paths not exercised by a running model yet. |
 | 8 | Configurable reservation scope (ARCH) | **D1 confirmed; Python: exclusive by default, max_concurrent_feeds with equal sharing, merge rule, rescheduling (2026-10-22)** | test_concurrent_feeds.py | **Done** (intake) | — | Proportional sharing not built (A2). |
 | 9 | Typed directed graph for grain (CLAUDE §4) | Yes, typed edges and CONNECT rules | T2, T10 | **Done** | — | |
@@ -23,7 +23,7 @@ Urgency: **P0** blocks a trustworthy engine · **P1** needed for a pilot · **P2
 | 16 | Separation engine/domain/config/experiments/API/UI (CLAUDE §8) | Engine separated from UI; rest monolithic | — | **Partial** | P1 | |
 | 17 | Run metadata: engine version, config hash, data, seeds, reps, scope (CLAUDE §9) | Engine version, config version, seed, reps. Python `config_hash()` available | hash tests | **Partial** | P1 | No immutable snapshot or run record yet. |
 | 18 | Unloading stream (DOMAIN) | Yes | T1/T8 | **Done** | — | |
-| 19 | Loading stream (DOMAIN) | Yes, single source bin | T8 | **Partial** | P1 | No multi-bin loads, no booked windows. |
+| 19 | Loading stream (DOMAIN) | **Python loading: load point + route + bin stock reserved atomically, setup, changeovers, grade-specific orders (2026-10-23)** | test_loading.py | **Partial** | P1 | Single source bin; no booked windows; no load_first/batch policies. |
 | 20 | Weighbridge-only stream (DOMAIN) | Yes | T8 | **Done** | — | |
 | 21 | Sample-to-truck identity, out of order (DOMAIN) | Yes, keyed | T12 (tautological) | **Partial** | P1 | Timeout/lost-sample case missing. |
 | 22 | Commodity segregation on shared paths (DOMAIN) | Yes, exclusive paths | T4 | **Partial** | P0 | |

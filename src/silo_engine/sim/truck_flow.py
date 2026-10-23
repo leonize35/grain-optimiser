@@ -34,8 +34,15 @@ Build steps covered (docs/ENGINE_INTERFACES.md §7):
    (keep their place) or are sent away. ``days`` sets the horizon. Every truck ends in exactly one of: completed,
    turned away, or unfinished (with its waiting time so far, measured to the end of the last day's service).
 
-Not built yet, and refused explicitly instead of being approximated:
-- loading (``load`` step).
+8. Loading trucks. A loading truck reserves, as one transaction, a load point (its place), a load-out route
+   (bin -> conveyors/elevators -> load point) and its tonnage of stock in one bin holding its commodity (and grade,
+   if the order names one). Route preference: fewest changeover minutes, then shortest. Load time = setup +
+   changeover + tonnes / route rate. The stock leaves the bin when loading ends; the route is released then (after
+   any clear time), even if the truck must stay at the load point because there is no space ahead.
+
+Fairness (Q1, reported only; queue selection is unchanged): every result carries per-truck waiting, overtakes by
+later arrivals and completion, per-commodity summaries, and the number of starved trucks against the site's
+configurable threshold.
 
 5. Grades (R4): grain carries commodity and grade (``config.grades.GradePolicy``); bins accept the grades listed
    for them; pits and bins combine grades only through the site's mixing rules; hopper choice and routing use the
@@ -60,7 +67,8 @@ from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
 from .calendar import ARRIVAL, CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
-from .ledger import AreaClaim, BinIncomingClaim, LaneClaim, PitSpaceClaim, ReservationLedger, SegmentClaim
+from .ledger import (AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
+                     SegmentClaim)
 from .pit import Lot, Pit
 from .routing import RoutePlanner
 from .service_times import ServiceTimes
@@ -68,8 +76,8 @@ from .time import MS_PER_DAY, MS_PER_MINUTE, m
 
 STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
 QUEUE_GROUP = {"sample": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
-               "tip": "tip", "intake": "intake", "move": "move"}
-NOT_YET_SUPPORTED = ("load",)
+               "tip": "tip", "intake": "intake", "move": "move", "load": "load"}
+NOT_YET_SUPPORTED: tuple[str, ...] = ()
 ACTIVITY_LABEL = {"unload": "Unloading", "load": "Loading", "weigh": "Weighbridge-only"}
 
 
@@ -119,6 +127,7 @@ class TruckRecord:
     departed: int | None = None
     admitted: int | None = None  # let in through the gate (later than `arrived` for early or late arrivals)
     turned_away: str | None = None  # why the truck left without finishing
+    turned_away_at: int | None = None
 
 
 @dataclass
@@ -134,6 +143,20 @@ class TransferRecord:
     flow_started: int  # after the changeover
     changeover_segments: dict[str, int]  # segment -> changeover ms (0-minute changeovers included)
     finished: int | None = None  # last grain fed; grain in the bin
+    released: int | None = None  # route free again (after clear time)
+
+
+@dataclass
+class LoadRecord:
+    id: str
+    truck_id: str
+    bin: str
+    path: list[str]  # bin, ..., load point
+    kg: int
+    started: int  # load point, route and stock reserved; setup begins
+    flow_started: int  # after setup and any changeover
+    changeover_segments: dict[str, int]
+    finished: int | None = None  # truck loaded; stock left the bin
     released: int | None = None  # route free again (after clear time)
 
 
@@ -164,6 +187,45 @@ class ActivitySummary:
 
 
 @dataclass(frozen=True)
+class TruckMetrics:
+    """Fairness record for one truck (Q1). Waiting = time on site not in service, up to departure or the end of
+    the run (gate waits, queues, waiting for a grading result, and time blocked on a station all count)."""
+    truck_id: str
+    activity: str
+    commodity: str | None
+    grade: str | None
+    arrived: int
+    departed: int | None
+    total_waiting_min: float
+    hopper_wait_min: float | None  # queueing for a hopper (unloading trucks)
+    overtaken_by_later: int  # times a later-arriving truck started a step this truck was already waiting for
+    unfinished: bool  # still on site (or at the gate) when the run ended
+    turned_away: bool
+    starved: bool  # against the site's starvation threshold
+
+
+@dataclass(frozen=True)
+class CommodityFairness:
+    trucks: int
+    mean_total_wait_min: float | None
+    max_total_wait_min: float | None
+    mean_hopper_wait_min: float | None
+    max_hopper_wait_min: float | None
+    mean_turnaround_min: float | None  # completed trucks only
+    still_waiting: int  # unfinished at the end of the run
+
+
+@dataclass(frozen=True)
+class ActivityFairness:
+    by_commodity: dict[str, CommodityFairness]  # commodity id ("none" for weighbridge-only trucks)
+    max_overtaken: int
+    most_overtaken_truck: str | None
+    starved: int
+    starvation_wait_minutes: float
+    starvation_overtakes: int | None
+
+
+@dataclass(frozen=True)
 class Stall:
     """Waiting work that nothing left in the simulation can unblock (deadlock, or a plant jammed for good)."""
     time: int
@@ -188,6 +250,10 @@ class TruckFlowResult:
     area_peak: dict[str, int]  # configured waiting area -> most trucks in it at once
     summary: dict[str, ActivitySummary]  # activity -> completed / unfinished / turned away and turnaround
     received_kg: int = 0  # grain tipped by trucks during the run
+    truck_metrics: dict[str, TruckMetrics] = field(default_factory=dict)
+    fairness: dict[str, ActivityFairness] = field(default_factory=dict)
+    loads: list[LoadRecord] = field(default_factory=list)
+    dispatched_kg: int = 0  # grain loaded onto trucks during the run
 
 
 def _hours_ms(hours: float) -> int:
@@ -232,7 +298,8 @@ class TruckFlowModel:
         used = [act for act in ACTIVITY_LABEL if any(t.activity == act for t in trucks)]
         self.paths = {act: self._build_path(act) for act in used}
         self.ledger = ReservationLedger(
-            lanes={u.resource for u in self.units} | {f"{h}:tip" for h in self.pits},
+            lanes={u.resource for u in self.units} | {f"{h}:tip" for h in self.pits}
+                  | {f"{e.id}:load" for e in eq if e.type == "loadpoint"},
             segments={e.id: e.max_concurrent_feeds for e in eq if e.type in ("conveyor", "elevator")},
             pits=self.pits, bins=self.bins, areas=self._area_caps)
         self.assumptions = [f"{ACTIVITY_LABEL[act]} trucks have unlimited waiting space between steps "
@@ -246,6 +313,9 @@ class TruckFlowModel:
         if "transfers_after_close" not in chosen and eod.transfers_after_close:
             self.assumptions.append("Grain transfers continue after closing until the pits are empty (default).")
         self.assumptions.append("A service already running at the hard stop is completed (assumption A7).")
+        if "starvation_wait_minutes" not in site.fairness.model_fields_set:
+            self.assumptions.append(f"A truck counts as starved after waiting {site.fairness.starvation_wait_minutes:g} "
+                                    "min in total (default reporting threshold).")
         h = site.hours
         self.windows = []  # per day: (open, admission cut-off, hard stop) in ms
         for d in range(days):
@@ -277,6 +347,8 @@ class TruckFlowModel:
         self.violations: list[tuple[int, str]] = []
         self._opening_kg = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
         self._tipped_kg = 0
+        self._dispatched_kg = 0
+        self.loads: list[LoadRecord] = []
         self._held: list[ScriptedTruck] = []  # arrived outside admission hours, waiting at the gate
         self._send_away: set[str] = set()  # in service at a hard stop under 'turned_away'; leave when done
         self._ended = False  # past the last day's hard stop
@@ -322,13 +394,17 @@ class TruckFlowModel:
             if truck.commodity is not None:
                 name = self.names.get(truck.commodity, truck.commodity)
                 if self.grades.is_graded(truck.commodity):
-                    if truck.grade is None and self.grades.segregated(truck.commodity):
+                    # a loading order may leave the grade open (any grade of the commodity)
+                    if truck.grade is None and self.grades.segregated(truck.commodity) and truck.activity != "load":
                         raise ModelError(f"Truck {truck.id} brings {name}, which is graded; give its grade.")
                     if truck.grade is not None and truck.grade not in self.grades.grades[truck.commodity]:
                         raise ModelError(f"Truck {truck.id} has {name} grade {truck.grade}, which is not one of "
                                          "its grades.")
                 elif truck.grade is not None:
                     raise ModelError(f"Truck {truck.id} gives a grade for {name}, which has no grades.")
+            if "load" in getattr(self.site.sequences, truck.activity) and not self.planner.can_load(truck.commodity):
+                name = self.names.get(truck.commodity, truck.commodity)
+                raise ModelError(f"No bin for {name} is connected to a load point (truck {truck.id}).")
             if "tip" in getattr(self.site.sequences, truck.activity) and not self._hopper_candidates(truck):
                 name = self.names.get(truck.commodity, truck.commodity)
                 raise ModelError(f"No hopper can take {name} (truck {truck.id}) and send it to a bin assigned to it.")
@@ -369,7 +445,10 @@ class TruckFlowModel:
             # A wait for a closed plant ends at the next opening, or becomes unfinished work when the run ends.
             closed = any(r.code == "PLANT_CLOSED" for rs in waiting.values() for r in rs)
             day_event_ahead = any(not e.cancelled and not e.done for e in self._day_events)
-            if not (closed and day_event_ahead):
+            # A loading truck short of stock may still be supplied by an unloading truck that has yet to arrive.
+            short = any(r.code == "STOCK_SHORT" for rs in waiting.values() for r in rs)
+            arrival_ahead = any(e.priority == ARRIVAL for e in self.cal.pending_events())
+            if not (closed and day_event_ahead) and not (short and arrival_ahead):
                 self.stall = Stall(self.cal.now, waiting)
                 self.cal.cancel_all()
 
@@ -424,6 +503,7 @@ class TruckFlowModel:
         self._awaiting_result.pop(truck_id, None)
         self._send_away.discard(truck_id)
         self.records[truck_id].turned_away = "still on site when service stopped"
+        self.records[truck_id].turned_away_at = self.cal.now
 
     def _leave_or_send_away(self, truck: ScriptedTruck) -> None:
         """After a service: continue, unless the truck must leave and still has steps to do."""
@@ -438,11 +518,11 @@ class TruckFlowModel:
     # place up only when it has the next one, so a truck that finished a service but cannot move on stays on the
     # station and blocks it (A6).
     def _arrive(self, cal: Calendar, truck: ScriptedTruck) -> None:
-        rec = self.records[truck.id] = TruckRecord(truck.id, truck.activity, cal.now)
+        rec = self.records[truck.id] = TruckRecord(truck.id, truck.activity, cal.now)  # dict order = arrival order
         if self._admitting(cal.now):
             self._admit(truck)
         elif self.site.end_of_day.late_arrivals == "turned_away" and self._after_cutoff(cal.now):
-            rec.turned_away = "arrived after the admission cut-off"
+            rec.turned_away, rec.turned_away_at = "arrived after the admission cut-off", cal.now
         else:
             self._held.append(truck)  # before opening, or late with queue_for_next_day: wait at the gate
         self._after_event()
@@ -481,8 +561,8 @@ class TruckFlowModel:
             else:
                 self._awaiting_result[truck.id] = sample_id
             return
-        attempt = (lambda now, tr=truck, sr=step_rec: self._try_tip(tr, sr)) if element == "tip" else \
-                  (lambda now, tr=truck, sr=step_rec: self._try_truck_station(tr, sr))
+        handler = {"tip": self._try_tip, "load": self._try_load}.get(element, self._try_truck_station)
+        attempt = lambda now, tr=truck, sr=step_rec, h=handler: h(tr, sr)  # noqa: E731
         self.dispatcher.submit(f"{truck.id}/{element}", QUEUE_GROUP[element], self.cal.now, attempt)
 
     def _result_reached_truck(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
@@ -514,21 +594,24 @@ class TruckFlowModel:
         self._move_into_area(truck, res_id)
         return []
 
-    def _reserve_service(self, truck: ScriptedTruck, res_id: str, claims: list) -> list[WaitReason]:
-        """Reserve a service. With reserve_next_space, a place in the finite area after it is reserved in the same
-        transaction, so the truck can always move on when the service ends."""
+    def _reserve_service(self, truck: ScriptedTruck, res_id: str, claims: list,
+                         extra: list[tuple[str, list]] | None = None) -> list[WaitReason]:
+        """Reserve a service (and any `extra` reservations, e.g. a load-out route) as one transaction. With
+        reserve_next_space, a place in the finite area after the service is part of the same transaction, so the
+        truck can always move on when the service ends."""
+        items = [(res_id, claims)] + list(extra or [])
         path = self.paths[truck.activity]
         after = self._position[truck.id] + 2
+        area_res = None
         if (self.site.deadlock_prevention == "reserve_next_space" and after < len(path)
                 and self._area_caps.get(path[after]) is not None):
             self._area_count += 1
             area_res = f"{truck.id}/area:{path[after]}#{self._area_count}"
-            reasons = self.ledger.try_reserve_many([(res_id, claims), (area_res, [AreaClaim(path[after])])],
-                                                   self.cal.now)
-            if not reasons:
-                self._next_area_held[truck.id] = area_res
-            return reasons
-        return self.ledger.try_reserve(res_id, claims, self.cal.now)
+            items.append((area_res, [AreaClaim(path[after])]))
+        reasons = self.ledger.try_reserve_many(items, self.cal.now)
+        if not reasons and area_res is not None:
+            self._next_area_held[truck.id] = area_res
+        return reasons
 
     def _occupy_station(self, truck: ScriptedTruck, res_id: str, step_rec: StepRecord) -> None:
         self._leave_location(truck)
@@ -638,6 +721,71 @@ class TruckFlowModel:
             self._submit_intake(pit.id)
         self._leave_or_send_away(truck)
         self._after_event()
+
+    # ---- loading ----
+    def _try_load(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
+        """Reserve, as one transaction: the load point (the truck's place), the load-out route and the truck's
+        tonnage of stock in one bin. Route preference: fewest changeover minutes, then shortest route."""
+        if not self._serving(self.cal.now):
+            return self._closed()
+        grade = truck.grade if truck.grade is not None and self.grades.segregated(truck.commodity) else None
+        candidates = self.planner.load_candidates(truck.commodity, grade)
+        name = self.names.get(truck.commodity, truck.commodity)
+        if not candidates:
+            return [WaitReason("STOCK_SHORT", None, f"no bin holds {name}" + (f" grade {grade}" if grade else ""))]
+        options = []
+        for i, path in enumerate(candidates):
+            grain = self.bins[path[0]].identity
+            changeovers = self._changeovers(path[1:-1], grain)
+            options.append((max(changeovers.values(), default=0), len(path), i, path, grain, changeovers))
+        options.sort(key=lambda o: o[:3])
+        res_id, route_res = f"{truck.id}/load", f"{truck.id}/load-route"
+        reasons: list[WaitReason] = []
+        for co, _, _, path, grain, changeovers in options:
+            lp, bin_id, segments = path[-1], path[0], path[1:-1]
+            lane = f"{lp}:load"
+            if not self.ledger.lane_free(lane):
+                busy = WaitReason("EQUIPMENT_BUSY", lane, f"{lane} busy")
+                if busy not in reasons:
+                    reasons.append(busy)
+                continue
+            route = [SegmentClaim(s, grain, tuple(path[k:])) for k, s in enumerate(path) if 0 < k < len(path) - 1]
+            route.append(BinOutgoingClaim(bin_id, truck.commodity, truck.kg))
+            got = self._reserve_service(truck, res_id, [LaneClaim(lane)], extra=[(route_res, route)])
+            if got:
+                reasons.extend(r for r in got if r not in reasons)
+                continue
+            self._occupy_station(truck, res_id, step_rec)
+            step_rec.unit, step_rec.started = lp, self.cal.now
+            setup = self.times.duration_ms(truck.id, "load", lp)
+            rate = min([Fraction(str(self.equipment[lp].rate))] + [Fraction(str(self.equipment[s].rate)) for s in segments])
+            flow_start = self.cal.now + setup + co
+            end = flow_start + math.ceil(Fraction(truck.kg) * 3600 / rate)
+            record = LoadRecord(route_res, truck.id, bin_id, path, truck.kg, self.cal.now, flow_start, changeovers)
+            self.loads.append(record)
+            self.cal.schedule(end, RELEASE, lambda c: self._load_done(truck, step_rec, record),
+                              f"{truck.id} loaded {truck.kg} kg from {bin_id}")
+            return []
+        return reasons
+
+    def _load_done(self, truck: ScriptedTruck, step_rec: StepRecord, record: LoadRecord) -> None:
+        self.bins[record.bin].dispatch(record.id, record.kg)
+        self._dispatched_kg += record.kg
+        record.finished = step_rec.finished = self.cal.now
+        clear = max((m(Decimal(str(self.equipment[s].clear_minutes))) for s in record.path[1:-1]), default=0)
+        if clear:
+            self.cal.schedule(self.cal.now + clear, RELEASE, lambda c: self._load_route_released(record),
+                              f"route clear after {record.id}")
+        else:
+            self._load_route_released(record, in_event=False)
+        self._leave_or_send_away(truck)  # the truck keeps the load point until it can move on
+        self._after_event()
+
+    def _load_route_released(self, record: LoadRecord, in_event: bool = True) -> None:
+        self.ledger.release(record.id, self.cal.now, "completed")
+        record.released = self.cal.now
+        if in_event:
+            self._after_event()
 
     # ---- intake transfers ----
     def _submit_intake(self, pit_id: str) -> None:
@@ -784,11 +932,65 @@ class TruckFlowModel:
             bins={bid: (b.tonnage_kg, b.identity) for bid, b in self.bins.items()},
             pits={pid: p.committed_kg for pid, p in self.pits.items()},
             changeovers={seg: n for seg in self.ledger.segment_ids()
-                         if (n := sum(1 for x in self.transfers if seg in x.changeover_segments))},
-            material_balance_kg=self._opening_kg + self._tipped_kg - closing,
+                         if (n := sum(1 for x in [*self.transfers, *self.loads] if seg in x.changeover_segments))},
+            material_balance_kg=self._opening_kg + self._tipped_kg - self._dispatched_kg - closing,
             violations=list(self.violations), stall=self.stall, assumptions=list(self.assumptions),
             area_peak={a.id: self.ledger.area_peak[a.id] for a in self.site.truck_areas},
-            summary=self._summaries(), received_kg=self._tipped_kg)
+            summary=self._summaries(), received_kg=self._tipped_kg, loads=list(self.loads),
+            dispatched_kg=self._dispatched_kg, **self._fairness())
+
+    def _fairness(self) -> dict:
+        """Q1 reporting: per-truck waiting, overtakes by later arrivals and completion; per-commodity summaries."""
+        end = min(self.cal.now, self._horizon_end)
+        order = {tid: i for i, tid in enumerate(self.records)}
+
+        def owner(request_id: str) -> str | None:
+            tid = request_id.split("/")[0]
+            tid = tid[2:] if tid.startswith("S-") else tid  # a truck's sample in the grading queue
+            return tid if tid in order else None
+
+        overtaken = {tid: 0 for tid in order}
+        for victim, by in self.dispatcher.overtake_log:
+            v, b = owner(victim), owner(by)
+            if v is not None and b is not None and order[b] > order[v]:
+                overtaken[v] += 1
+        limit_min, limit_overtakes = self.site.fairness.starvation_wait_minutes, self.site.fairness.starvation_overtakes
+        trucks = {t.id: t for t in self.trucks}
+        metrics: dict[str, TruckMetrics] = {}
+        for tid, rec in self.records.items():
+            stop = rec.departed if rec.departed is not None else (rec.turned_away_at if rec.turned_away is not None else end)
+            service = 0
+            for s in rec.steps:
+                if s.step != "grade" and s.unit is not None and s.started is not None:
+                    service += (s.finished if s.finished is not None else stop) - s.started
+            tip = next((s for s in rec.steps if s.step == "tip"), None)
+            hopper = None if tip is None else ((tip.started if tip.started is not None else stop) - tip.entered) / MS_PER_MINUTE
+            waiting = (stop - rec.arrived - service) / MS_PER_MINUTE
+            starved = waiting >= limit_min or (limit_overtakes is not None and overtaken[tid] >= limit_overtakes)
+            truck = trucks[tid]
+            metrics[tid] = TruckMetrics(tid, rec.activity, truck.commodity, truck.grade, rec.arrived, rec.departed,
+                                        waiting, hopper, overtaken[tid],
+                                        rec.departed is None and rec.turned_away is None, rec.turned_away is not None,
+                                        starved)
+        mean = lambda xs: sum(xs) / len(xs) if xs else None  # noqa: E731
+        fairness: dict[str, ActivityFairness] = {}
+        for act in ACTIVITY_LABEL:
+            ms = [x for x in metrics.values() if x.activity == act]
+            if not ms:
+                continue
+            by: dict[str, CommodityFairness] = {}
+            for c in dict.fromkeys(x.commodity or "none" for x in ms):
+                group = [x for x in ms if (x.commodity or "none") == c]
+                waits = [x.total_waiting_min for x in group]
+                hops = [x.hopper_wait_min for x in group if x.hopper_wait_min is not None]
+                turn = [(x.departed - x.arrived) / MS_PER_MINUTE for x in group if x.departed is not None]
+                by[c] = CommodityFairness(len(group), mean(waits), max(waits), mean(hops), max(hops) if hops else None,
+                                          mean(turn), sum(1 for x in group if x.unfinished))
+            worst = max(ms, key=lambda x: (x.overtaken_by_later, -order[x.truck_id]))
+            fairness[act] = ActivityFairness(by, worst.overtaken_by_later,
+                                             worst.truck_id if worst.overtaken_by_later else None,
+                                             sum(1 for x in ms if x.starved), limit_min, limit_overtakes)
+        return {"truck_metrics": metrics, "fairness": fairness}
 
     def _summaries(self) -> dict[str, ActivitySummary]:
         """R6: completed, unfinished and turned-away trucks per activity; unfinished are never silently dropped."""
