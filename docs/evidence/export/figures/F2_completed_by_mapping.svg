@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="Inter, Helvetica, Arial, sans-serif">
+<rect width="720" height="380" fill="#fcfcfb"/>
+<text x="64" y="26" font-size="16" font-weight="600" fill="#0b0b0b">Completed unloading trucks by site and queue-policy mapping</text>
+<text x="64" y="46" font-size="12" fill="#52514e">EV-C1, demand ×1.0, n = 5 seeds per bar (common to all mappings); bars: mean; whiskers: 95% CI. Synthetic.</text>
+<line x1="64" x2="704" y1="324.0" y2="324.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="328.0" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="64" x2="704" y1="254.3" y2="254.3" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="258.3" font-size="11" fill="#52514e" text-anchor="end">50</text>
+<line x1="64" x2="704" y1="184.6" y2="184.6" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="188.6" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="64" x2="704" y1="115.0" y2="115.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="119.0" font-size="11" fill="#52514e" text-anchor="end">150</text>
+<text transform="translate(16,197.0) rotate(-90)" font-size="11" fill="#52514e" text-anchor="middle">Completed unloading trucks per simulated day</text>
+<path d="M116.7,324.0 V245.8 Q116.7,241.8 120.7,241.8 H146.7 Q150.7,241.8 150.7,245.8 V324.0 Z" fill="#2a78d6"><title>Site A, M-FF: 59.00 ± 7.08 (n=5)</title></path>
+<line x1="133.7" x2="133.7" y1="231.9" y2="251.6" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="133.7" y="226.9" font-size="10" fill="#52514e" text-anchor="middle">59</text>
+<path d="M152.7,324.0 V251.4 Q152.7,247.4 156.7,247.4 H182.7 Q186.7,247.4 186.7,251.4 V324.0 Z" fill="#eb6834"><title>Site A, M-PT: 55.00 ± 3.62 (n=5)</title></path>
+<line x1="169.7" x2="169.7" y1="242.3" y2="252.4" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="169.7" y="237.3" font-size="10" fill="#52514e" text-anchor="middle">55</text>
+<path d="M188.7,324.0 V251.4 Q188.7,247.4 192.7,247.4 H218.7 Q222.7,247.4 222.7,251.4 V324.0 Z" fill="#1baf7a"><title>Site A, M-SF: 55.00 ± 3.62 (n=5)</title></path>
+<line x1="205.7" x2="205.7" y1="242.3" y2="252.4" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="205.7" y="237.3" font-size="10" fill="#52514e" text-anchor="middle">55</text>
+<text x="170.7" y="344" font-size="12" fill="#0b0b0b" text-anchor="middle">Site A</text>
+<path d="M330.0,324.0 V169.7 Q330.0,165.7 334.0,165.7 H360.0 Q364.0,165.7 364.0,169.7 V324.0 Z" fill="#2a78d6"><title>Site B, M-FF: 113.60 ± 17.55 (n=5)</title></path>
+<line x1="347.0" x2="347.0" y1="141.2" y2="190.2" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="347.0" y="136.2" font-size="10" fill="#52514e" text-anchor="middle">114</text>
+<path d="M366.0,324.0 V171.6 Q366.0,167.6 370.0,167.6 H396.0 Q400.0,167.6 400.0,171.6 V324.0 Z" fill="#eb6834"><title>Site B, M-PT: 112.20 ± 15.49 (n=5)</title></path>
+<line x1="383.0" x2="383.0" y1="146.1" y2="189.2" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="383.0" y="141.1" font-size="10" fill="#52514e" text-anchor="middle">112</text>
+<path d="M402.0,324.0 V175.5 Q402.0,171.5 406.0,171.5 H432.0 Q436.0,171.5 436.0,175.5 V324.0 Z" fill="#1baf7a"><title>Site B, M-SF: 109.40 ± 13.27 (n=5)</title></path>
+<line x1="419.0" x2="419.0" y1="153.1" y2="190.0" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="419.0" y="148.1" font-size="10" fill="#52514e" text-anchor="middle">109</text>
+<text x="384.0" y="344" font-size="12" fill="#0b0b0b" text-anchor="middle">Site B</text>
+<path d="M543.3,324.0 V120.9 Q543.3,116.9 547.3,116.9 H573.3 Q577.3,116.9 577.3,120.9 V324.0 Z" fill="#2a78d6"><title>Site C, M-FF: 148.60 ± 14.14 (n=5)</title></path>
+<line x1="560.3" x2="560.3" y1="97.2" y2="136.6" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="560.3" y="92.2" font-size="10" fill="#52514e" text-anchor="middle">149</text>
+<path d="M579.3,324.0 V125.7 Q579.3,121.7 583.3,121.7 H609.3 Q613.3,121.7 613.3,125.7 V324.0 Z" fill="#eb6834"><title>Site C, M-PT: 145.20 ± 5.22 (n=5)</title></path>
+<line x1="596.3" x2="596.3" y1="114.4" y2="128.9" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="596.3" y="109.4" font-size="10" fill="#52514e" text-anchor="middle">145</text>
+<path d="M615.3,324.0 V149.6 Q615.3,145.6 619.3,145.6 H645.3 Q649.3,145.6 649.3,149.6 V324.0 Z" fill="#1baf7a"><title>Site C, M-SF: 128.00 ± 9.50 (n=5)</title></path>
+<line x1="632.3" x2="632.3" y1="132.4" y2="158.9" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="632.3" y="127.4" font-size="10" fill="#52514e" text-anchor="middle">128</text>
+<text x="597.3" y="344" font-size="12" fill="#0b0b0b" text-anchor="middle">Site C</text>
+<line x1="64" x2="704" y1="324.0" y2="324.0" stroke="#52514e" stroke-width="1"/>
+<rect x="64" y="360" width="10" height="10" rx="2" fill="#2a78d6"/>
+<text x="78" y="369" font-size="11" fill="#0b0b0b">M-FF</text>
+<rect x="124" y="360" width="10" height="10" rx="2" fill="#eb6834"/>
+<text x="138" y="369" font-size="11" fill="#0b0b0b">M-PT</text>
+<rect x="184" y="360" width="10" height="10" rx="2" fill="#1baf7a"/>
+<text x="198" y="369" font-size="11" fill="#0b0b0b">M-SF</text>
+</svg>

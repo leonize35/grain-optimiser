@@ -1,0 +1,127 @@
+site,demand_factor,policy_mapping,metric,label,unit,n,mean,sd,ci_low,ci_high,half_width
+A,1,M-FF,unload.completed,Completed unloading trucks,trucks/day,5,59,5.70088,51.9226,66.0774,7.07744
+A,1,M-FF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,6.8,8.8713,-4.21341,17.8134,11.0134
+A,1,M-FF,received_t,Grain received (throughput),t/day,5,1861.55,236.342,1568.14,2154.96,293.411
+A,1,M-FF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,117.926,34.3956,75.2246,160.626,42.7009
+A,1,M-FF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,29.6,6.10737,22.0179,37.1821,7.58209
+A,1,M-FF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,24.4,7.95613,14.5227,34.2773,9.87726
+A,1,M-FF,load.completed,Completed loading trucks,trucks/day,5,8.4,2.40832,5.41016,11.3898,2.98984
+A,1,M-PT,unload.completed,Completed unloading trucks,trucks/day,5,55,2.91548,51.3805,58.6195,3.61946
+A,1,M-PT,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,10.8,7.82304,1.08797,20.512,9.71203
+A,1,M-PT,received_t,Grain received (throughput),t/day,5,1754.03,82.726,1651.33,1856.73,102.701
+A,1,M-PT,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,149.282,35.5773,105.114,193.45,44.1679
+A,1,M-PT,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+A,1,M-PT,unload.starved,Starved trucks (waited >= 120 min),trucks,5,40.4,12.3004,25.1295,55.6705,15.2705
+A,1,M-PT,load.completed,Completed loading trucks,trucks/day,5,8.4,2.40832,5.41016,11.3898,2.98984
+A,1,M-SF,unload.completed,Completed unloading trucks,trucks/day,5,55,2.91548,51.3805,58.6195,3.61946
+A,1,M-SF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,10.8,7.82304,1.08797,20.512,9.71203
+A,1,M-SF,received_t,Grain received (throughput),t/day,5,1754.03,82.726,1651.33,1856.73,102.701
+A,1,M-SF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,149.282,35.5773,105.114,193.45,44.1679
+A,1,M-SF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+A,1,M-SF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,40.4,12.3004,25.1295,55.6705,15.2705
+A,1,M-SF,load.completed,Completed loading trucks,trucks/day,5,8.4,2.40832,5.41016,11.3898,2.98984
+A,1.2,M-FF,unload.completed,Completed unloading trucks,trucks/day,5,56.6,5.27257,50.0543,63.1457,6.54571
+A,1.2,M-FF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,22.2,14.7885,3.84058,40.5594,18.3594
+A,1.2,M-FF,received_t,Grain received (throughput),t/day,5,1762.6,196.984,1518.05,2007.15,244.548
+A,1.2,M-FF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,117.28,34.7826,74.0983,160.461,43.1814
+A,1.2,M-FF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,36.8,8.58487,26.1422,47.4578,10.6578
+A,1.2,M-FF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,37,14.9499,18.4402,55.5598,18.5598
+A,1.2,M-FF,load.completed,Completed loading trucks,trucks/day,5,9.8,2.16795,7.10857,12.4914,2.69143
+A,1.2,M-PT,unload.completed,Completed unloading trucks,trucks/day,5,54.6,4.09878,49.5115,59.6885,5.08849
+A,1.2,M-PT,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,24.2,13.8094,7.05609,41.3439,17.1439
+A,1.2,M-PT,received_t,Grain received (throughput),t/day,5,1727.76,128.817,1567.84,1887.68,159.921
+A,1.2,M-PT,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,191.683,57.3705,120.46,262.907,71.2234
+A,1.2,M-PT,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+A,1.2,M-PT,unload.starved,Starved trucks (waited >= 120 min),trucks,5,58,19.6596,33.5933,82.4067,24.4067
+A,1.2,M-PT,load.completed,Completed loading trucks,trucks/day,5,9.8,2.16795,7.10857,12.4914,2.69143
+A,1.2,M-SF,unload.completed,Completed unloading trucks,trucks/day,5,54.6,4.09878,49.5115,59.6885,5.08849
+A,1.2,M-SF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,24.2,13.8094,7.05609,41.3439,17.1439
+A,1.2,M-SF,received_t,Grain received (throughput),t/day,5,1727.76,128.817,1567.84,1887.68,159.921
+A,1.2,M-SF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,191.683,57.3705,120.46,262.907,71.2234
+A,1.2,M-SF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+A,1.2,M-SF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,58,19.6596,33.5933,82.4067,24.4067
+A,1.2,M-SF,load.completed,Completed loading trucks,trucks/day,5,9.8,2.16795,7.10857,12.4914,2.69143
+B,1,M-FF,unload.completed,Completed unloading trucks,trucks/day,5,113.6,14.1351,96.0518,131.148,17.5482
+B,1,M-FF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,0,0,0,0,0
+B,1,M-FF,received_t,Grain received (throughput),t/day,5,3567.94,455.845,3002.02,4133.86,565.916
+B,1,M-FF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,60.8833,11.3168,46.8338,74.9327,14.0494
+B,1,M-FF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,40.8,14.2021,23.1686,58.4314,17.6314
+B,1,M-FF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,16.8,6.41872,8.83138,24.7686,7.96862
+B,1,M-FF,load.completed,Completed loading trucks,trucks/day,5,12.6,2.70185,9.24575,15.9543,3.35425
+B,1,M-PT,unload.completed,Completed unloading trucks,trucks/day,5,112.2,12.478,96.709,127.691,15.491
+B,1,M-PT,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,1.4,3.1305,-2.4864,5.2864,3.8864
+B,1,M-PT,received_t,Grain received (throughput),t/day,5,3524.41,402.384,3024.87,4023.96,499.546
+B,1,M-PT,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,78.6448,18.7225,55.4015,101.888,23.2433
+B,1,M-PT,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,1.2,0.447214,0.6448,1.7552,0.5552
+B,1,M-PT,unload.starved,Starved trucks (waited >= 120 min),trucks,5,26,15.4758,6.78735,45.2126,19.2126
+B,1,M-PT,load.completed,Completed loading trucks,trucks/day,5,12.6,2.70185,9.24575,15.9543,3.35425
+B,1,M-SF,unload.completed,Completed unloading trucks,trucks/day,5,109.4,10.6911,96.1274,122.673,13.2726
+B,1,M-SF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,4.2,7.22496,-4.76953,13.1695,8.96953
+B,1,M-SF,received_t,Grain received (throughput),t/day,5,3459.91,361.425,3011.22,3908.61,448.696
+B,1,M-SF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,92.3165,22.2023,64.753,119.88,27.5634
+B,1,M-SF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+B,1,M-SF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,35.8,15.4822,16.5793,55.0207,19.2207
+B,1,M-SF,load.completed,Completed loading trucks,trucks/day,5,12.6,2.70185,9.24575,15.9543,3.35425
+B,1.2,M-FF,unload.completed,Completed unloading trucks,trucks/day,5,129.2,17.8522,107.037,151.363,22.1628
+B,1.2,M-FF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,7.6,4.82701,1.60744,13.5926,5.99256
+B,1.2,M-FF,received_t,Grain received (throughput),t/day,5,4044.96,546.619,3366.35,4723.57,678.608
+B,1.2,M-FF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,82.5016,8.69773,71.7036,93.2995,10.7979
+B,1.2,M-FF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,64,15.0831,45.2749,82.7251,18.7251
+B,1.2,M-FF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,33.4,10.4785,20.3912,46.4088,13.0088
+B,1.2,M-FF,load.completed,Completed loading trucks,trucks/day,5,15.2,5.11859,8.84545,21.5546,6.35455
+B,1.2,M-PT,unload.completed,Completed unloading trucks,trucks/day,5,121,5.09902,114.67,127.33,6.33025
+B,1.2,M-PT,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,15.8,12.6965,0.0377948,31.5622,15.7622
+B,1.2,M-PT,received_t,Grain received (throughput),t/day,5,3818.87,163.83,3615.48,4022.26,203.389
+B,1.2,M-PT,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,114.992,15.1072,96.2368,133.747,18.755
+B,1.2,M-PT,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,1.4,0.547723,0.720022,2.07998,0.679978
+B,1.2,M-PT,unload.starved,Starved trucks (waited >= 120 min),trucks,5,61.4,17.9388,39.1296,83.6704,22.2704
+B,1.2,M-PT,load.completed,Completed loading trucks,trucks/day,5,15.2,5.11859,8.84545,21.5546,6.35455
+B,1.2,M-SF,unload.completed,Completed unloading trucks,trucks/day,5,112.6,4.44972,107.076,118.124,5.52417
+B,1.2,M-SF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,24.2,13.2929,7.69739,40.7026,16.5026
+B,1.2,M-SF,received_t,Grain received (throughput),t/day,5,3585.78,115.322,3442.62,3728.95,143.168
+B,1.2,M-SF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,122.548,19.5798,98.2403,146.856,24.3077
+B,1.2,M-SF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+B,1.2,M-SF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,70.8,17.8382,48.6545,92.9455,22.1455
+B,1.2,M-SF,load.completed,Completed loading trucks,trucks/day,5,15.2,5.11859,8.84545,21.5546,6.35455
+C,1,M-FF,unload.completed,Completed unloading trucks,trucks/day,5,148.6,11.393,134.456,162.744,14.144
+C,1,M-FF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,11,8.24621,0.762618,21.2374,10.2374
+C,1,M-FF,received_t,Grain received (throughput),t/day,5,4761.33,389.931,4277.24,5245.42,484.086
+C,1,M-FF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,75.045,18.0934,52.5827,97.5073,22.4623
+C,1,M-FF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,68.6,17.672,46.6608,90.5392,21.9392
+C,1,M-FF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,35.6,10.9453,22.0118,49.1882,13.5882
+C,1,M-FF,load.completed,Completed loading trucks,trucks/day,5,15,4.41588,9.51784,20.4822,5.48216
+C,1,M-PT,unload.completed,Completed unloading trucks,trucks/day,5,145.2,4.20714,139.977,150.423,5.22301
+C,1,M-PT,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,14.4,12.1367,-0.667314,29.4673,15.0673
+C,1,M-PT,received_t,Grain received (throughput),t/day,5,4650.36,133.298,4484.88,4815.85,165.485
+C,1,M-PT,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,103.338,28.9571,67.3892,139.288,35.9492
+C,1,M-PT,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,1,0,1,1,0
+C,1,M-PT,unload.starved,Starved trucks (waited >= 120 min),trucks,5,60.8,41.0573,9.82883,111.771,50.9712
+C,1,M-PT,load.completed,Completed loading trucks,trucks/day,5,15,4.41588,9.51784,20.4822,5.48216
+C,1,M-SF,unload.completed,Completed unloading trucks,trucks/day,5,128,7.64853,118.505,137.495,9.49538
+C,1,M-SF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,31.6,13.409,14.9533,48.2467,16.6467
+C,1,M-SF,received_t,Grain received (throughput),t/day,5,4124.54,233.729,3834.37,4414.7,290.166
+C,1,M-SF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,141.368,27.1665,107.642,175.094,33.7263
+C,1,M-SF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+C,1,M-SF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,101.6,19.5908,77.2787,125.921,24.3213
+C,1,M-SF,load.completed,Completed loading trucks,trucks/day,5,15,4.41588,9.51784,20.4822,5.48216
+C,1.2,M-FF,unload.completed,Completed unloading trucks,trucks/day,5,155.6,14.2759,137.877,173.323,17.723
+C,1.2,M-FF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,41.6,11.9917,26.7128,56.4872,14.8872
+C,1.2,M-FF,received_t,Grain received (throughput),t/day,5,4954.65,466.617,4375.37,5533.94,579.288
+C,1.2,M-FF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,83.9739,15.4024,64.8524,103.095,19.1215
+C,1.2,M-FF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,101.4,15.9625,81.5832,121.217,19.8168
+C,1.2,M-FF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,72,17.2772,50.551,93.449,21.449
+C,1.2,M-FF,load.completed,Completed loading trucks,trucks/day,5,17.8,3.70135,13.2049,22.3951,4.5951
+C,1.2,M-PT,unload.completed,Completed unloading trucks,trucks/day,5,145.2,6.22093,137.477,152.923,7.72307
+C,1.2,M-PT,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,52,17.4213,30.3721,73.6279,21.6279
+C,1.2,M-PT,received_t,Grain received (throughput),t/day,5,4674.61,213.325,4409.78,4939.45,264.835
+C,1.2,M-PT,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,147.391,23.9726,117.63,177.152,29.7611
+C,1.2,M-PT,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,1.4,0.547723,0.720022,2.07998,0.679978
+C,1.2,M-PT,unload.starved,Starved trucks (waited >= 120 min),trucks,5,131.2,31.1561,92.5208,169.879,38.6792
+C,1.2,M-PT,load.completed,Completed loading trucks,trucks/day,5,17.8,3.70135,13.2049,22.3951,4.5951
+C,1.2,M-SF,unload.completed,Completed unloading trucks,trucks/day,5,132,4.41588,126.518,137.482,5.48216
+C,1.2,M-SF,unload.unfinished,Unfinished unloading trucks at end of day,trucks,5,65.2,18.2675,42.5216,87.8784,22.6784
+C,1.2,M-SF,received_t,Grain received (throughput),t/day,5,4258.17,149.03,4073.16,4443.19,185.015
+C,1.2,M-SF,unload.mean_turnaround_min,Mean unloading turnaround (completed trucks),min,5,167.538,26.7136,134.374,200.702,33.164
+C,1.2,M-SF,unload.max_overtaken,Maximum overtakes of one truck,overtakes,5,0,0,0,0,0
+C,1.2,M-SF,unload.starved,Starved trucks (waited >= 120 min),trucks,5,141.2,30.45,103.397,179.003,37.8026
+C,1.2,M-SF,load.completed,Completed loading trucks,trucks/day,5,17.8,3.70135,13.2049,22.3951,4.5951

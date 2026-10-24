@@ -1,0 +1,8 @@
+experiment,runs_in_package,distinct_conditions,note
+EV-C1,90,90,
+EV-C2,30,30,
+EV-F2,10,10,
+EV-S2,15,15,
+EV-P1,45,45,
+EV-P2,27,18,"9 runs (threshold 120 min = default) replicate EV-C1 M-FF demand 1.0 runs exactly (same configuration hash, seed, policy; identical decisions)"
+Total,217,208,217 unique cell ids
