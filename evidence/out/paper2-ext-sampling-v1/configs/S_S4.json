@@ -1,0 +1,320 @@
+{
+ "commodities": [
+  {
+   "id": "YM",
+   "name": "Yellow maize"
+  }
+ ],
+ "demand": {
+  "unload": {
+   "daily": 130,
+   "mix": {
+    "YM": 1
+   },
+   "payload": [
+    28,
+    32,
+    36
+   ],
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    5,
+    8,
+    10,
+    10,
+    9,
+    8,
+    8,
+    9,
+    10,
+    10,
+    8,
+    5,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "sampling_share": 1.0
+  }
+ },
+ "edges": [
+  [
+   "H1",
+   "C1"
+  ],
+  [
+   "C1",
+   "B1"
+  ],
+  [
+   "H2",
+   "C2"
+  ],
+  [
+   "C2",
+   "B2"
+  ],
+  [
+   "H3",
+   "C3"
+  ],
+  [
+   "C3",
+   "B3"
+  ],
+  [
+   "H4",
+   "C4"
+  ],
+  [
+   "C4",
+   "B4"
+  ]
+ ],
+ "equipment": [
+  {
+   "cap": 1,
+   "id": "S1",
+   "located_at": "WB1",
+   "located_lanes": [
+    0
+   ],
+   "name": "Sampler",
+   "pass_through": [
+    0.3,
+    0.5,
+    1.0
+   ],
+   "time": [
+    3,
+    4,
+    6
+   ],
+   "type": "sampler"
+  },
+  {
+   "cap": 4,
+   "id": "G1",
+   "name": "Grading lab",
+   "time": [
+    5,
+    8,
+    12
+   ],
+   "type": "grader"
+  },
+  {
+   "cap": 2,
+   "id": "WB1",
+   "name": "Weighbridge",
+   "time": [
+    1.5,
+    2,
+    3
+   ],
+   "type": "weighbridge"
+  },
+  {
+   "capT": 1000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "H1",
+   "name": "Hopper 1",
+   "rate": 2000,
+   "tip": [
+    1,
+    1.5,
+    2
+   ],
+   "type": "hopper"
+  },
+  {
+   "capT": 1000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "H2",
+   "name": "Hopper 2",
+   "rate": 2000,
+   "tip": [
+    1,
+    1.5,
+    2
+   ],
+   "type": "hopper"
+  },
+  {
+   "capT": 1000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "H3",
+   "name": "Hopper 3",
+   "rate": 2000,
+   "tip": [
+    1,
+    1.5,
+    2
+   ],
+   "type": "hopper"
+  },
+  {
+   "capT": 1000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "H4",
+   "name": "Hopper 4",
+   "rate": 2000,
+   "tip": [
+    1,
+    1.5,
+    2
+   ],
+   "type": "hopper"
+  },
+  {
+   "changeover": 0,
+   "id": "C1",
+   "name": "Line 1",
+   "rate": 2000,
+   "type": "conveyor"
+  },
+  {
+   "changeover": 0,
+   "id": "C2",
+   "name": "Line 2",
+   "rate": 2000,
+   "type": "conveyor"
+  },
+  {
+   "changeover": 0,
+   "id": "C3",
+   "name": "Line 3",
+   "rate": 2000,
+   "type": "conveyor"
+  },
+  {
+   "changeover": 0,
+   "id": "C4",
+   "name": "Line 4",
+   "rate": 2000,
+   "type": "conveyor"
+  },
+  {
+   "capT": 100000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "B1",
+   "name": "Bin 1",
+   "type": "bin"
+  },
+  {
+   "capT": 100000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "B2",
+   "name": "Bin 2",
+   "type": "bin"
+  },
+  {
+   "capT": 100000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "B3",
+   "name": "Bin 3",
+   "type": "bin"
+  },
+  {
+   "capT": 100000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "B4",
+   "name": "Bin 4",
+   "type": "bin"
+  }
+ ],
+ "hours": {
+  "close": 18,
+  "open": 6,
+  "overtime": 2
+ },
+ "id": "site_s_controlled_access_S4",
+ "initial": {
+  "queue": {
+   "load": 0,
+   "unload": 0,
+   "weigh": 0
+  }
+ },
+ "name": "Site S (synthetic, controlled): truck access isolated from grain handling - truck access S4 (synthetic)",
+ "sequences": {
+  "load": [],
+  "unload": [
+   "sample",
+   "weigh_in",
+   "grade",
+   "tip",
+   "weigh_out"
+  ],
+  "weigh": []
+ },
+ "truck_areas": [
+  {
+   "capacity": null,
+   "id": "gate",
+   "name": "Gate"
+  },
+  {
+   "capacity": null,
+   "id": "approach",
+   "name": "Sampler approach",
+   "single_file": true
+  },
+  {
+   "capacity": null,
+   "id": "yard",
+   "name": "Yard"
+  },
+  {
+   "capacity": null,
+   "id": "exit",
+   "name": "Exit lane"
+  }
+ ],
+ "truck_bypasses": [
+  {
+   "activity": "unload",
+   "for": "not_sampled",
+   "from": "approach",
+   "to": "weigh_in"
+  }
+ ],
+ "truck_paths": {
+  "unload": [
+   "gate",
+   "approach",
+   "sample",
+   "weigh_in",
+   "yard",
+   "grade",
+   "tip",
+   "exit",
+   "weigh_out"
+  ]
+ },
+ "version": 1
+}

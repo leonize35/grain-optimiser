@@ -69,6 +69,8 @@ def grouped_bars(path: Path, title: str, subtitle: str, ylabel: str, data: dict,
                 cx = x + bw / 2
                 out.append(f'<line x1="{cx:.1f}" x2="{cx:.1f}" y1="{y(i.mean + i.half_width):.1f}" y2="{y(max(0, i.mean - i.half_width)):.1f}" stroke="{INK}" stroke-width="1.5"/>')
             out.append(f'<text x="{x + bw / 2:.1f}" y="{y(i.mean + (i.half_width or 0)) - 5:.1f}" font-size="10" fill="{INK2}" text-anchor="middle">{i.mean:.0f}</text>')
+        if all(data.get((g, s_)) is None or data[(g, s_)].mean is None for s_ in series):
+            out.append(f'<text x="{L + gi * gw + gw / 2:.1f}" y="{y(0) - 8:.1f}" font-size="11" fill="{INK2}" text-anchor="middle">no trucks of this class</text>')
         out.append(f'<text x="{L + gi * gw + gw / 2:.1f}" y="{H - B + 20}" font-size="12" fill="{INK}" text-anchor="middle">{group_label.format(g)}</text>')
     out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(0):.1f}" y2="{y(0):.1f}" stroke="{INK2}" stroke-width="1"/>')
     lx = L

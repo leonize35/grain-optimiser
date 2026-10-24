@@ -1,0 +1,17 @@
+{
+ "derived_from_manifest_sha256": "03fdb899e3a9fad731bdce72be1e72e15cdba9c57fdbe10c112af56cc6f86da7",
+ "files": {
+  "figures/site_A_blocked_unsampled.svg": "a0cc5aede1f3143472bfec4989dc6c008b9c0005de6017d773fad2a2151f2f2b",
+  "figures/site_A_turnaround_sampled.svg": "82365414c774780f15fc20a06ee98a55fab65cae3cf3bca329250adff5e15faa",
+  "figures/site_A_turnaround_unsampled.svg": "95b8a7a813163d74ccf0234298dc1dd0a541a221d92afea8303b39f3acf99723",
+  "figures/site_C_blocked_unsampled.svg": "eef2607a7bf67a1e63cdd51f5f3bec2c9e728e01f17dc4db18086f1dd691ee48",
+  "figures/site_C_turnaround_sampled.svg": "364b71ce011975420063108b1c54775b2595a591cc91d61c67c0ef042e20bc36",
+  "figures/site_C_turnaround_unsampled.svg": "8f7027f5e2d62ef5c83b100c0f6f8b49e0d7e8477bfb809eac1c31bedd1916ce",
+  "figures/site_S_blocked_unsampled.svg": "71ff73cc5152bc8276293eb9a2140056153a5d42c1121d1e88cf3cfccaccc025",
+  "figures/site_S_turnaround_sampled.svg": "915f0b73a5013a5bcf2ab6e6ee150c1d6d380783a42f0d329844bbc1dab82ce0",
+  "figures/site_S_turnaround_unsampled.svg": "326e4c24e6e834c8f43d1b479ab6e8dd5707fcca69ad741c4913eddd5578a3e7",
+  "paired_comparisons.csv": "6df0d18a048cd0bc7b21bd2b6f57517b6d932107e15d186eb0d8f60bfd82d298",
+  "README.md": "9018f6a70f8f9ca70b7f0f60560b4c6d6e601c961aa6eb9a5f0d7df063d58991",
+  "summary_cells.csv": "41e56b85ac4ebf1126b0417b58e21c536704edfb1ed440b33c9a6eb941080ad1"
+ }
+}

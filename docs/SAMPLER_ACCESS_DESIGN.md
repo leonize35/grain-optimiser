@@ -275,3 +275,50 @@ confirm it.
 | O9 Travel times between positions | Zero (unchanged). | All times (lower bounds) |
 | O10 Who controls order: staff or physical order? | Physical order plus the configured queue policy; no discretionary calling forward. | Order of service within physical constraints |
 | O11 Priority of sampled or unsampled trucks | None. The queue policy treats both classes alike (M-FF in the experiment, stated). | Waiting by class |
+
+## 9. Implementation and results (2026-10-24)
+
+**Code and checks:**
+- **Code:** commits `6604d88` (extension) and `deb1c2b` (audit: undeclared bypass use). The fields are as proposed
+  in §3, except that the bypass is declared at the top level as `truck_bypasses`. `sampling_overlaps_weighing` is
+  not implemented (O6).
+- **Behaviour change:** grading is queued only when the sequence contains `grade`. No existing configuration samples
+  without grading.
+- **Tests:** `tests/test_sampler_access.py`, 19 tests:
+  - S1-S4 hand traces;
+  - no holding space;
+  - a bypass into a promised holding place;
+  - a queue policy cannot create a bypass;
+  - requirement independent of layout;
+  - validation;
+  - 5 audit-sensitivity cases: sampling an exempt truck, shared bay, queue order, undeclared bypass, sampling units.
+- **Full suite:** 362 passed, 2 expected failures. All 361 earlier tests are unchanged.
+- **Backward compatibility:**
+  - version-tolerant engine fingerprint (32 runs) identical;
+  - configuration hashes identical;
+  - the 84 deterministic experiment files of the `paper2-v1` baseline reproduce identically with the extended
+    engine. Excluded: engine-digest and test-run files.
+
+**Evidence package `evidence/out/paper2-ext-sampling-v1`** (built at `deb1c2b`; extends `paper2-v1`, commit
+`6345377`, manifest sha256 `71ca9133…`, which is unchanged):
+- 840 runs: Site A, Site C, and controlled Site S (`evidence/configs/site_s_controlled.json`, synthetic), × S1-S4
+  (Site S also S1 with 0 and 5 holding places) × sampled share 0.3 / 0.7 / 1.0 × 20 seeds, common random numbers.
+- Verification: 0 audit problems, mass balance 0 kg, 0 stalls.
+- Independent rebuild: 105/105 deterministic files identical.
+- Report, tables and figures: `report/` (`report/README.md`), with `report_manifest.json`.
+
+**Main findings** (synthetic; provisional assumptions O1-O11):
+
+*Controlled Site S, share 0.7.* Only the changes below hold after Holm correction (paired by seed, n = 20);
+throughput is identical in every layout:
+- A bypass with a separate sampler cuts unsampled trucks' turnaround by 4.4 min [3.7, 5.2], mostly road blocking
+  (−1.8 min).
+- With sampling at the weighbridge, a bypass cuts it by 14.1 min [7.9, 20.2], almost all road blocking (−13.6 min).
+- Sampling at the weighbridge instead of upstream raises sampled trucks' turnaround by about 15 min and
+  weighbridge-bay occupancy by 0.24.
+- No holding space adds 0.36 min per unsampled truck of being held in the sampler bay. 5 places give no gain over 2.
+
+*Site C throughput.* The single-seed gap (158 vs 131 trucks) is a downstream effect: in that run the 26-truck
+difference equals the trucks left waiting at the hoppers at closing. Over 20 seeds the per-seed change in completed
+trucks mirrors the change in trucks waiting at the hoppers, with a correlation of −0.99 to −1.00. Site C and Site A
+throughput differences between layouts are descriptive, or nominal only.

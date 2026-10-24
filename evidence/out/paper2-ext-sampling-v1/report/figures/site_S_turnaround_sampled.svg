@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" font-family="Inter, Helvetica, Arial, sans-serif">
+<rect width="720" height="380" fill="#fcfcfb"/>
+<text x="64" y="26" font-size="16" font-weight="600" fill="#0b0b0b">Site S: Turnaround, sampled trucks</text>
+<text x="64" y="46" font-size="12" fill="#52514e">Grouped by sampled share; n = 20 seeds per bar (common random numbers); 95% CI. Synthetic.</text>
+<line x1="64" x2="704" y1="324.0" y2="324.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="328.0" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="64" x2="704" y1="228.2" y2="228.2" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="232.2" font-size="11" fill="#52514e" text-anchor="end">50</text>
+<line x1="64" x2="704" y1="132.3" y2="132.3" stroke="#e4e3df" stroke-width="1"/>
+<text x="56" y="136.3" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<text transform="translate(16,197.0) rotate(-90)" font-size="11" fill="#52514e" text-anchor="middle">Mean turnaround of sampled trucks (min)</text>
+<path d="M98.7,324.0 V294.5 Q98.7,290.5 102.7,290.5 H128.7 Q132.7,290.5 132.7,294.5 V324.0 Z" fill="#2a78d6"><title>share 0.3, S1 sep., no bypass: 17.48 ± 0.34 (n=20)</title></path>
+<line x1="115.7" x2="115.7" y1="289.8" y2="291.1" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="115.7" y="284.8" font-size="10" fill="#52514e" text-anchor="middle">17</text>
+<path d="M134.7,324.0 V295.0 Q134.7,291.0 138.7,291.0 H164.7 Q168.7,291.0 168.7,295.0 V324.0 Z" fill="#eb6834"><title>share 0.3, S2 sep., bypass: 17.24 ± 0.25 (n=20)</title></path>
+<line x1="151.7" x2="151.7" y1="290.5" y2="291.4" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="151.7" y="285.5" font-size="10" fill="#52514e" text-anchor="middle">17</text>
+<path d="M170.7,324.0 V289.4 Q170.7,285.4 174.7,285.4 H200.7 Q204.7,285.4 204.7,289.4 V324.0 Z" fill="#1baf7a"><title>share 0.3, S3 at WB, no bypass: 20.12 ± 0.99 (n=20)</title></path>
+<line x1="187.7" x2="187.7" y1="283.6" y2="287.3" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="187.7" y="278.6" font-size="10" fill="#52514e" text-anchor="middle">20</text>
+<path d="M206.7,324.0 V289.8 Q206.7,285.8 210.7,285.8 H236.7 Q240.7,285.8 240.7,289.8 V324.0 Z" fill="#eda100"><title>share 0.3, S4 at WB, bypass: 19.94 ± 0.87 (n=20)</title></path>
+<line x1="223.7" x2="223.7" y1="284.1" y2="287.4" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="223.7" y="279.1" font-size="10" fill="#52514e" text-anchor="middle">20</text>
+<text x="170.7" y="344" font-size="12" fill="#0b0b0b" text-anchor="middle">share 0.3</text>
+<path d="M312.0,324.0 V289.7 Q312.0,285.7 316.0,285.7 H342.0 Q346.0,285.7 346.0,289.7 V324.0 Z" fill="#2a78d6"><title>share 0.7, S1 sep., no bypass: 19.97 ± 0.81 (n=20)</title></path>
+<line x1="329.0" x2="329.0" y1="284.2" y2="287.3" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="329.0" y="279.2" font-size="10" fill="#52514e" text-anchor="middle">20</text>
+<path d="M348.0,324.0 V290.8 Q348.0,286.8 352.0,286.8 H378.0 Q382.0,286.8 382.0,290.8 V324.0 Z" fill="#eb6834"><title>share 0.7, S2 sep., bypass: 19.43 ± 0.64 (n=20)</title></path>
+<line x1="365.0" x2="365.0" y1="285.5" y2="288.0" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="365.0" y="280.5" font-size="10" fill="#52514e" text-anchor="middle">19</text>
+<path d="M384.0,324.0 V260.5 Q384.0,256.5 388.0,256.5 H414.0 Q418.0,256.5 418.0,260.5 V324.0 Z" fill="#1baf7a"><title>share 0.7, S3 at WB, no bypass: 35.22 ± 6.77 (n=20)</title></path>
+<line x1="401.0" x2="401.0" y1="243.5" y2="269.5" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="401.0" y="238.5" font-size="10" fill="#52514e" text-anchor="middle">35</text>
+<path d="M420.0,324.0 V261.6 Q420.0,257.6 424.0,257.6 H450.0 Q454.0,257.6 454.0,261.6 V324.0 Z" fill="#eda100"><title>share 0.7, S4 at WB, bypass: 34.62 ± 6.47 (n=20)</title></path>
+<line x1="437.0" x2="437.0" y1="245.2" y2="270.0" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="437.0" y="240.2" font-size="10" fill="#52514e" text-anchor="middle">35</text>
+<text x="384.0" y="344" font-size="12" fill="#0b0b0b" text-anchor="middle">share 0.7</text>
+<path d="M525.3,324.0 V274.7 Q525.3,270.7 529.3,270.7 H555.3 Q559.3,270.7 559.3,274.7 V324.0 Z" fill="#2a78d6"><title>share 1, S1 sep., no bypass: 27.79 ± 3.84 (n=20)</title></path>
+<line x1="542.3" x2="542.3" y1="263.4" y2="278.1" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="542.3" y="258.4" font-size="10" fill="#52514e" text-anchor="middle">28</text>
+<path d="M561.3,324.0 V274.7 Q561.3,270.7 565.3,270.7 H591.3 Q595.3,270.7 595.3,274.7 V324.0 Z" fill="#eb6834"><title>share 1, S2 sep., bypass: 27.79 ± 3.84 (n=20)</title></path>
+<line x1="578.3" x2="578.3" y1="263.4" y2="278.1" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="578.3" y="258.4" font-size="10" fill="#52514e" text-anchor="middle">28</text>
+<path d="M597.3,324.0 V129.1 Q597.3,125.1 601.3,125.1 H627.3 Q631.3,125.1 631.3,129.1 V324.0 Z" fill="#1baf7a"><title>share 1, S3 at WB, no bypass: 103.77 ± 14.55 (n=20)</title></path>
+<line x1="614.3" x2="614.3" y1="97.2" y2="153.0" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="614.3" y="92.2" font-size="10" fill="#52514e" text-anchor="middle">104</text>
+<path d="M633.3,324.0 V129.1 Q633.3,125.1 637.3,125.1 H663.3 Q667.3,125.1 667.3,129.1 V324.0 Z" fill="#eda100"><title>share 1, S4 at WB, bypass: 103.77 ± 14.55 (n=20)</title></path>
+<line x1="650.3" x2="650.3" y1="97.2" y2="153.0" stroke="#0b0b0b" stroke-width="1.5"/>
+<text x="650.3" y="92.2" font-size="10" fill="#52514e" text-anchor="middle">104</text>
+<text x="597.3" y="344" font-size="12" fill="#0b0b0b" text-anchor="middle">share 1</text>
+<line x1="64" x2="704" y1="324.0" y2="324.0" stroke="#52514e" stroke-width="1"/>
+<rect x="64" y="360" width="10" height="10" rx="2" fill="#2a78d6"/>
+<text x="78" y="369" font-size="11" fill="#0b0b0b">S1 sep., no bypass</text>
+<rect x="224" y="360" width="10" height="10" rx="2" fill="#eb6834"/>
+<text x="238" y="369" font-size="11" fill="#0b0b0b">S2 sep., bypass</text>
+<rect x="384" y="360" width="10" height="10" rx="2" fill="#1baf7a"/>
+<text x="398" y="369" font-size="11" fill="#0b0b0b">S3 at WB, no bypass</text>
+<rect x="544" y="360" width="10" height="10" rx="2" fill="#eda100"/>
+<text x="558" y="369" font-size="11" fill="#0b0b0b">S4 at WB, bypass</text>
+</svg>

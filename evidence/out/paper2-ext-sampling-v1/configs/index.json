@@ -1,0 +1,6 @@
+{
+ "A": "Site A grain system (prototype demo), truck access varied",
+ "C": "Site C grain system (synthetic), truck access varied",
+ "S": "Site S controlled (synthetic): fast single-commodity grain handling, so downstream cannot confound",
+ "note": "SYNTHETIC configurations; none describes a real silo."
+}

@@ -1,0 +1,82 @@
+{
+ "A: S1 vs S1": [],
+ "A: S1 vs S2": [
+  "id",
+  "name",
+  "truck_bypasses"
+ ],
+ "A: S1 vs S3": [
+  "sampler.located_at",
+  "sampler.located_lanes",
+  "id",
+  "name",
+  "truck_areas",
+  "truck_paths.unload"
+ ],
+ "A: S1 vs S4": [
+  "sampler.located_at",
+  "sampler.located_lanes",
+  "id",
+  "name",
+  "truck_areas",
+  "truck_bypasses",
+  "truck_paths.unload"
+ ],
+ "C: S1 vs S1": [],
+ "C: S1 vs S2": [
+  "id",
+  "name",
+  "truck_bypasses"
+ ],
+ "C: S1 vs S3": [
+  "sampler.located_at",
+  "sampler.located_lanes",
+  "id",
+  "name",
+  "truck_areas",
+  "truck_paths.unload"
+ ],
+ "C: S1 vs S4": [
+  "sampler.located_at",
+  "sampler.located_lanes",
+  "id",
+  "name",
+  "truck_areas",
+  "truck_bypasses",
+  "truck_paths.unload"
+ ],
+ "S: S1 vs S1": [],
+ "S: S1 vs S1-h0": [
+  "id",
+  "name",
+  "truck_areas",
+  "truck_paths.unload"
+ ],
+ "S: S1 vs S1-h5": [
+  "id",
+  "name",
+  "truck_areas"
+ ],
+ "S: S1 vs S2": [
+  "id",
+  "name",
+  "truck_bypasses"
+ ],
+ "S: S1 vs S3": [
+  "sampler.located_at",
+  "sampler.located_lanes",
+  "id",
+  "name",
+  "truck_areas",
+  "truck_paths.unload"
+ ],
+ "S: S1 vs S4": [
+  "sampler.located_at",
+  "sampler.located_lanes",
+  "id",
+  "name",
+  "truck_areas",
+  "truck_bypasses",
+  "truck_paths.unload"
+ ]
+}

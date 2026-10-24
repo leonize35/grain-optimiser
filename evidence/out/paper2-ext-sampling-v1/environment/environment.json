@@ -1,0 +1,22 @@
+{
+ "PYTHONHASHSEED": null,
+ "command": "tools/evidence_run.py build-sampling",
+ "cpu_count": 24,
+ "durations_s": {
+  "total": 1946.3
+ },
+ "generated_utc": "2026-10-24T20:30:21Z",
+ "git_commit": "deb1c2b9c8ac7b6a43c2af685cae2f565fd6b45d",
+ "git_dirty_files": [
+  "M tools/evidence/sampling_report.py",
+  "?? evidence/out/paper2-ext-sampling-v1/"
+ ],
+ "implementation": "CPython",
+ "packages": {
+  "pydantic": "2.14.1",
+  "pydantic_core": "2.50.1",
+  "pytest": "9.1.1"
+ },
+ "platform": "Windows-11-10.0.26200-SP0",
+ "python": "3.14.8 (tags/v3.14.8:8e6e75d, Sep 30 2026, 18:19:33) [MSC v.1944 64 bit (AMD64)]"
+}

@@ -1,0 +1,435 @@
+{
+ "commodities": [
+  {
+   "color": "#d4a017",
+   "id": "YM",
+   "name": "Yellow maize"
+  },
+  {
+   "color": "#c9c2a8",
+   "id": "WM",
+   "name": "White maize"
+  },
+  {
+   "color": "#8a9a3b",
+   "id": "SB",
+   "name": "Soybeans"
+  }
+ ],
+ "customer": "Demo Agri",
+ "demand": {
+  "load": {
+   "daily": 8,
+   "mix": {
+    "YM": 1
+   },
+   "payload": [
+    30,
+    34,
+    36
+   ],
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    3,
+    5,
+    6,
+    6,
+    5,
+    4,
+    3,
+    3,
+    2,
+    2,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "unload": {
+   "daily": 62,
+   "mix": {
+    "SB": 0.1,
+    "WM": 0.3,
+    "YM": 0.6
+   },
+   "payload": [
+    24,
+    32.5,
+    38
+   ],
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    4,
+    5,
+    6,
+    6,
+    6,
+    7,
+    9,
+    12,
+    13,
+    12,
+    8,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "sampling_share": 1.0
+  },
+  "weigh": {
+   "daily": 5,
+   "profile": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  }
+ },
+ "edges": [
+  [
+   "H1",
+   "C1"
+  ],
+  [
+   "H2",
+   "C2"
+  ],
+  [
+   "C1",
+   "E1"
+  ],
+  [
+   "C2",
+   "E1"
+  ],
+  [
+   "E1",
+   "C3"
+  ],
+  [
+   "C3",
+   "B1"
+  ],
+  [
+   "C3",
+   "B2"
+  ],
+  [
+   "C3",
+   "B3"
+  ],
+  [
+   "C3",
+   "B4"
+  ],
+  [
+   "B1",
+   "R1"
+  ],
+  [
+   "B2",
+   "R1"
+  ],
+  [
+   "B3",
+   "R1"
+  ],
+  [
+   "B4",
+   "R1"
+  ],
+  [
+   "R1",
+   "E1"
+  ],
+  [
+   "E1",
+   "L1"
+  ]
+ ],
+ "equipment": [
+  {
+   "cap": 1,
+   "id": "S1",
+   "name": "Sampler",
+   "pass_through": [
+    0.3,
+    0.5,
+    1.0
+   ],
+   "time": [
+    1.5,
+    2.5,
+    4
+   ],
+   "type": "sampler"
+  },
+  {
+   "cap": 2,
+   "id": "G1",
+   "name": "Grading lab",
+   "reject": 0.02,
+   "time": [
+    4,
+    6,
+    10
+   ],
+   "type": "grader"
+  },
+  {
+   "cap": 2,
+   "id": "WB1",
+   "moves": "both",
+   "name": "Weighbridge",
+   "time": [
+    1.5,
+    2,
+    3
+   ],
+   "type": "weighbridge"
+  },
+  {
+   "capT": 60,
+   "commodities": [
+    "YM",
+    "WM"
+   ],
+   "id": "H1",
+   "name": "Hopper 1",
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "type": "hopper"
+  },
+  {
+   "capT": 60,
+   "commodities": [
+    "YM",
+    "WM",
+    "SB"
+   ],
+   "id": "H2",
+   "name": "Hopper 2",
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "type": "hopper"
+  },
+  {
+   "changeover": 6,
+   "id": "C1",
+   "name": "Pit conveyor 1",
+   "rate": 300,
+   "type": "conveyor"
+  },
+  {
+   "changeover": 6,
+   "id": "C2",
+   "name": "Pit conveyor 2",
+   "rate": 300,
+   "type": "conveyor"
+  },
+  {
+   "changeover": 8,
+   "id": "E1",
+   "name": "Elevator 1",
+   "rate": 200,
+   "type": "elevator"
+  },
+  {
+   "changeover": 6,
+   "id": "C3",
+   "name": "Top conveyor",
+   "rate": 300,
+   "type": "conveyor"
+  },
+  {
+   "capT": 4000,
+   "commodities": [
+    "YM"
+   ],
+   "id": "B1",
+   "inv": 1800,
+   "invCommodity": "YM",
+   "name": "Bin 1",
+   "type": "bin"
+  },
+  {
+   "capT": 4000,
+   "commodities": [
+    "YM",
+    "WM"
+   ],
+   "id": "B2",
+   "inv": 0,
+   "name": "Bin 2",
+   "type": "bin"
+  },
+  {
+   "capT": 4000,
+   "commodities": [
+    "WM"
+   ],
+   "id": "B3",
+   "inv": 900,
+   "invCommodity": "WM",
+   "name": "Bin 3",
+   "type": "bin"
+  },
+  {
+   "capT": 2500,
+   "commodities": [
+    "SB"
+   ],
+   "id": "B4",
+   "inv": 400,
+   "invCommodity": "SB",
+   "name": "Bin 4",
+   "type": "bin"
+  },
+  {
+   "changeover": 6,
+   "id": "R1",
+   "name": "Reclaim conveyor",
+   "rate": 250,
+   "type": "conveyor"
+  },
+  {
+   "id": "L1",
+   "name": "Load-out",
+   "rate": 250,
+   "setup": [
+    3,
+    5,
+    8
+   ],
+   "type": "loadpoint"
+  }
+ ],
+ "hours": {
+  "close": 18,
+  "open": 6,
+  "overtime": 4
+ },
+ "id": "site-a_access_S1",
+ "initial": {
+  "queue": {
+   "load": 0,
+   "unload": 6,
+   "weigh": 0
+  }
+ },
+ "name": "Kareepan Silo - truck access S1 (synthetic)",
+ "policies": {
+  "tip": "feasible",
+  "transfer": "fifo",
+  "weigh": "fifo"
+ },
+ "region": "North West",
+ "sequences": {
+  "load": [
+   "weigh_in",
+   "load",
+   "weigh_out"
+  ],
+  "unload": [
+   "sample",
+   "weigh_in",
+   "grade",
+   "tip",
+   "weigh_out"
+  ],
+  "weigh": [
+   "weigh_in"
+  ]
+ },
+ "truck_areas": [
+  {
+   "capacity": null,
+   "id": "gate",
+   "name": "Gate"
+  },
+  {
+   "capacity": null,
+   "id": "approach",
+   "name": "Sampler approach",
+   "single_file": true
+  },
+  {
+   "capacity": 2,
+   "id": "holding",
+   "name": "Holding space"
+  },
+  {
+   "capacity": null,
+   "id": "yard",
+   "name": "Yard"
+  },
+  {
+   "capacity": null,
+   "id": "exit",
+   "name": "Exit lane"
+  }
+ ],
+ "truck_paths": {
+  "unload": [
+   "gate",
+   "approach",
+   "sample",
+   "holding",
+   "weigh_in",
+   "yard",
+   "grade",
+   "tip",
+   "exit",
+   "weigh_out"
+  ]
+ },
+ "version": 1
+}

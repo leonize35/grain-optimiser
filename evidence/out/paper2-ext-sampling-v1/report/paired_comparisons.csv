@@ -1,0 +1,715 @@
+ci_high,ci_low,comparison,effect,mean_difference,metric,n_pairs,p,p_holm,sd,share,site,support,unit
+5.03169,-5.46725,S2 - S1,"bypass, separate sampler",-0.217778,"Turnaround, sampled trucks",20,0.931716,1,11.2166,0.3,A,descriptive (CI includes 0),min
+7.45607,-5.428,S2 - S1,"bypass, separate sampler",1.01404,"Turnaround, unsampled trucks",20,0.745413,1,13.7648,0.3,A,descriptive (CI includes 0),min
+0.0430536,-0.0171735,S2 - S1,"bypass, separate sampler",0.01294,"Sampler waiting, sampled trucks",20,0.379709,1,0.064344,0.3,A,descriptive (CI includes 0),min
+0.144923,0.0711384,S2 - S1,"bypass, separate sampler",0.108031,"Weighbridge waiting, sampled trucks",20,6.83709e-06,0.00186653,0.0788279,0.3,A,supported (Holm p < 0.05),min
+0.125529,0.0575555,S2 - S1,"bypass, separate sampler",0.0915422,"Weighbridge waiting, unsampled trucks",20,1.95425e-05,0.00512013,0.0726196,0.3,A,supported (Holm p < 0.05),min
+-0.149194,-0.215802,S2 - S1,"bypass, separate sampler",-0.182498,"Physically blocked behind another truck, unsampled",20,5.54207e-10,1.82334e-07,0.0711614,0.3,A,supported (Holm p < 0.05),min
+-0.0848753,-0.168419,S2 - S1,"bypass, separate sampler",-0.126647,"Physically blocked behind another truck, sampled",20,4.34333e-06,0.00120745,0.0892542,0.3,A,supported (Holm p < 0.05),min
+-0.189026,-0.246661,S2 - S1,"bypass, separate sampler",-0.217843,"Sampler queue (excl. road blocking), unsampled",20,2.14584e-12,7.66065e-10,0.0615747,0.3,A,supported (Holm p < 0.05),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,A,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,A,no difference in any pair,min
+6.46466,-4.35375,S2 - S1,"bypass, separate sampler",1.05545,"Hopper waiting (tip), all unloading trucks",20,0.687553,1,11.5579,0.3,A,descriptive (CI includes 0),min
+1.4824,-0.982403,S2 - S1,"bypass, separate sampler",0.25,"Unfinished at closing, waiting at a hopper",20,0.675914,1,2.63329,0.3,A,descriptive (CI includes 0),trucks
+-0.0198019,-0.0265765,S2 - S1,"bypass, separate sampler",-0.0231892,Approach queue length (time-average),20,1.22853e-11,4.29985e-09,0.00723772,0.3,A,supported (Holm p < 0.05),trucks
+1.01045,-1.71045,S2 - S1,"bypass, separate sampler",-0.35,Completed unloading trucks,20,0.596511,1,2.90689,0.3,A,descriptive (CI includes 0),trucks/day
+32.9837,-49.7997,S2 - S1,"bypass, separate sampler",-8.408,Grain received,20,0.675499,1,88.4421,0.3,A,descriptive (CI includes 0),t/day
+0.00108812,-0.00189533,S2 - S1,"bypass, separate sampler",-0.000403607,Weighbridge bays busy,20,0.577825,1,0.00318739,0.3,A,descriptive (CI includes 0),fraction
+0.00108812,-0.00189533,S2 - S1,"bypass, separate sampler",-0.000403607,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.577825,1,0.00318739,0.3,A,descriptive (CI includes 0),fraction
+1.60388,-1.67243,S4 - S3,"bypass, sampler at weighbridge",-0.0342795,"Turnaround, sampled trucks",20,0.965523,1,3.50026,0.3,A,descriptive (CI includes 0),min
+2.39169,-1.19786,S4 - S3,"bypass, sampler at weighbridge",0.596915,"Turnaround, unsampled trucks",20,0.494793,1,3.83491,0.3,A,descriptive (CI includes 0),min
+0.0452037,-0.0190527,S4 - S3,"bypass, sampler at weighbridge",0.0130755,"Sampler waiting, sampled trucks",20,0.404931,1,0.0686487,0.3,A,descriptive (CI includes 0),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,0.3,A,no difference in any pair,min
+0.143874,0.0901611,S4 - S3,"bypass, sampler at weighbridge",0.117018,"Weighbridge waiting, unsampled trucks",20,2.27356e-08,6.95708e-06,0.0573847,0.3,A,supported (Holm p < 0.05),min
+-0.182813,-0.280408,S4 - S3,"bypass, sampler at weighbridge",-0.231611,"Physically blocked behind another truck, unsampled",20,5.85354e-09,1.83216e-06,0.104266,0.3,A,supported (Holm p < 0.05),min
+-0.00168376,-0.0517497,S4 - S3,"bypass, sampler at weighbridge",-0.0267167,"Physically blocked behind another truck, sampled",20,0.0377152,1,0.0534882,0.3,A,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.3,A,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,A,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,A,no difference in any pair,min
+1.56195,-0.559221,S4 - S3,"bypass, sampler at weighbridge",0.501364,"Hopper waiting (tip), all unloading trucks",20,0.334896,1,2.26616,0.3,A,descriptive (CI includes 0),min
+0.15465,-0.05465,S4 - S3,"bypass, sampler at weighbridge",0.05,"Unfinished at closing, waiting at a hopper",20,0.329877,1,0.223607,0.3,A,descriptive (CI includes 0),trucks
+-0.00295603,-0.0100926,S4 - S3,"bypass, sampler at weighbridge",-0.0065243,Approach queue length (time-average),20,0.00113775,0.225274,0.00762435,0.3,A,nominal only (CI excludes 0; not after Holm),trucks
+0.0440501,-0.24405,S4 - S3,"bypass, sampler at weighbridge",-0.1,Completed unloading trucks,20,0.16255,1,0.307794,0.3,A,descriptive (CI includes 0),trucks/day
+2.02353,-5.72623,S4 - S3,"bypass, sampler at weighbridge",-1.85135,Grain received,20,0.329877,1,8.27949,0.3,A,descriptive (CI includes 0),t/day
+5.39142e-05,-0.000289401,S4 - S3,"bypass, sampler at weighbridge",-0.000117743,Weighbridge bays busy,20,0.167367,1,0.000366783,0.3,A,descriptive (CI includes 0),fraction
+5.39142e-05,-0.000289401,S4 - S3,"bypass, sampler at weighbridge",-0.000117743,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.167367,1,0.000366783,0.3,A,descriptive (CI includes 0),fraction
+5.47849,-4.3427,S3 - S1,"location, no bypass",0.567899,"Turnaround, sampled trucks",20,0.811334,1,10.4925,0.3,A,descriptive (CI includes 0),min
+6.81282,-5.59658,S3 - S1,"location, no bypass",0.608125,"Turnaround, unsampled trucks",20,0.839648,1,13.2577,0.3,A,descriptive (CI includes 0),min
+0.707206,0.449962,S3 - S1,"location, no bypass",0.578584,"Sampler waiting, sampled trucks",20,1.37718e-08,4.28304e-06,0.274827,0.3,A,supported (Holm p < 0.05),min
+-0.00112518,-0.0260485,S3 - S1,"location, no bypass",-0.0135869,"Weighbridge waiting, sampled trucks",20,0.0341904,1,0.026627,0.3,A,nominal only (CI excludes 0; not after Holm),min
+0.0843887,0.032826,S3 - S1,"location, no bypass",0.0586073,"Weighbridge waiting, unsampled trucks",20,0.00013684,0.0334699,0.0550873,0.3,A,supported (Holm p < 0.05),min
+0.0866644,0.0115608,S3 - S1,"location, no bypass",0.0491126,"Physically blocked behind another truck, unsampled",20,0.0130888,1,0.0802374,0.3,A,nominal only (CI excludes 0; not after Holm),min
+0.0720974,-0.00852357,S3 - S1,"location, no bypass",0.0317869,"Physically blocked behind another truck, sampled",20,0.115287,1,0.0861319,0.3,A,descriptive (CI includes 0),min
+-0.189026,-0.246661,S3 - S1,"location, no bypass",-0.217843,"Sampler queue (excl. road blocking), unsampled",20,2.14584e-12,7.66065e-10,0.0615747,0.3,A,supported (Holm p < 0.05),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,A,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,A,no difference in any pair,min
+5.94378,-4.35956,S3 - S1,"location, no bypass",0.79211,"Hopper waiting (tip), all unloading trucks",20,0.751106,1,11.0076,0.3,A,descriptive (CI includes 0),min
+1.4824,-0.982403,S3 - S1,"location, no bypass",0.25,"Unfinished at closing, waiting at a hopper",20,0.675914,1,2.63329,0.3,A,descriptive (CI includes 0),trucks
+0.0193427,0.0075253,S3 - S1,"location, no bypass",0.013434,Approach queue length (time-average),20,0.000136612,0.0334699,0.0126252,0.3,A,supported (Holm p < 0.05),trucks
+1.00195,-1.70195,S3 - S1,"location, no bypass",-0.35,Completed unloading trucks,20,0.594222,1,2.88873,0.3,A,descriptive (CI includes 0),trucks/day
+32.9837,-49.7997,S3 - S1,"location, no bypass",-8.408,Grain received,20,0.675499,1,88.4421,0.3,A,descriptive (CI includes 0),t/day
+0.032019,0.0245144,S3 - S1,"location, no bypass",0.0282667,Weighbridge bays busy,20,2.28251e-12,8.1029e-10,0.00801762,0.3,A,supported (Holm p < 0.05),fraction
+0.032019,0.0245144,S3 - S1,"location, no bypass",0.0282667,Weighbridge bays occupied (incl. sampling at bay and blocking),20,2.28251e-12,8.1029e-10,0.00801762,0.3,A,supported (Holm p < 0.05),fraction
+1.7686,-0.265802,S4 - S2,"location, with bypass",0.751398,"Turnaround, sampled trucks",20,0.138579,1,2.17346,0.3,A,descriptive (CI includes 0),min
+1.54698,-1.16498,S4 - S2,"location, with bypass",0.191001,"Turnaround, unsampled trucks",20,0.771331,1,2.89734,0.3,A,descriptive (CI includes 0),min
+0.699518,0.457921,S4 - S2,"location, with bypass",0.578719,"Sampler waiting, sampled trucks",20,5.03861e-09,1.58212e-06,0.258112,0.3,A,supported (Holm p < 0.05),min
+-0.0837201,-0.159515,S4 - S2,"location, with bypass",-0.121617,"Weighbridge waiting, sampled trucks",20,2.02734e-06,0.000571709,0.0809757,0.3,A,supported (Holm p < 0.05),min
+0.114364,0.0538021,S4 - S2,"location, with bypass",0.0840828,"Weighbridge waiting, unsampled trucks",20,1.34182e-05,0.00356924,0.0647011,0.3,A,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Physically blocked behind another truck, unsampled",20,,,0,0.3,A,no difference in any pair,min
+0.178539,0.0848953,S4 - S2,"location, with bypass",0.131717,"Physically blocked behind another truck, sampled",20,1.13998e-05,0.00305513,0.100045,0.3,A,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.3,A,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,A,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,A,no difference in any pair,min
+0.950822,-0.474783,S4 - S2,"location, with bypass",0.23802,"Hopper waiting (tip), all unloading trucks",20,0.493084,1,1.52305,0.3,A,descriptive (CI includes 0),min
+0.15465,-0.05465,S4 - S2,"location, with bypass",0.05,"Unfinished at closing, waiting at a hopper",20,0.329877,1,0.223607,0.3,A,descriptive (CI includes 0),trucks
+0.0349369,0.0252609,S4 - S2,"location, with bypass",0.0300989,Approach queue length (time-average),20,6.44332e-11,2.21006e-08,0.0103374,0.3,A,supported (Holm p < 0.05),trucks
+0.1093,-0.3093,S4 - S2,"location, with bypass",-0.1,Completed unloading trucks,20,0.329877,1,0.447214,0.3,A,descriptive (CI includes 0),trucks/day
+2.02353,-5.72623,S4 - S2,"location, with bypass",-1.85135,Grain received,20,0.329877,1,8.27949,0.3,A,descriptive (CI includes 0),t/day
+0.032187,0.0249182,S4 - S2,"location, with bypass",0.0285526,Weighbridge bays busy,20,1.08258e-12,3.89728e-10,0.00776566,0.3,A,supported (Holm p < 0.05),fraction
+0.032187,0.0249182,S4 - S2,"location, with bypass",0.0285526,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.08258e-12,3.89728e-10,0.00776566,0.3,A,supported (Holm p < 0.05),fraction
+10.6396,-7.66387,S2 - S1,"bypass, separate sampler",1.48787,"Turnaround, sampled trucks",20,0.737382,1,19.5546,0.7,A,descriptive (CI includes 0),min
+4.73542,-14.2931,S2 - S1,"bypass, separate sampler",-4.77885,"Turnaround, unsampled trucks",20,0.306319,1,20.3292,0.7,A,descriptive (CI includes 0),min
+0.0464642,0.00790491,S2 - S1,"bypass, separate sampler",0.0271846,"Sampler waiting, sampled trucks",20,0.00820092,1,0.0411951,0.7,A,nominal only (CI excludes 0; not after Holm),min
+0.0217931,0.000350751,S2 - S1,"bypass, separate sampler",0.0110719,"Weighbridge waiting, sampled trucks",20,0.0436315,1,0.022908,0.7,A,nominal only (CI excludes 0; not after Holm),min
+0.045975,-0.0276527,S2 - S1,"bypass, separate sampler",0.00916115,"Weighbridge waiting, unsampled trucks",20,0.608493,1,0.0786606,0.7,A,descriptive (CI includes 0),min
+-0.233006,-0.427564,S2 - S1,"bypass, separate sampler",-0.330285,"Physically blocked behind another truck, unsampled",20,9.29223e-07,0.000267616,0.207858,0.7,A,supported (Holm p < 0.05),min
+-0.0642484,-0.115817,S2 - S1,"bypass, separate sampler",-0.0900329,"Physically blocked behind another truck, sampled",20,6.25018e-07,0.00018188,0.0550938,0.7,A,supported (Holm p < 0.05),min
+-0.334033,-0.473869,S2 - S1,"bypass, separate sampler",-0.403951,"Sampler queue (excl. road blocking), unsampled",20,2.2761e-10,7.67046e-08,0.149394,0.7,A,supported (Holm p < 0.05),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,A,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,A,no difference in any pair,min
+4.95446,-6.56007,S2 - S1,"bypass, separate sampler",-0.802805,"Hopper waiting (tip), all unloading trucks",20,0.773562,1,12.3016,0.7,A,descriptive (CI includes 0),min
+2.49084,-1.09084,S2 - S1,"bypass, separate sampler",0.7,"Unfinished at closing, waiting at a hopper",20,0.423437,1,3.8265,0.7,A,descriptive (CI includes 0),trucks
+-0.0157266,-0.0247795,S2 - S1,"bypass, separate sampler",-0.0202531,Approach queue length (time-average),20,1.49814e-08,4.64425e-06,0.00967163,0.7,A,supported (Holm p < 0.05),trucks
+1.26029,-2.56029,S2 - S1,"bypass, separate sampler",-0.65,Completed unloading trucks,20,0.485013,1,4.08173,0.7,A,descriptive (CI includes 0),trucks/day
+37.2152,-85.6161,S2 - S1,"bypass, separate sampler",-24.2005,Grain received,20,0.419757,1,131.227,0.7,A,descriptive (CI includes 0),t/day
+0.00143753,-0.00284041,S2 - S1,"bypass, separate sampler",-0.00070144,Weighbridge bays busy,20,0.500775,1,0.00457037,0.7,A,descriptive (CI includes 0),fraction
+0.00143753,-0.00284041,S2 - S1,"bypass, separate sampler",-0.00070144,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.500775,1,0.00457037,0.7,A,descriptive (CI includes 0),fraction
+1.32125,-3.31528,S4 - S3,"bypass, sampler at weighbridge",-0.997017,"Turnaround, sampled trucks",20,0.379315,1,4.95346,0.7,A,descriptive (CI includes 0),min
+6.02085,-11.6137,S4 - S3,"bypass, sampler at weighbridge",-2.7964,"Turnaround, unsampled trucks",20,0.514795,1,18.8399,0.7,A,descriptive (CI includes 0),min
+0.0478714,-0.0110419,S4 - S3,"bypass, sampler at weighbridge",0.0184147,"Sampler waiting, sampled trucks",20,0.206335,1,0.0629404,0.7,A,descriptive (CI includes 0),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,0.7,A,no difference in any pair,min
+0.106575,0.0212345,S4 - S3,"bypass, sampler at weighbridge",0.0639046,"Weighbridge waiting, unsampled trucks",20,0.00545753,0.982356,0.0911737,0.7,A,nominal only (CI excludes 0; not after Holm),min
+-0.533701,-1.00776,S4 - S3,"bypass, sampler at weighbridge",-0.77073,"Physically blocked behind another truck, unsampled",20,1.69344e-06,0.000480937,0.506462,0.7,A,supported (Holm p < 0.05),min
+0.00186491,-0.0297626,S4 - S3,"bypass, sampler at weighbridge",-0.0139489,"Physically blocked behind another truck, sampled",20,0.0805062,1,0.0337894,0.7,A,descriptive (CI includes 0),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.7,A,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,A,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,A,no difference in any pair,min
+3.89112,-5.73062,S4 - S3,"bypass, sampler at weighbridge",-0.919748,"Hopper waiting (tip), all unloading trucks",20,0.693515,1,10.2794,0.7,A,descriptive (CI includes 0),min
+0.891971,-0.391971,S4 - S3,"bypass, sampler at weighbridge",0.25,"Unfinished at closing, waiting at a hopper",20,0.425133,1,1.37171,0.7,A,descriptive (CI includes 0),trucks
+-0.00983812,-0.0219267,S4 - S3,"bypass, sampler at weighbridge",-0.0158824,Approach queue length (time-average),20,2.63662e-05,0.00688159,0.0129149,0.7,A,supported (Holm p < 0.05),trucks
+0.429791,-1.02979,S4 - S3,"bypass, sampler at weighbridge",-0.3,Completed unloading trucks,20,0.400305,1,1.55935,0.7,A,descriptive (CI includes 0),trucks/day
+14.4335,-28.9808,S4 - S3,"bypass, sampler at weighbridge",-7.27365,Grain received,20,0.491602,1,46.3819,0.7,A,descriptive (CI includes 0),t/day
+0.000527646,-0.00132506,S4 - S3,"bypass, sampler at weighbridge",-0.000398706,Weighbridge bays busy,20,0.378952,1,0.00197935,0.7,A,descriptive (CI includes 0),fraction
+0.000527646,-0.00132506,S4 - S3,"bypass, sampler at weighbridge",-0.000398706,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.378952,1,0.00197935,0.7,A,descriptive (CI includes 0),fraction
+8.08408,-5.73522,S3 - S1,"location, no bypass",1.17443,"Turnaround, sampled trucks",20,0.725951,1,14.7639,0.7,A,descriptive (CI includes 0),min
+5.86926,-10.4252,S3 - S1,"location, no bypass",-2.278,"Turnaround, unsampled trucks",20,0.565294,1,17.4083,0.7,A,descriptive (CI includes 0),min
+1.19973,0.911632,S3 - S1,"location, no bypass",1.05568,"Sampler waiting, sampled trucks",20,3.7127e-12,1.30687e-09,0.307788,0.7,A,supported (Holm p < 0.05),min
+-0.00689996,-0.0193169,S3 - S1,"location, no bypass",-0.0131084,"Weighbridge waiting, sampled trucks",20,0.000294633,0.0665869,0.0132657,0.7,A,nominal only (CI excludes 0; not after Holm),min
+0.0899717,0.0402616,S3 - S1,"location, no bypass",0.0651167,"Weighbridge waiting, unsampled trucks",20,2.73252e-05,0.00710455,0.0531081,0.7,A,supported (Holm p < 0.05),min
+0.638592,0.242297,S3 - S1,"location, no bypass",0.440445,"Physically blocked behind another truck, unsampled",20,0.000173641,0.0416738,0.423384,0.7,A,supported (Holm p < 0.05),min
+0.674072,0.206922,S3 - S1,"location, no bypass",0.440497,"Physically blocked behind another truck, sampled",20,0.000864465,0.175486,0.499083,0.7,A,nominal only (CI excludes 0; not after Holm),min
+-0.334033,-0.473869,S3 - S1,"location, no bypass",-0.403951,"Sampler queue (excl. road blocking), unsampled",20,2.2761e-10,7.67046e-08,0.149394,0.7,A,supported (Holm p < 0.05),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,A,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,A,no difference in any pair,min
+5.50777,-8.15691,S3 - S1,"location, no bypass",-1.32457,"Hopper waiting (tip), all unloading trucks",20,0.689448,1,14.5987,0.7,A,descriptive (CI includes 0),min
+1.51525,-1.81525,S3 - S1,"location, no bypass",-0.15,"Unfinished at closing, waiting at a hopper",20,0.85246,1,3.55816,0.7,A,descriptive (CI includes 0),trucks
+0.110046,0.0566927,S3 - S1,"location, no bypass",0.0833692,Approach queue length (time-average),20,2.90165e-06,0.000812463,0.0570001,0.7,A,supported (Holm p < 0.05),trucks
+2.05223,-1.55223,S3 - S1,"location, no bypass",0.25,Completed unloading trucks,20,0.774705,1,3.85084,0.7,A,descriptive (CI includes 0),trucks/day
+60.3452,-52.2318,S3 - S1,"location, no bypass",4.0567,Grain received,20,0.88169,1,120.272,0.7,A,descriptive (CI includes 0),t/day
+0.0736153,0.0618579,S3 - S1,"location, no bypass",0.0677366,Weighbridge bays busy,20,9.99201e-16,3.69704e-13,0.0125611,0.7,A,supported (Holm p < 0.05),fraction
+0.0736153,0.0618579,S3 - S1,"location, no bypass",0.0677366,Weighbridge bays occupied (incl. sampling at bay and blocking),20,9.99201e-16,3.69704e-13,0.0125611,0.7,A,supported (Holm p < 0.05),fraction
+3.4862,-6.10713,S4 - S2,"location, with bypass",-1.31047,"Turnaround, sampled trucks",20,0.574151,1,10.2491,0.7,A,descriptive (CI includes 0),min
+8.69337,-9.28446,S4 - S2,"location, with bypass",-0.295548,"Turnaround, unsampled trucks",20,0.945855,1,19.2067,0.7,A,descriptive (CI includes 0),min
+1.19975,0.894069,S4 - S2,"location, with bypass",1.04691,"Sampler waiting, sampled trucks",20,1.21676e-11,4.27083e-09,0.326578,0.7,A,supported (Holm p < 0.05),min
+-0.0112558,-0.0371049,S4 - S2,"location, with bypass",-0.0241803,"Weighbridge waiting, sampled trucks",20,0.000928759,0.187609,0.027616,0.7,A,nominal only (CI excludes 0; not after Holm),min
+0.170549,0.0691709,S4 - S2,"location, with bypass",0.11986,"Weighbridge waiting, unsampled trucks",20,8.90743e-05,0.0221795,0.108308,0.7,A,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Physically blocked behind another truck, unsampled",20,,,0,0.7,A,no difference in any pair,min
+0.745812,0.287351,S4 - S2,"location, with bypass",0.516581,"Physically blocked behind another truck, sampled",20,0.000150166,0.0362571,0.489799,0.7,A,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.7,A,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,A,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,A,no difference in any pair,min
+1.67315,-4.55618,S4 - S2,"location, with bypass",-1.44151,"Hopper waiting (tip), all unloading trucks",20,0.34488,1,6.65514,0.7,A,descriptive (CI includes 0),min
+0.2372,-1.4372,S4 - S2,"location, with bypass",-0.6,"Unfinished at closing, waiting at a hopper",20,0.150049,1,1.78885,0.7,A,descriptive (CI includes 0),trucks
+0.110897,0.0645825,S4 - S2,"location, with bypass",0.0877399,Approach queue length (time-average),20,1.90891e-07,5.63129e-05,0.0494806,0.7,A,supported (Holm p < 0.05),trucks
+1.40919,-0.209192,S4 - S2,"location, with bypass",0.6,Completed unloading trucks,20,0.13718,1,1.72901,0.7,A,descriptive (CI includes 0),trucks/day
+49.8512,-7.88416,S4 - S2,"location, with bypass",20.9835,Grain received,20,0.144635,1,61.6818,0.7,A,descriptive (CI includes 0),t/day
+0.0733874,0.0626912,S4 - S2,"location, with bypass",0.0680393,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0114274,0.7,A,supported (Holm p < 0.05),fraction
+0.0733874,0.0626912,S4 - S2,"location, with bypass",0.0680393,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0114274,0.7,A,supported (Holm p < 0.05),fraction
+0,0,S2 - S1,"bypass, separate sampler",0,"Turnaround, sampled trucks",20,,,0,1,A,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Turnaround, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Sampler waiting, sampled trucks",20,,,0,1,A,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Weighbridge waiting, sampled trucks",20,,,0,1,A,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Weighbridge waiting, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+,,S2 - S1,"bypass, separate sampler",,"Physically blocked behind another truck, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Physically blocked behind another truck, sampled",20,,,0,1,A,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,A,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,A,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Unfinished at closing, waiting at a hopper",20,,,0,1,A,no difference in any pair,trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Approach queue length (time-average),20,,,0,1,A,no difference in any pair,trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Completed unloading trucks,20,,,0,1,A,no difference in any pair,trucks/day
+0,0,S2 - S1,"bypass, separate sampler",0,Grain received,20,,,0,1,A,no difference in any pair,t/day
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays busy,20,,,0,1,A,no difference in any pair,fraction
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,A,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Turnaround, sampled trucks",20,,,0,1,A,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Turnaround, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler waiting, sampled trucks",20,,,0,1,A,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,1,A,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Weighbridge waiting, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Physically blocked behind another truck, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Physically blocked behind another truck, sampled",20,,,0,1,A,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,A,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,A,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Unfinished at closing, waiting at a hopper",20,,,0,1,A,no difference in any pair,trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Approach queue length (time-average),20,,,0,1,A,no difference in any pair,trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Completed unloading trucks,20,,,0,1,A,no difference in any pair,trucks/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Grain received,20,,,0,1,A,no difference in any pair,t/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays busy,20,,,0,1,A,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,A,no difference in any pair,fraction
+3.63953,-3.47687,S3 - S1,"location, no bypass",0.0813333,"Turnaround, sampled trucks",20,0.962342,1,7.60284,1,A,descriptive (CI includes 0),min
+,,S3 - S1,"location, no bypass",,"Turnaround, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+1.62038,1.29276,S3 - S1,"location, no bypass",1.45657,"Sampler waiting, sampled trucks",20,1.17351e-13,4.25983e-11,0.35001,1,A,supported (Holm p < 0.05),min
+-0.00650543,-0.0191937,S3 - S1,"location, no bypass",-0.0128495,"Weighbridge waiting, sampled trucks",20,0.00044379,0.0980776,0.0135555,1,A,nominal only (CI excludes 0; not after Holm),min
+,,S3 - S1,"location, no bypass",,"Weighbridge waiting, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+,,S3 - S1,"location, no bypass",,"Physically blocked behind another truck, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+2.61964,0.648856,S3 - S1,"location, no bypass",1.63425,"Physically blocked behind another truck, sampled",20,0.00255714,0.478185,2.1055,1,A,nominal only (CI excludes 0; not after Holm),min
+,,S3 - S1,"location, no bypass",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,A,no difference in any pair,min
+,,S3 - S1,"location, no bypass",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+1.31533,-4.80662,S3 - S1,"location, no bypass",-1.74565,"Hopper waiting (tip), all unloading trucks",20,0.247318,1,6.54042,1,A,descriptive (CI includes 0),min
+2.1651,-0.7651,S3 - S1,"location, no bypass",0.7,"Unfinished at closing, waiting at a hopper",20,0.329877,1,3.1305,1,A,descriptive (CI includes 0),trucks
+0.354616,0.131216,S3 - S1,"location, no bypass",0.242916,Approach queue length (time-average),20,0.000218067,0.0514639,0.238671,1,A,nominal only (CI excludes 0; not after Holm),trucks
+0.871401,-2.2714,S3 - S1,"location, no bypass",-0.7,Completed unloading trucks,20,0.362852,1,3.35763,1,A,descriptive (CI includes 0),trucks/day
+27.6352,-72.9804,S3 - S1,"location, no bypass",-22.6726,Grain received,20,0.357384,1,107.493,1,A,descriptive (CI includes 0),t/day
+0.103029,0.0916085,S3 - S1,"location, no bypass",0.0973187,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0122012,1,A,supported (Holm p < 0.05),fraction
+0.103029,0.0916085,S3 - S1,"location, no bypass",0.0973187,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0122012,1,A,supported (Holm p < 0.05),fraction
+3.63953,-3.47687,S4 - S2,"location, with bypass",0.0813333,"Turnaround, sampled trucks",20,0.962342,1,7.60284,1,A,descriptive (CI includes 0),min
+,,S4 - S2,"location, with bypass",,"Turnaround, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+1.62038,1.29276,S4 - S2,"location, with bypass",1.45657,"Sampler waiting, sampled trucks",20,1.17351e-13,4.25983e-11,0.35001,1,A,supported (Holm p < 0.05),min
+-0.00650543,-0.0191937,S4 - S2,"location, with bypass",-0.0128495,"Weighbridge waiting, sampled trucks",20,0.00044379,0.0980776,0.0135555,1,A,nominal only (CI excludes 0; not after Holm),min
+,,S4 - S2,"location, with bypass",,"Weighbridge waiting, unsampled trucks",0,,,,1,A,not applicable (no trucks of this class),min
+,,S4 - S2,"location, with bypass",,"Physically blocked behind another truck, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+2.61964,0.648856,S4 - S2,"location, with bypass",1.63425,"Physically blocked behind another truck, sampled",20,0.00255714,0.478185,2.1055,1,A,nominal only (CI excludes 0; not after Holm),min
+,,S4 - S2,"location, with bypass",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,A,no difference in any pair,min
+,,S4 - S2,"location, with bypass",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,A,not applicable (no trucks of this class),min
+1.31533,-4.80662,S4 - S2,"location, with bypass",-1.74565,"Hopper waiting (tip), all unloading trucks",20,0.247318,1,6.54042,1,A,descriptive (CI includes 0),min
+2.1651,-0.7651,S4 - S2,"location, with bypass",0.7,"Unfinished at closing, waiting at a hopper",20,0.329877,1,3.1305,1,A,descriptive (CI includes 0),trucks
+0.354616,0.131216,S4 - S2,"location, with bypass",0.242916,Approach queue length (time-average),20,0.000218067,0.0514639,0.238671,1,A,nominal only (CI excludes 0; not after Holm),trucks
+0.871401,-2.2714,S4 - S2,"location, with bypass",-0.7,Completed unloading trucks,20,0.362852,1,3.35763,1,A,descriptive (CI includes 0),trucks/day
+27.6352,-72.9804,S4 - S2,"location, with bypass",-22.6726,Grain received,20,0.357384,1,107.493,1,A,descriptive (CI includes 0),t/day
+0.103029,0.0916085,S4 - S2,"location, with bypass",0.0973187,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0122012,1,A,supported (Holm p < 0.05),fraction
+0.103029,0.0916085,S4 - S2,"location, with bypass",0.0973187,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0122012,1,A,supported (Holm p < 0.05),fraction
+7.5608,-4.5315,S2 - S1,"bypass, separate sampler",1.51465,"Turnaround, sampled trucks",20,0.606115,1,12.9189,0.3,C,descriptive (CI includes 0),min
+7.56775,-2.26752,S2 - S1,"bypass, separate sampler",2.65011,"Turnaround, unsampled trucks",20,0.273397,1,10.5076,0.3,C,descriptive (CI includes 0),min
+-0.0141688,-0.0382399,S2 - S1,"bypass, separate sampler",-0.0262043,"Sampler waiting, sampled trucks",20,0.000215469,0.0510661,0.0257165,0.3,C,nominal only (CI excludes 0; not after Holm),min
+0.0687013,0.00408554,S2 - S1,"bypass, separate sampler",0.0363934,"Weighbridge waiting, sampled trucks",20,0.029264,1,0.0690326,0.3,C,nominal only (CI excludes 0; not after Holm),min
+0.0273014,-0.00921094,S2 - S1,"bypass, separate sampler",0.00904525,"Weighbridge waiting, unsampled trucks",20,0.312753,1,0.0390082,0.3,C,descriptive (CI includes 0),min
+-0.013062,-0.0396143,S2 - S1,"bypass, separate sampler",-0.0263381,"Physically blocked behind another truck, unsampled",20,0.00054121,0.115819,0.0283673,0.3,C,nominal only (CI excludes 0; not after Holm),min
+-0.0141213,-0.0304636,S2 - S1,"bypass, separate sampler",-0.0222925,"Physically blocked behind another truck, sampled",20,1.67008e-05,0.00440902,0.0174594,0.3,C,supported (Holm p < 0.05),min
+-0.0525747,-0.0788914,S2 - S1,"bypass, separate sampler",-0.065733,"Sampler queue (excl. road blocking), unsampled",20,2.55535e-09,8.22822e-07,0.0281156,0.3,C,supported (Holm p < 0.05),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,C,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,C,no difference in any pair,min
+5.41622,-0.911476,S2 - S1,"bypass, separate sampler",2.25237,"Hopper waiting (tip), all unloading trucks",20,0.152631,1,6.76023,0.3,C,descriptive (CI includes 0),min
+3.70694,-3.70694,S2 - S1,"bypass, separate sampler",0,"Unfinished at closing, waiting at a hopper",20,1,1,7.92066,0.3,C,descriptive (CI includes 0),trucks
+-0.0121693,-0.0194824,S2 - S1,"bypass, separate sampler",-0.0158258,Approach queue length (time-average),20,2.52353e-08,7.69677e-06,0.00781292,0.3,C,supported (Holm p < 0.05),trucks
+3.728,-4.028,S2 - S1,"bypass, separate sampler",-0.15,Completed unloading trucks,20,0.936323,1,8.28616,0.3,C,descriptive (CI includes 0),trucks/day
+124.134,-122.174,S2 - S1,"bypass, separate sampler",0.97995,Grain received,20,0.986886,1,263.145,0.3,C,descriptive (CI includes 0),t/day
+0.00330771,-0.00347127,S2 - S1,"bypass, separate sampler",-8.17801e-05,Weighbridge bays busy,20,0.960252,1,0.00724237,0.3,C,descriptive (CI includes 0),fraction
+0.00330771,-0.00347127,S2 - S1,"bypass, separate sampler",-8.17801e-05,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.960252,1,0.00724237,0.3,C,descriptive (CI includes 0),fraction
+4.94156,-2.39787,S4 - S3,"bypass, sampler at weighbridge",1.27184,"Turnaround, sampled trucks",20,0.477053,1,7.84111,0.3,C,descriptive (CI includes 0),min
+4.93869,-3.56611,S4 - S3,"bypass, sampler at weighbridge",0.686291,"Turnaround, unsampled trucks",20,0.739227,1,9.08615,0.3,C,descriptive (CI includes 0),min
+0.098037,0.00410526,S4 - S3,"bypass, sampler at weighbridge",0.0510711,"Sampler waiting, sampled trucks",20,0.0346143,1,0.100352,0.3,C,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,0.3,C,no difference in any pair,min
+0.0723259,-0.0183095,S4 - S3,"bypass, sampler at weighbridge",0.0270082,"Weighbridge waiting, unsampled trucks",20,0.227417,1,0.0968309,0.3,C,descriptive (CI includes 0),min
+-0.354508,-1.18948,S4 - S3,"bypass, sampler at weighbridge",-0.771995,"Physically blocked behind another truck, unsampled",20,0.00103047,0.206093,0.89205,0.3,C,nominal only (CI excludes 0; not after Holm),min
+-0.0249594,-0.192615,S4 - S3,"bypass, sampler at weighbridge",-0.108787,"Physically blocked behind another truck, sampled",20,0.0137021,1,0.179116,0.3,C,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.3,C,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,C,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,C,no difference in any pair,min
+5.32125,-1.42224,S4 - S3,"bypass, sampler at weighbridge",1.9495,"Hopper waiting (tip), all unloading trucks",20,0.241063,1,7.20445,0.3,C,descriptive (CI includes 0),min
+1.96962,-4.06962,S4 - S3,"bypass, sampler at weighbridge",-1.05,"Unfinished at closing, waiting at a hopper",20,0.475616,1,6.45205,0.3,C,descriptive (CI includes 0),trucks
+-0.0484185,-0.166138,S4 - S3,"bypass, sampler at weighbridge",-0.107278,Approach queue length (time-average),20,0.00116981,0.230453,0.125766,0.3,C,nominal only (CI excludes 0; not after Holm),trucks
+3.73309,-2.43309,S4 - S3,"bypass, sampler at weighbridge",0.65,Completed unloading trucks,20,0.664004,1,6.58767,0.3,C,descriptive (CI includes 0),trucks/day
+134.194,-65.8996,S4 - S3,"bypass, sampler at weighbridge",34.147,Grain received,20,0.483688,1,213.771,0.3,C,descriptive (CI includes 0),t/day
+0.00324997,-0.00214814,S4 - S3,"bypass, sampler at weighbridge",0.000550917,Weighbridge bays busy,20,0.674027,1,0.0057671,0.3,C,descriptive (CI includes 0),fraction
+0.00324997,-0.00214814,S4 - S3,"bypass, sampler at weighbridge",0.000550917,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.674027,1,0.0057671,0.3,C,descriptive (CI includes 0),fraction
+7.06093,-6.74873,S3 - S1,"location, no bypass",0.156102,"Turnaround, sampled trucks",20,0.962754,1,14.7536,0.3,C,descriptive (CI includes 0),min
+4.13973,-6.67579,S3 - S1,"location, no bypass",-1.26803,"Turnaround, unsampled trucks",20,0.629206,1,11.5548,0.3,C,descriptive (CI includes 0),min
+1.81669,1.39388,S3 - S1,"location, no bypass",1.60528,"Sampler waiting, sampled trucks",20,1.98208e-12,7.09585e-10,0.451714,0.3,C,supported (Holm p < 0.05),min
+-0.09169,-0.150358,S3 - S1,"location, no bypass",-0.121024,"Weighbridge waiting, sampled trucks",20,5.29081e-08,1.58195e-05,0.0626778,0.3,C,supported (Holm p < 0.05),min
+0.207842,0.134241,S3 - S1,"location, no bypass",0.171041,"Weighbridge waiting, unsampled trucks",20,8.19206e-09,2.55592e-06,0.0786313,0.3,C,supported (Holm p < 0.05),min
+1.15539,0.335921,S3 - S1,"location, no bypass",0.745657,"Physically blocked behind another truck, unsampled",20,0.00118533,0.232325,0.875487,0.3,C,nominal only (CI excludes 0; not after Holm),min
+1.11951,0.198721,S3 - S1,"location, no bypass",0.659113,"Physically blocked behind another truck, sampled",20,0.00742047,1,0.983726,0.3,C,nominal only (CI excludes 0; not after Holm),min
+-0.0525747,-0.0788914,S3 - S1,"location, no bypass",-0.065733,"Sampler queue (excl. road blocking), unsampled",20,2.55535e-09,8.22822e-07,0.0281156,0.3,C,supported (Holm p < 0.05),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,C,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,C,no difference in any pair,min
+2.9468,-7.54709,S3 - S1,"location, no bypass",-2.30014,"Hopper waiting (tip), all unloading trucks",20,0.370369,1,11.2112,0.3,C,descriptive (CI includes 0),min
+7.75092,-1.65092,S3 - S1,"location, no bypass",3.05,"Unfinished at closing, waiting at a hopper",20,0.190386,1,10.0445,0.3,C,descriptive (CI includes 0),trucks
+0.393078,0.181599,S3 - S1,"location, no bypass",0.287339,Approach queue length (time-average),20,1.75334e-05,0.00461129,0.225934,0.3,C,supported (Holm p < 0.05),trucks
+1.72112,-7.42112,S3 - S1,"location, no bypass",-2.85,Completed unloading trucks,20,0.207496,1,9.76716,0.3,C,descriptive (CI includes 0),trucks/day
+57.4541,-254.476,S3 - S1,"location, no bypass",-98.5108,Grain received,20,0.20187,1,333.252,0.3,C,descriptive (CI includes 0),t/day
+0.0715669,0.0575909,S3 - S1,"location, no bypass",0.0645789,Weighbridge bays busy,20,5.85088e-14,2.14142e-11,0.0149314,0.3,C,supported (Holm p < 0.05),fraction
+0.0715669,0.0575909,S3 - S1,"location, no bypass",0.0645789,Weighbridge bays occupied (incl. sampling at bay and blocking),20,5.85088e-14,2.14142e-11,0.0149314,0.3,C,supported (Holm p < 0.05),fraction
+6.25797,-6.43137,S4 - S2,"location, with bypass",-0.0867021,"Turnaround, sampled trucks",20,0.977481,1,13.5567,0.3,C,descriptive (CI includes 0),min
+2.33766,-8.80137,S4 - S2,"location, with bypass",-3.23185,"Turnaround, unsampled trucks",20,0.23943,1,11.9004,0.3,C,descriptive (CI includes 0),min
+1.90621,1.45891,S4 - S2,"location, with bypass",1.68256,"Sampler waiting, sampled trucks",20,2.33624e-12,8.24694e-10,0.47787,0.3,C,supported (Holm p < 0.05),min
+-0.113157,-0.201677,S4 - S2,"location, with bypass",-0.157417,"Weighbridge waiting, sampled trucks",20,4.80247e-07,0.000140232,0.0945709,0.3,C,supported (Holm p < 0.05),min
+0.24742,0.130589,S4 - S2,"location, with bypass",0.189004,"Weighbridge waiting, unsampled trucks",20,1.8129e-06,0.000513052,0.124818,0.3,C,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Physically blocked behind another truck, unsampled",20,,,0,0.3,C,no difference in any pair,min
+0.956528,0.188709,S4 - S2,"location, with bypass",0.572619,"Physically blocked behind another truck, sampled",20,0.00561531,1,0.820304,0.3,C,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S2,"location, with bypass",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.3,C,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,C,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,C,no difference in any pair,min
+2.10019,-7.30622,S4 - S2,"location, with bypass",-2.60301,"Hopper waiting (tip), all unloading trucks",20,0.261061,1,10.0494,0.3,C,descriptive (CI includes 0),min
+6.68501,-2.68501,S4 - S2,"location, with bypass",2,"Unfinished at closing, waiting at a hopper",20,0.382774,1,10.0105,0.3,C,descriptive (CI includes 0),trucks
+0.247341,0.144431,S4 - S2,"location, with bypass",0.195886,Approach queue length (time-average),20,1.77906e-07,5.26601e-05,0.109945,0.3,C,supported (Holm p < 0.05),trucks
+2.71183,-6.81183,S4 - S2,"location, with bypass",-2.05,Completed unloading trucks,20,0.378842,1,10.1747,0.3,C,descriptive (CI includes 0),trucks/day
+90.8476,-221.535,S4 - S2,"location, with bypass",-65.3438,Grain received,20,0.392171,1,333.736,0.3,C,descriptive (CI includes 0),t/day
+0.0711776,0.0592456,S4 - S2,"location, with bypass",0.0652116,Weighbridge bays busy,20,2.66454e-15,9.80549e-13,0.0127476,0.3,C,supported (Holm p < 0.05),fraction
+0.0711776,0.0592456,S4 - S2,"location, with bypass",0.0652116,Weighbridge bays occupied (incl. sampling at bay and blocking),20,2.66454e-15,9.80549e-13,0.0127476,0.3,C,supported (Holm p < 0.05),fraction
+4.05487,-5.97994,S2 - S1,"bypass, separate sampler",-0.962532,"Turnaround, sampled trucks",20,0.692519,1,10.7207,0.7,C,descriptive (CI includes 0),min
+5.58546,-8.43058,S2 - S1,"bypass, separate sampler",-1.42256,"Turnaround, unsampled trucks",20,0.675712,1,14.9741,0.7,C,descriptive (CI includes 0),min
+0.00488355,-0.0102184,S2 - S1,"bypass, separate sampler",-0.00266741,"Sampler waiting, sampled trucks",20,0.468724,1,0.0161342,0.7,C,descriptive (CI includes 0),min
+0.0412071,-0.000143982,S2 - S1,"bypass, separate sampler",0.0205316,"Weighbridge waiting, sampled trucks",20,0.0514628,1,0.0441777,0.7,C,descriptive (CI includes 0),min
+0.000674731,-0.0810167,S2 - S1,"bypass, separate sampler",-0.040171,"Weighbridge waiting, unsampled trucks",20,0.0535295,1,0.0872755,0.7,C,descriptive (CI includes 0),min
+-0.0335606,-0.0920113,S2 - S1,"bypass, separate sampler",-0.062786,"Physically blocked behind another truck, unsampled",20,0.000247152,0.056845,0.0624461,0.7,C,nominal only (CI excludes 0; not after Holm),min
+-0.018901,-0.043595,S2 - S1,"bypass, separate sampler",-0.031248,"Physically blocked behind another truck, sampled",20,4.11287e-05,0.0104878,0.0263819,0.7,C,supported (Holm p < 0.05),min
+-0.144714,-0.211789,S2 - S1,"bypass, separate sampler",-0.178252,"Sampler queue (excl. road blocking), unsampled",20,9.21302e-10,3.02187e-07,0.0716596,0.7,C,supported (Holm p < 0.05),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,C,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,C,no difference in any pair,min
+4.08341,-5.29417,S2 - S1,"bypass, separate sampler",-0.605378,"Hopper waiting (tip), all unloading trucks",20,0.789896,1,10.0186,0.7,C,descriptive (CI includes 0),min
+6.20588,-0.805878,S2 - S1,"bypass, separate sampler",2.7,"Unfinished at closing, waiting at a hopper",20,0.123472,1,7.49105,0.7,C,descriptive (CI includes 0),trucks
+-0.014783,-0.0238292,S2 - S1,"bypass, separate sampler",-0.0193061,Approach queue length (time-average),20,3.13276e-08,9.46092e-06,0.00966447,0.7,C,supported (Holm p < 0.05),trucks
+0.882657,-6.18266,S2 - S1,"bypass, separate sampler",-2.65,Completed unloading trucks,20,0.132908,1,7.54827,0.7,C,descriptive (CI includes 0),trucks/day
+26.5258,-201.12,S2 - S1,"bypass, separate sampler",-87.2972,Grain received,20,0.124934,1,243.207,0.7,C,descriptive (CI includes 0),t/day
+0.000774395,-0.00519984,S2 - S1,"bypass, separate sampler",-0.00221272,Weighbridge bays busy,20,0.137543,1,0.00638261,0.7,C,descriptive (CI includes 0),fraction
+0.000774395,-0.00519984,S2 - S1,"bypass, separate sampler",-0.00221272,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.137543,1,0.00638261,0.7,C,descriptive (CI includes 0),fraction
+9.98351,-3.6814,S4 - S3,"bypass, sampler at weighbridge",3.15105,"Turnaround, sampled trucks",20,0.346537,1,14.599,0.7,C,descriptive (CI includes 0),min
+0.264458,-17.8462,S4 - S3,"bypass, sampler at weighbridge",-8.79089,"Turnaround, unsampled trucks",20,0.0563887,1,19.3487,0.7,C,descriptive (CI includes 0),min
+0.181719,0.120507,S4 - S3,"bypass, sampler at weighbridge",0.151113,"Sampler waiting, sampled trucks",20,3.09291e-09,9.83547e-07,0.0653964,0.7,C,supported (Holm p < 0.05),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,0.7,C,no difference in any pair,min
+-0.0403539,-0.177285,S4 - S3,"bypass, sampler at weighbridge",-0.10882,"Weighbridge waiting, unsampled trucks",20,0.00354607,0.652477,0.146292,0.7,C,nominal only (CI excludes 0; not after Holm),min
+-8.88048,-23.5368,S4 - S3,"bypass, sampler at weighbridge",-16.2086,"Physically blocked behind another truck, unsampled",20,0.000182898,0.0437127,15.6581,0.7,C,supported (Holm p < 0.05),min
+-0.180836,-1.18767,S4 - S3,"bypass, sampler at weighbridge",-0.684253,"Physically blocked behind another truck, sampled",20,0.0103585,1,1.07566,0.7,C,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.7,C,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,C,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,C,no difference in any pair,min
+11.3127,0.216642,S4 - S3,"bypass, sampler at weighbridge",5.76467,"Hopper waiting (tip), all unloading trucks",20,0.0424872,1,11.8545,0.7,C,nominal only (CI excludes 0; not after Holm),min
+0.94114,-9.04114,S4 - S3,"bypass, sampler at weighbridge",-4.05,"Unfinished at closing, waiting at a hopper",20,0.105761,1,10.6646,0.7,C,descriptive (CI includes 0),trucks
+-0.532058,-1.65113,S4 - S3,"bypass, sampler at weighbridge",-1.09159,Approach queue length (time-average),20,0.000633564,0.133048,1.19556,0.7,C,nominal only (CI excludes 0; not after Holm),trucks
+8.62815,-1.52815,S4 - S3,"bypass, sampler at weighbridge",3.55,Completed unloading trucks,20,0.159771,1,10.8505,0.7,C,descriptive (CI includes 0),trucks/day
+294.829,-35.7252,S4 - S3,"bypass, sampler at weighbridge",129.552,Grain received,20,0.117333,1,353.149,0.7,C,descriptive (CI includes 0),t/day
+0.00734954,-0.00129344,S4 - S3,"bypass, sampler at weighbridge",0.00302805,Weighbridge bays busy,20,0.158854,1,0.00923378,0.7,C,descriptive (CI includes 0),fraction
+0.00734954,-0.00129344,S4 - S3,"bypass, sampler at weighbridge",0.00302805,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0.158854,1,0.00923378,0.7,C,descriptive (CI includes 0),fraction
+21.0401,2.33611,S3 - S1,"location, no bypass",11.6881,"Turnaround, sampled trucks",20,0.0170007,1,19.9825,0.7,C,nominal only (CI excludes 0; not after Holm),min
+19.196,-0.129925,S3 - S1,"location, no bypass",9.53303,"Turnaround, unsampled trucks",20,0.0528567,1,20.6469,0.7,C,descriptive (CI includes 0),min
+4.4084,3.8284,S3 - S1,"location, no bypass",4.1184,"Sampler waiting, sampled trucks",20,0,0,0.619649,0.7,C,supported (Holm p < 0.05),min
+-0.0614819,-0.0929437,S3 - S1,"location, no bypass",-0.0772128,"Weighbridge waiting, sampled trucks",20,3.40358e-09,1.07893e-06,0.0336124,0.7,C,supported (Holm p < 0.05),min
+0.445829,0.300092,S3 - S1,"location, no bypass",0.372961,"Weighbridge waiting, unsampled trucks",20,1.71738e-09,5.5815e-07,0.155699,0.7,C,supported (Holm p < 0.05),min
+23.4578,8.83382,S3 - S1,"location, no bypass",16.1458,"Physically blocked behind another truck, unsampled",20,0.000186139,0.0443011,15.6237,0.7,C,supported (Holm p < 0.05),min
+23.5219,7.49984,S3 - S1,"location, no bypass",15.5109,"Physically blocked behind another truck, sampled",20,0.0006797,0.140698,17.1173,0.7,C,nominal only (CI excludes 0; not after Holm),min
+-0.144714,-0.211789,S3 - S1,"location, no bypass",-0.178252,"Sampler queue (excl. road blocking), unsampled",20,9.21302e-10,3.02187e-07,0.0716596,0.7,C,supported (Holm p < 0.05),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,C,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,C,no difference in any pair,min
+0.234053,-13.872,S3 - S1,"location, no bypass",-6.81896,"Hopper waiting (tip), all unloading trucks",20,0.0573137,1,15.0703,0.7,C,descriptive (CI includes 0),min
+6.93026,-3.63026,S3 - S1,"location, no bypass",1.65,"Unfinished at closing, waiting at a hopper",20,0.52093,1,11.2824,0.7,C,descriptive (CI includes 0),trucks
+5.82042,2.05195,S3 - S1,"location, no bypass",3.93618,Approach queue length (time-average),20,0.000327729,0.0730835,4.02606,0.7,C,nominal only (CI excludes 0; not after Holm),trucks
+3.94769,-6.64769,S3 - S1,"location, no bypass",-1.35,Completed unloading trucks,20,0.599972,1,11.3196,0.7,C,descriptive (CI includes 0),trucks/day
+121.375,-230.4,S3 - S1,"location, no bypass",-54.5125,Grain received,20,0.52431,1,375.822,0.7,C,descriptive (CI includes 0),t/day
+0.16302,0.144017,S3 - S1,"location, no bypass",0.153519,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0203023,0.7,C,supported (Holm p < 0.05),fraction
+0.16302,0.144017,S3 - S1,"location, no bypass",0.153519,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0203023,0.7,C,supported (Holm p < 0.05),fraction
+23.6961,7.90728,S4 - S2,"location, with bypass",15.8017,"Turnaround, sampled trucks",20,0.000497178,0.107005,16.868,0.7,C,nominal only (CI excludes 0; not after Holm),min
+12.8496,-8.52023,S4 - S2,"location, with bypass",2.1647,"Turnaround, unsampled trucks",20,0.676306,1,22.8306,0.7,C,descriptive (CI includes 0),min
+4.57856,3.96581,S4 - S2,"location, with bypass",4.27218,"Sampler waiting, sampled trucks",20,1.11022e-16,4.40759e-14,0.654639,0.7,C,supported (Holm p < 0.05),min
+-0.0687933,-0.126695,S4 - S2,"location, with bypass",-0.0977444,"Weighbridge waiting, sampled trucks",20,1.00546e-06,0.000288567,0.0618601,0.7,C,supported (Holm p < 0.05),min
+0.379161,0.229463,S4 - S2,"location, with bypass",0.304312,"Weighbridge waiting, unsampled trucks",20,6.62039e-08,1.97288e-05,0.159932,0.7,C,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Physically blocked behind another truck, unsampled",20,,,0,0.7,C,no difference in any pair,min
+22.4796,7.23622,S4 - S2,"location, with bypass",14.8579,"Physically blocked behind another truck, sampled",20,0.000638015,0.133345,16.2853,0.7,C,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S2,"location, with bypass",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.7,C,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,C,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,C,no difference in any pair,min
+6.87671,-7.77454,S4 - S2,"location, with bypass",-0.448916,"Hopper waiting (tip), all unloading trucks",20,0.899291,1,15.6528,0.7,C,descriptive (CI includes 0),min
+-0.567823,-9.63218,S4 - S2,"location, with bypass",-5.1,"Unfinished at closing, waiting at a hopper",20,0.0294125,1,9.68395,0.7,C,nominal only (CI excludes 0; not after Holm),trucks
+4.19473,1.53307,S4 - S2,"location, with bypass",2.8639,Approach queue length (time-average),20,0.000242938,0.0561187,2.8436,0.7,C,nominal only (CI excludes 0; not after Holm),trucks
+9.54798,0.152024,S4 - S2,"location, with bypass",4.85,Completed unloading trucks,20,0.0436967,1,10.0382,0.7,C,nominal only (CI excludes 0; not after Holm),trucks/day
+311.44,13.2329,S4 - S2,"location, with bypass",162.337,Grain received,20,0.0344165,1,318.591,0.7,C,nominal only (CI excludes 0; not after Holm),t/day
+0.166823,0.150695,S4 - S2,"location, with bypass",0.158759,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0172304,0.7,C,supported (Holm p < 0.05),fraction
+0.166823,0.150695,S4 - S2,"location, with bypass",0.158759,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0172304,0.7,C,supported (Holm p < 0.05),fraction
+0,0,S2 - S1,"bypass, separate sampler",0,"Turnaround, sampled trucks",20,,,0,1,C,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Turnaround, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Sampler waiting, sampled trucks",20,,,0,1,C,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Weighbridge waiting, sampled trucks",20,,,0,1,C,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Weighbridge waiting, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+,,S2 - S1,"bypass, separate sampler",,"Physically blocked behind another truck, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Physically blocked behind another truck, sampled",20,,,0,1,C,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,C,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,C,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Unfinished at closing, waiting at a hopper",20,,,0,1,C,no difference in any pair,trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Approach queue length (time-average),20,,,0,1,C,no difference in any pair,trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Completed unloading trucks,20,,,0,1,C,no difference in any pair,trucks/day
+0,0,S2 - S1,"bypass, separate sampler",0,Grain received,20,,,0,1,C,no difference in any pair,t/day
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays busy,20,,,0,1,C,no difference in any pair,fraction
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,C,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Turnaround, sampled trucks",20,,,0,1,C,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Turnaround, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler waiting, sampled trucks",20,,,0,1,C,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,1,C,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Weighbridge waiting, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Physically blocked behind another truck, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Physically blocked behind another truck, sampled",20,,,0,1,C,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,C,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,C,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Unfinished at closing, waiting at a hopper",20,,,0,1,C,no difference in any pair,trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Approach queue length (time-average),20,,,0,1,C,no difference in any pair,trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Completed unloading trucks,20,,,0,1,C,no difference in any pair,trucks/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Grain received,20,,,0,1,C,no difference in any pair,t/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays busy,20,,,0,1,C,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,C,no difference in any pair,fraction
+57.95,38.5287,S3 - S1,"location, no bypass",48.2394,"Turnaround, sampled trucks",20,2.79944e-09,8.9582e-07,20.7489,1,C,supported (Holm p < 0.05),min
+,,S3 - S1,"location, no bypass",,"Turnaround, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+5.08848,4.9399,S3 - S1,"location, no bypass",5.01419,"Sampler waiting, sampled trucks",20,0,0,0.158738,1,C,supported (Holm p < 0.05),min
+-0.04157,-0.0600963,S3 - S1,"location, no bypass",-0.0508331,"Weighbridge waiting, sampled trucks",20,5.40934e-10,1.79049e-07,0.0197926,1,C,supported (Holm p < 0.05),min
+,,S3 - S1,"location, no bypass",,"Weighbridge waiting, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+,,S3 - S1,"location, no bypass",,"Physically blocked behind another truck, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+114.295,84.7843,S3 - S1,"location, no bypass",99.5395,"Physically blocked behind another truck, sampled",20,1.58726e-11,5.53955e-09,31.5275,1,C,supported (Holm p < 0.05),min
+,,S3 - S1,"location, no bypass",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,C,no difference in any pair,min
+,,S3 - S1,"location, no bypass",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+-37.0411,-53.5366,S3 - S1,"location, no bypass",-45.2889,"Hopper waiting (tip), all unloading trucks",20,5.35377e-10,1.7828e-07,17.623,1,C,supported (Holm p < 0.05),min
+-2.90547,-15.0945,S3 - S1,"location, no bypass",-9,"Unfinished at closing, waiting at a hopper",20,0.00601716,1,13.0222,1,C,nominal only (CI excludes 0; not after Holm),trucks
+24.8912,17.59,S3 - S1,"location, no bypass",21.2406,Approach queue length (time-average),20,2.01974e-10,6.8671e-08,7.80023,1,C,supported (Holm p < 0.05),trucks
+-3.31769,-15.3823,S3 - S1,"location, no bypass",-9.35,Completed unloading trucks,20,0.00426975,0.781365,12.8893,1,C,nominal only (CI excludes 0; not after Holm),trucks/day
+-77.0128,-464.591,S3 - S1,"location, no bypass",-270.802,Grain received,20,0.00869201,1,414.071,1,C,nominal only (CI excludes 0; not after Holm),t/day
+0.184313,0.166984,S3 - S1,"location, no bypass",0.175648,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0185143,1,C,supported (Holm p < 0.05),fraction
+0.184313,0.166984,S3 - S1,"location, no bypass",0.175648,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0185143,1,C,supported (Holm p < 0.05),fraction
+57.95,38.5287,S4 - S2,"location, with bypass",48.2394,"Turnaround, sampled trucks",20,2.79944e-09,8.9582e-07,20.7489,1,C,supported (Holm p < 0.05),min
+,,S4 - S2,"location, with bypass",,"Turnaround, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+5.08848,4.9399,S4 - S2,"location, with bypass",5.01419,"Sampler waiting, sampled trucks",20,0,0,0.158738,1,C,supported (Holm p < 0.05),min
+-0.04157,-0.0600963,S4 - S2,"location, with bypass",-0.0508331,"Weighbridge waiting, sampled trucks",20,5.40934e-10,1.79049e-07,0.0197926,1,C,supported (Holm p < 0.05),min
+,,S4 - S2,"location, with bypass",,"Weighbridge waiting, unsampled trucks",0,,,,1,C,not applicable (no trucks of this class),min
+,,S4 - S2,"location, with bypass",,"Physically blocked behind another truck, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+114.295,84.7843,S4 - S2,"location, with bypass",99.5395,"Physically blocked behind another truck, sampled",20,1.58726e-11,5.53955e-09,31.5275,1,C,supported (Holm p < 0.05),min
+,,S4 - S2,"location, with bypass",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,C,no difference in any pair,min
+,,S4 - S2,"location, with bypass",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,C,not applicable (no trucks of this class),min
+-37.0411,-53.5366,S4 - S2,"location, with bypass",-45.2889,"Hopper waiting (tip), all unloading trucks",20,5.35377e-10,1.7828e-07,17.623,1,C,supported (Holm p < 0.05),min
+-2.90547,-15.0945,S4 - S2,"location, with bypass",-9,"Unfinished at closing, waiting at a hopper",20,0.00601716,1,13.0222,1,C,nominal only (CI excludes 0; not after Holm),trucks
+24.8912,17.59,S4 - S2,"location, with bypass",21.2406,Approach queue length (time-average),20,2.01974e-10,6.8671e-08,7.80023,1,C,supported (Holm p < 0.05),trucks
+-3.31769,-15.3823,S4 - S2,"location, with bypass",-9.35,Completed unloading trucks,20,0.00426975,0.781365,12.8893,1,C,nominal only (CI excludes 0; not after Holm),trucks/day
+-77.0128,-464.591,S4 - S2,"location, with bypass",-270.802,Grain received,20,0.00869201,1,414.071,1,C,nominal only (CI excludes 0; not after Holm),t/day
+0.184313,0.166984,S4 - S2,"location, with bypass",0.175648,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0185143,1,C,supported (Holm p < 0.05),fraction
+0.184313,0.166984,S4 - S2,"location, with bypass",0.175648,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0185143,1,C,supported (Holm p < 0.05),fraction
+-0.104605,-0.372609,S2 - S1,"bypass, separate sampler",-0.238607,"Turnaround, sampled trucks",20,0.00142956,0.275905,0.286324,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-1.38224,-2.09473,S2 - S1,"bypass, separate sampler",-1.73849,"Turnaround, unsampled trucks",20,3.73835e-09,1.18132e-06,0.761191,0.3,S,supported (Holm p < 0.05),min
+0.0915458,0.00821894,S2 - S1,"bypass, separate sampler",0.0498824,"Sampler waiting, sampled trucks",20,0.0214722,1,0.0890227,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.145597,0.0605167,S2 - S1,"bypass, separate sampler",0.103057,"Weighbridge waiting, sampled trucks",20,6.79433e-05,0.0171217,0.0908963,0.3,S,supported (Holm p < 0.05),min
+-0.0599584,-0.153539,S2 - S1,"bypass, separate sampler",-0.106749,"Weighbridge waiting, unsampled trucks",20,0.000131664,0.0325211,0.0999777,0.3,S,supported (Holm p < 0.05),min
+-0.152226,-0.540888,S2 - S1,"bypass, separate sampler",-0.346557,"Physically blocked behind another truck, unsampled",20,0.00141113,0.27376,0.415229,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-0.11087,-0.427829,S2 - S1,"bypass, separate sampler",-0.26935,"Physically blocked behind another truck, sampled",20,0.00210335,0.399636,0.338625,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-0.554632,-0.770408,S2 - S1,"bypass, separate sampler",-0.66252,"Sampler queue (excl. road blocking), unsampled",20,8.05801e-11,2.75584e-08,0.230526,0.3,S,supported (Holm p < 0.05),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.3,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.3,S,no difference in any pair,trucks
+-0.0808511,-0.162479,S2 - S1,"bypass, separate sampler",-0.121665,Approach queue length (time-average),20,5.42442e-06,0.00148732,0.0872081,0.3,S,supported (Holm p < 0.05),trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Completed unloading trucks,20,,,0,0.3,S,no difference in any pair,trucks/day
+0,0,S2 - S1,"bypass, separate sampler",0,Grain received,20,,,0,0.3,S,no difference in any pair,t/day
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays busy,20,,,0,0.3,S,no difference in any pair,fraction
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.3,S,no difference in any pair,fraction
+-0.0254303,-0.323962,S4 - S3,"bypass, sampler at weighbridge",-0.174696,"Turnaround, sampled trucks",20,0.0241699,1,0.318938,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-0.339198,-1.13961,S4 - S3,"bypass, sampler at weighbridge",-0.739402,"Turnaround, unsampled trucks",20,0.0010383,0.206622,0.855121,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.109853,-0.00343979,S4 - S3,"bypass, sampler at weighbridge",0.0532064,"Sampler waiting, sampled trucks",20,0.0640953,1,0.121036,0.3,S,descriptive (CI includes 0),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,0.3,S,no difference in any pair,min
+0.353251,0.0643822,S4 - S3,"bypass, sampler at weighbridge",0.208816,"Weighbridge waiting, unsampled trucks",20,0.00695008,1,0.308614,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-0.406356,-1.31146,S4 - S3,"bypass, sampler at weighbridge",-0.858907,"Physically blocked behind another truck, unsampled",20,0.000816141,0.167309,0.966971,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-0.0399665,-0.238067,S4 - S3,"bypass, sampler at weighbridge",-0.139017,"Physically blocked behind another truck, sampled",20,0.0084513,1,0.211642,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.3,S,no difference in any pair,trucks
+-0.0374558,-0.113726,S4 - S3,"bypass, sampler at weighbridge",-0.0755909,Approach queue length (time-average),20,0.000545566,0.116205,0.0814836,0.3,S,nominal only (CI excludes 0; not after Holm),trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Completed unloading trucks,20,,,0,0.3,S,no difference in any pair,trucks/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Grain received,20,,,0,0.3,S,no difference in any pair,t/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays busy,20,,,0,0.3,S,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.3,S,no difference in any pair,fraction
+3.34579,1.92554,S3 - S1,"location, no bypass",2.63566,"Turnaround, sampled trucks",20,2.58625e-07,7.57771e-05,1.51734,0.3,S,supported (Holm p < 0.05),min
+0.4288,-0.469355,S3 - S1,"location, no bypass",-0.0202779,"Turnaround, unsampled trucks",20,0.925695,1,0.959549,0.3,S,descriptive (CI includes 0),min
+1.663,1.23358,S3 - S1,"location, no bypass",1.44829,"Sampler waiting, sampled trucks",20,1.59027e-11,5.53955e-09,0.458772,0.3,S,supported (Holm p < 0.05),min
+-0.0555987,-0.117457,S3 - S1,"location, no bypass",-0.086528,"Weighbridge waiting, sampled trucks",20,1.22216e-05,0.00326317,0.0660871,0.3,S,supported (Holm p < 0.05),min
+0.226574,0.120808,S3 - S1,"location, no bypass",0.173691,"Weighbridge waiting, unsampled trucks",20,1.47479e-06,0.000420314,0.112996,0.3,S,supported (Holm p < 0.05),min
+0.787482,0.237219,S3 - S1,"location, no bypass",0.51235,"Physically blocked behind another truck, unsampled",20,0.000968129,0.194594,0.587877,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.737348,0.239073,S3 - S1,"location, no bypass",0.488211,"Physically blocked behind another truck, sampled",20,0.000607733,0.128232,0.532335,0.3,S,nominal only (CI excludes 0; not after Holm),min
+-0.554632,-0.770408,S3 - S1,"location, no bypass",-0.66252,"Sampler queue (excl. road blocking), unsampled",20,8.05801e-11,2.75584e-08,0.230526,0.3,S,supported (Holm p < 0.05),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.3,S,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.3,S,no difference in any pair,trucks
+0.194429,0.0848067,S3 - S1,"location, no bypass",0.139618,Approach queue length (time-average),20,3.81295e-05,0.00979929,0.117116,0.3,S,supported (Holm p < 0.05),trucks
+0,0,S3 - S1,"location, no bypass",0,Completed unloading trucks,20,,,0,0.3,S,no difference in any pair,trucks/day
+0,0,S3 - S1,"location, no bypass",0,Grain received,20,,,0,0.3,S,no difference in any pair,t/day
+0.111005,0.0939409,S3 - S1,"location, no bypass",0.102473,Weighbridge bays busy,20,4.44089e-16,1.66978e-13,0.0182301,0.3,S,supported (Holm p < 0.05),fraction
+0.111005,0.0939409,S3 - S1,"location, no bypass",0.102473,Weighbridge bays occupied (incl. sampling at bay and blocking),20,4.44089e-16,1.66978e-13,0.0182301,0.3,S,supported (Holm p < 0.05),fraction
+3.39538,2.00377,S4 - S2,"location, with bypass",2.69958,"Turnaround, sampled trucks",20,1.34154e-07,3.98439e-05,1.48674,0.3,S,supported (Holm p < 0.05),min
+1.36216,0.595452,S4 - S2,"location, with bypass",0.978808,"Turnaround, unsampled trucks",20,3.70882e-05,0.00956876,0.819121,0.3,S,supported (Holm p < 0.05),min
+1.68372,1.21952,S4 - S2,"location, with bypass",1.45162,"Sampler waiting, sampled trucks",20,5.88534e-11,2.02456e-08,0.495931,0.3,S,supported (Holm p < 0.05),min
+-0.134398,-0.244772,S4 - S2,"location, with bypass",-0.189585,"Weighbridge waiting, sampled trucks",20,7.876e-07,0.000227617,0.117919,0.3,S,supported (Holm p < 0.05),min
+0.678431,0.300082,S4 - S2,"location, with bypass",0.489257,"Weighbridge waiting, unsampled trucks",20,3.18678e-05,0.00825377,0.404211,0.3,S,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Physically blocked behind another truck, unsampled",20,,,0,0.3,S,no difference in any pair,min
+0.892716,0.344372,S4 - S2,"location, with bypass",0.618544,"Physically blocked behind another truck, sampled",20,0.000148408,0.0360631,0.585827,0.3,S,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.3,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.3,S,no difference in any pair,trucks
+0.239127,0.132258,S4 - S2,"location, with bypass",0.185692,Approach queue length (time-average),20,6.6893e-07,0.00019399,0.114174,0.3,S,supported (Holm p < 0.05),trucks
+0,0,S4 - S2,"location, with bypass",0,Completed unloading trucks,20,,,0,0.3,S,no difference in any pair,trucks/day
+0,0,S4 - S2,"location, with bypass",0,Grain received,20,,,0,0.3,S,no difference in any pair,t/day
+0.111005,0.0939409,S4 - S2,"location, with bypass",0.102473,Weighbridge bays busy,20,4.44089e-16,1.66978e-13,0.0182301,0.3,S,supported (Holm p < 0.05),fraction
+0.111005,0.0939409,S4 - S2,"location, with bypass",0.102473,Weighbridge bays occupied (incl. sampling at bay and blocking),20,4.44089e-16,1.66978e-13,0.0182301,0.3,S,supported (Holm p < 0.05),fraction
+0.271089,0.0905067,S1-h0 - S1,holding: none vs 2,0.180798,"Turnaround, sampled trucks",20,0.000495393,0.107005,0.192927,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.140769,0.0401482,S1-h0 - S1,holding: none vs 2,0.0904587,"Turnaround, unsampled trucks",20,0.00131567,0.256555,0.107499,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.141728,0.0713269,S1-h0 - S1,holding: none vs 2,0.106527,"Sampler waiting, sampled trucks",20,4.44988e-06,0.00123262,0.075213,0.3,S,supported (Holm p < 0.05),min
+0.00756998,-0.024612,S1-h0 - S1,holding: none vs 2,-0.00852101,"Weighbridge waiting, sampled trucks",20,0.281544,1,0.0343818,0.3,S,descriptive (CI includes 0),min
+-0.0533263,-0.136113,S1-h0 - S1,holding: none vs 2,-0.0947195,"Weighbridge waiting, unsampled trucks",20,0.000127475,0.0316137,0.0884452,0.3,S,supported (Holm p < 0.05),min
+0.201674,0.0537497,S1-h0 - S1,holding: none vs 2,0.127712,"Physically blocked behind another truck, unsampled",20,0.00184851,0.353066,0.158036,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.192325,0.039242,S1-h0 - S1,holding: none vs 2,0.115783,"Physically blocked behind another truck, sampled",20,0.00508649,0.920655,0.163547,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.129678,0.0822976,S1-h0 - S1,holding: none vs 2,0.105988,"Sampler queue (excl. road blocking), unsampled",20,1.50087e-08,4.64425e-06,0.0506192,0.3,S,supported (Holm p < 0.05),min
+0.103568,0.0524463,S1-h0 - S1,holding: none vs 2,0.078007,"Blocked in sampler bay by full holding, sampled",20,3.98263e-06,0.00111115,0.0546157,0.3,S,supported (Holm p < 0.05),min
+0.299064,0.235331,S1-h0 - S1,holding: none vs 2,0.267198,"Blocked in sampler bay by full holding, unsampled",20,3.37841e-13,1.21961e-10,0.0680899,0.3,S,supported (Holm p < 0.05),min
+0,0,S1-h0 - S1,holding: none vs 2,0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.3,S,no difference in any pair,min
+0,0,S1-h0 - S1,holding: none vs 2,0,"Unfinished at closing, waiting at a hopper",20,,,0,0.3,S,no difference in any pair,trucks
+0.0525118,0.0216493,S1-h0 - S1,holding: none vs 2,0.0370806,Approach queue length (time-average),20,7.44546e-05,0.0186136,0.0329721,0.3,S,supported (Holm p < 0.05),trucks
+0,0,S1-h0 - S1,holding: none vs 2,0,Completed unloading trucks,20,,,0,0.3,S,no difference in any pair,trucks/day
+0,0,S1-h0 - S1,holding: none vs 2,0,Grain received,20,,,0,0.3,S,no difference in any pair,t/day
+0,0,S1-h0 - S1,holding: none vs 2,0,Weighbridge bays busy,20,,,0,0.3,S,no difference in any pair,fraction
+0,0,S1-h0 - S1,holding: none vs 2,0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.3,S,no difference in any pair,fraction
+0.014462,-0.082681,S1-h5 - S1,holding: 5 vs 2,-0.0341095,"Turnaround, sampled trucks",20,0.157977,1,0.103783,0.3,S,descriptive (CI includes 0),min
+0.0174178,-0.0235398,S1-h5 - S1,holding: 5 vs 2,-0.00306102,"Turnaround, unsampled trucks",20,0.757806,1,0.0437573,0.3,S,descriptive (CI includes 0),min
+-0.00315191,-0.0486691,S1-h5 - S1,holding: 5 vs 2,-0.0259105,"Sampler waiting, sampled trucks",20,0.0277763,1,0.0486286,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.0428467,-0.0195997,S1-h5 - S1,holding: 5 vs 2,0.0116235,"Weighbridge waiting, sampled trucks",20,0.445481,1,0.066715,0.3,S,descriptive (CI includes 0),min
+0.0524506,0.0075768,S1-h5 - S1,holding: 5 vs 2,0.0300137,"Weighbridge waiting, unsampled trucks",20,0.0114288,1,0.0479412,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0.0106677,-0.0932843,S1-h5 - S1,holding: 5 vs 2,-0.0413083,"Physically blocked behind another truck, unsampled",20,0.112634,1,0.111058,0.3,S,descriptive (CI includes 0),min
+0.0156991,-0.119786,S1-h5 - S1,holding: 5 vs 2,-0.0520436,"Physically blocked behind another truck, sampled",20,0.124336,1,0.144747,0.3,S,descriptive (CI includes 0),min
+-0.00669637,-0.0399206,S1-h5 - S1,holding: 5 vs 2,-0.0233085,"Sampler queue (excl. road blocking), unsampled",20,0.0084667,1,0.0354953,0.3,S,nominal only (CI excludes 0; not after Holm),min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.3,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.3,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Unfinished at closing, waiting at a hopper",20,,,0,0.3,S,no difference in any pair,trucks
+0.000567884,-0.023929,S1-h5 - S1,holding: 5 vs 2,-0.0116806,Approach queue length (time-average),20,0.0604745,1,0.0261714,0.3,S,descriptive (CI includes 0),trucks
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Completed unloading trucks,20,,,0,0.3,S,no difference in any pair,trucks/day
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Grain received,20,,,0,0.3,S,no difference in any pair,t/day
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Weighbridge bays busy,20,,,0,0.3,S,no difference in any pair,fraction
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.3,S,no difference in any pair,fraction
+-0.28525,-0.793992,S2 - S1,"bypass, separate sampler",-0.539621,"Turnaround, sampled trucks",20,0.000280927,0.0637704,0.543518,0.7,S,nominal only (CI excludes 0; not after Holm),min
+-3.66729,-5.20204,S2 - S1,"bypass, separate sampler",-4.43467,"Turnaround, unsampled trucks",20,2.26596e-10,7.65895e-08,1.63965,0.7,S,supported (Holm p < 0.05),min
+0.222118,0.118617,S2 - S1,"bypass, separate sampler",0.170367,"Sampler waiting, sampled trucks",20,1.42821e-06,0.000408469,0.110576,0.7,S,supported (Holm p < 0.05),min
+0.0541121,0.0150224,S2 - S1,"bypass, separate sampler",0.0345673,"Weighbridge waiting, sampled trucks",20,0.00151385,0.29066,0.0417617,0.7,S,nominal only (CI excludes 0; not after Holm),min
+-0.194634,-0.312662,S2 - S1,"bypass, separate sampler",-0.253648,"Weighbridge waiting, unsampled trucks",20,2.81268e-08,8.52243e-06,0.126096,0.7,S,supported (Holm p < 0.05),min
+-1.15879,-2.46729,S2 - S1,"bypass, separate sampler",-1.81304,"Physically blocked behind another truck, unsampled",20,1.37601e-05,0.00364642,1.39794,0.7,S,supported (Holm p < 0.05),min
+-0.407833,-0.945063,S2 - S1,"bypass, separate sampler",-0.676448,"Physically blocked behind another truck, sampled",20,4.35806e-05,0.0110259,0.573953,0.7,S,supported (Holm p < 0.05),min
+-1.62242,-1.92429,S2 - S1,"bypass, separate sampler",-1.77335,"Sampler queue (excl. road blocking), unsampled",20,7.77156e-16,2.89102e-13,0.322501,0.7,S,supported (Holm p < 0.05),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.7,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.7,S,no difference in any pair,trucks
+-0.157751,-0.303431,S2 - S1,"bypass, separate sampler",-0.230591,Approach queue length (time-average),20,2.4391e-06,0.000685386,0.155638,0.7,S,supported (Holm p < 0.05),trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Completed unloading trucks,20,,,0,0.7,S,no difference in any pair,trucks/day
+0,0,S2 - S1,"bypass, separate sampler",0,Grain received,20,,,0,0.7,S,no difference in any pair,t/day
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays busy,20,,,0,0.7,S,no difference in any pair,fraction
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.7,S,no difference in any pair,fraction
+-0.147736,-1.05732,S4 - S3,"bypass, sampler at weighbridge",-0.602526,"Turnaround, sampled trucks",20,0.0121174,1,0.971755,0.7,S,nominal only (CI excludes 0; not after Holm),min
+-7.87619,-20.2224,S4 - S3,"bypass, sampler at weighbridge",-14.0493,"Turnaround, unsampled trucks",20,0.000135147,0.0332462,13.1902,0.7,S,supported (Holm p < 0.05),min
+0.20067,0.0981556,S4 - S3,"bypass, sampler at weighbridge",0.149413,"Sampler waiting, sampled trucks",20,7.2508e-06,0.00197222,0.109522,0.7,S,supported (Holm p < 0.05),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,0.7,S,no difference in any pair,min
+0.407098,0.0286614,S4 - S3,"bypass, sampler at weighbridge",0.21788,"Weighbridge waiting, unsampled trucks",20,0.0262512,1,0.404305,0.7,S,nominal only (CI excludes 0; not after Holm),min
+-7.54402,-19.5757,S4 - S3,"bypass, sampler at weighbridge",-13.5598,"Physically blocked behind another truck, unsampled",20,0.000149823,0.0362571,12.8541,0.7,S,supported (Holm p < 0.05),min
+-0.126615,-0.900329,S4 - S3,"bypass, sampler at weighbridge",-0.513472,"Physically blocked behind another truck, sampled",20,0.0119833,1,0.826602,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.7,S,no difference in any pair,trucks
+-0.335271,-1.04869,S4 - S3,"bypass, sampler at weighbridge",-0.691983,Approach queue length (time-average),20,0.000667766,0.138895,0.76219,0.7,S,nominal only (CI excludes 0; not after Holm),trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Completed unloading trucks,20,,,0,0.7,S,no difference in any pair,trucks/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Grain received,20,,,0,0.7,S,no difference in any pair,t/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays busy,20,,,0,0.7,S,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.7,S,no difference in any pair,fraction
+21.3127,9.2027,S3 - S1,"location, no bypass",15.2577,"Turnaround, sampled trucks",20,4.32655e-05,0.0109894,12.9378,0.7,S,supported (Holm p < 0.05),min
+16.9639,5.71479,S3 - S1,"location, no bypass",11.3393,"Turnaround, unsampled trucks",20,0.000464113,0.101177,12.018,0.7,S,nominal only (CI excludes 0; not after Holm),min
+3.25016,2.83253,S3 - S1,"location, no bypass",3.04134,"Sampler waiting, sampled trucks",20,0,0,0.446178,0.7,S,supported (Holm p < 0.05),min
+-0.0490618,-0.0719677,S3 - S1,"location, no bypass",-0.0605147,"Weighbridge waiting, sampled trucks",20,1.01593e-09,3.31192e-07,0.0244716,0.7,S,supported (Holm p < 0.05),min
+0.348388,0.229338,S3 - S1,"location, no bypass",0.288863,"Weighbridge waiting, unsampled trucks",20,4.09312e-09,1.28933e-06,0.127188,0.7,S,supported (Holm p < 0.05),min
+17.1853,6.30831,S3 - S1,"location, no bypass",11.7468,"Physically blocked behind another truck, unsampled",20,0.000233908,0.0542668,11.6205,0.7,S,nominal only (CI excludes 0; not after Holm),min
+17.4917,5.72909,S3 - S1,"location, no bypass",11.6104,"Physically blocked behind another truck, sampled",20,0.000567013,0.120207,12.5667,0.7,S,nominal only (CI excludes 0; not after Holm),min
+-1.62242,-1.92429,S3 - S1,"location, no bypass",-1.77335,"Sampler queue (excl. road blocking), unsampled",20,7.77156e-16,2.89102e-13,0.322501,0.7,S,supported (Holm p < 0.05),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.7,S,no difference in any pair,min
+0,0,S3 - S1,"location, no bypass",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.7,S,no difference in any pair,trucks
+3.34201,1.13357,S3 - S1,"location, no bypass",2.23779,Approach queue length (time-average),20,0.000441368,0.0979836,2.35941,0.7,S,nominal only (CI excludes 0; not after Holm),trucks
+0,0,S3 - S1,"location, no bypass",0,Completed unloading trucks,20,,,0,0.7,S,no difference in any pair,trucks/day
+0,0,S3 - S1,"location, no bypass",0,Grain received,20,,,0,0.7,S,no difference in any pair,t/day
+0.248661,0.225107,S3 - S1,"location, no bypass",0.236884,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0251641,0.7,S,supported (Holm p < 0.05),fraction
+0.248661,0.225107,S3 - S1,"location, no bypass",0.236884,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0251641,0.7,S,supported (Holm p < 0.05),fraction
+21.1654,9.22416,S4 - S2,"location, with bypass",15.1948,"Turnaround, sampled trucks",20,3.85403e-05,0.00986632,12.7575,0.7,S,supported (Holm p < 0.05),min
+2.13943,1.30994,S4 - S2,"location, with bypass",1.72469,"Turnaround, unsampled trucks",20,4.68751e-08,1.40625e-05,0.88619,0.7,S,supported (Holm p < 0.05),min
+3.22195,2.81883,S4 - S2,"location, with bypass",3.02039,"Sampler waiting, sampled trucks",20,0,0,0.430674,0.7,S,supported (Holm p < 0.05),min
+-0.0738139,-0.11635,S4 - S2,"location, with bypass",-0.095082,"Weighbridge waiting, sampled trucks",20,1.51828e-08,4.6763e-06,0.0454438,0.7,S,supported (Holm p < 0.05),min
+0.964769,0.556012,S4 - S2,"location, with bypass",0.760391,"Weighbridge waiting, unsampled trucks",20,2.49635e-07,7.33927e-05,0.436698,0.7,S,supported (Holm p < 0.05),min
+0,0,S4 - S2,"location, with bypass",0,"Physically blocked behind another truck, unsampled",20,,,0,0.7,S,no difference in any pair,min
+17.6285,5.91831,S4 - S2,"location, with bypass",11.7734,"Physically blocked behind another truck, sampled",20,0.000475886,0.103267,12.5106,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0,0,S4 - S2,"location, with bypass",0,"Sampler queue (excl. road blocking), unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.7,S,no difference in any pair,min
+0,0,S4 - S2,"location, with bypass",0,"Unfinished at closing, waiting at a hopper",20,,,0,0.7,S,no difference in any pair,trucks
+2.59518,0.957615,S4 - S2,"location, with bypass",1.7764,Approach queue length (time-average),20,0.000223468,0.0522916,1.7495,0.7,S,nominal only (CI excludes 0; not after Holm),trucks
+0,0,S4 - S2,"location, with bypass",0,Completed unloading trucks,20,,,0,0.7,S,no difference in any pair,trucks/day
+0,0,S4 - S2,"location, with bypass",0,Grain received,20,,,0,0.7,S,no difference in any pair,t/day
+0.248661,0.225107,S4 - S2,"location, with bypass",0.236884,Weighbridge bays busy,20,1.11022e-16,4.40759e-14,0.0251641,0.7,S,supported (Holm p < 0.05),fraction
+0.248661,0.225107,S4 - S2,"location, with bypass",0.236884,Weighbridge bays occupied (incl. sampling at bay and blocking),20,1.11022e-16,4.40759e-14,0.0251641,0.7,S,supported (Holm p < 0.05),fraction
+0.935403,0.316772,S1-h0 - S1,holding: none vs 2,0.626087,"Turnaround, sampled trucks",20,0.000446595,0.0980776,0.660917,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0.882009,0.274556,S1-h0 - S1,holding: none vs 2,0.578282,"Turnaround, unsampled trucks",20,0.000792935,0.163345,0.648976,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0.203948,0.125428,S1-h0 - S1,holding: none vs 2,0.164688,"Sampler waiting, sampled trucks",20,4.09964e-08,1.23399e-05,0.0838876,0.7,S,supported (Holm p < 0.05),min
+0.0169484,-0.00645487,S1-h0 - S1,holding: none vs 2,0.00524678,"Weighbridge waiting, sampled trucks",20,0.359787,1,0.025003,0.7,S,descriptive (CI includes 0),min
+-0.049323,-0.119288,S1-h0 - S1,holding: none vs 2,-0.0843056,"Weighbridge waiting, unsampled trucks",20,7.20707e-05,0.0180898,0.0747478,0.7,S,supported (Holm p < 0.05),min
+0.807771,0.203121,S1-h0 - S1,holding: none vs 2,0.505446,"Physically blocked behind another truck, unsampled",20,0.00239962,0.451129,0.64598,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0.777049,0.186684,S1-h0 - S1,holding: none vs 2,0.481866,"Physically blocked behind another truck, sampled",20,0.00289314,0.535231,0.630719,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0.255921,0.159533,S1-h0 - S1,holding: none vs 2,0.207727,"Sampler queue (excl. road blocking), unsampled",20,2.69173e-08,8.18287e-06,0.102976,0.7,S,supported (Holm p < 0.05),min
+0.0806865,0.0508365,S1-h0 - S1,holding: none vs 2,0.0657615,"Blocked in sampler bay by full holding, sampled",20,1.90836e-08,5.85866e-06,0.0318905,0.7,S,supported (Holm p < 0.05),min
+0.401323,0.322468,S1-h0 - S1,holding: none vs 2,0.361895,"Blocked in sampler bay by full holding, unsampled",20,6.61693e-14,2.40856e-11,0.0842452,0.7,S,supported (Holm p < 0.05),min
+0,0,S1-h0 - S1,holding: none vs 2,0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.7,S,no difference in any pair,min
+0,0,S1-h0 - S1,holding: none vs 2,0,"Unfinished at closing, waiting at a hopper",20,,,0,0.7,S,no difference in any pair,trucks
+0.169631,0.0525368,S1-h0 - S1,holding: none vs 2,0.111084,Approach queue length (time-average),20,0.0008184,0.167309,0.125098,0.7,S,nominal only (CI excludes 0; not after Holm),trucks
+0,0,S1-h0 - S1,holding: none vs 2,0,Completed unloading trucks,20,,,0,0.7,S,no difference in any pair,trucks/day
+0,0,S1-h0 - S1,holding: none vs 2,0,Grain received,20,,,0,0.7,S,no difference in any pair,t/day
+0,0,S1-h0 - S1,holding: none vs 2,0,Weighbridge bays busy,20,,,0,0.7,S,no difference in any pair,fraction
+0,0,S1-h0 - S1,holding: none vs 2,0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.7,S,no difference in any pair,fraction
+0.00280805,-0.215278,S1-h5 - S1,holding: 5 vs 2,-0.106235,"Turnaround, sampled trucks",20,0.0555971,1,0.232993,0.7,S,descriptive (CI includes 0),min
+0.00195847,-0.150574,S1-h5 - S1,holding: 5 vs 2,-0.0743075,"Turnaround, unsampled trucks",20,0.0555807,1,0.162958,0.7,S,descriptive (CI includes 0),min
+-0.00694568,-0.0268772,S1-h5 - S1,holding: 5 vs 2,-0.0169114,"Sampler waiting, sampled trucks",20,0.00212986,0.402544,0.0212939,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0.00918362,-0.00775095,S1-h5 - S1,holding: 5 vs 2,0.000716332,"Weighbridge waiting, sampled trucks",20,0.861329,1,0.0180921,0.7,S,descriptive (CI includes 0),min
+0.014479,-0.00147316,S1-h5 - S1,holding: 5 vs 2,0.00650292,"Weighbridge waiting, unsampled trucks",20,0.104221,1,0.0170426,0.7,S,descriptive (CI includes 0),min
+0.0027026,-0.165889,S1-h5 - S1,holding: 5 vs 2,-0.0815931,"Physically blocked behind another truck, unsampled",20,0.0570511,1,0.180116,0.7,S,descriptive (CI includes 0),min
+0.00946159,-0.196961,S1-h5 - S1,holding: 5 vs 2,-0.0937497,"Physically blocked behind another truck, sampled",20,0.0725622,1,0.220533,0.7,S,descriptive (CI includes 0),min
+-0.00331068,-0.0295426,S1-h5 - S1,holding: 5 vs 2,-0.0164266,"Sampler queue (excl. road blocking), unsampled",20,0.0168027,1,0.028025,0.7,S,nominal only (CI excludes 0; not after Holm),min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Blocked in sampler bay by full holding, sampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Blocked in sampler bay by full holding, unsampled",20,,,0,0.7,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Hopper waiting (tip), all unloading trucks",20,,,0,0.7,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Unfinished at closing, waiting at a hopper",20,,,0,0.7,S,no difference in any pair,trucks
+3.42218e-06,-0.0358226,S1-h5 - S1,holding: 5 vs 2,-0.0179096,Approach queue length (time-average),20,0.0500419,1,0.038275,0.7,S,descriptive (CI includes 0),trucks
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Completed unloading trucks,20,,,0,0.7,S,no difference in any pair,trucks/day
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Grain received,20,,,0,0.7,S,no difference in any pair,t/day
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Weighbridge bays busy,20,,,0,0.7,S,no difference in any pair,fraction
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,0.7,S,no difference in any pair,fraction
+0,0,S2 - S1,"bypass, separate sampler",0,"Turnaround, sampled trucks",20,,,0,1,S,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Turnaround, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Sampler waiting, sampled trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Weighbridge waiting, sampled trucks",20,,,0,1,S,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Weighbridge waiting, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+,,S2 - S1,"bypass, separate sampler",,"Physically blocked behind another truck, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Physically blocked behind another truck, sampled",20,,,0,1,S,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,S,no difference in any pair,min
+,,S2 - S1,"bypass, separate sampler",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S2 - S1,"bypass, separate sampler",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S2 - S1,"bypass, separate sampler",0,"Unfinished at closing, waiting at a hopper",20,,,0,1,S,no difference in any pair,trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Approach queue length (time-average),20,,,0,1,S,no difference in any pair,trucks
+0,0,S2 - S1,"bypass, separate sampler",0,Completed unloading trucks,20,,,0,1,S,no difference in any pair,trucks/day
+0,0,S2 - S1,"bypass, separate sampler",0,Grain received,20,,,0,1,S,no difference in any pair,t/day
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays busy,20,,,0,1,S,no difference in any pair,fraction
+0,0,S2 - S1,"bypass, separate sampler",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,S,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Turnaround, sampled trucks",20,,,0,1,S,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Turnaround, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Sampler waiting, sampled trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Weighbridge waiting, sampled trucks",20,,,0,1,S,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Weighbridge waiting, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Physically blocked behind another truck, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Physically blocked behind another truck, sampled",20,,,0,1,S,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,S,no difference in any pair,min
+,,S4 - S3,"bypass, sampler at weighbridge",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,"Unfinished at closing, waiting at a hopper",20,,,0,1,S,no difference in any pair,trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Approach queue length (time-average),20,,,0,1,S,no difference in any pair,trucks
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Completed unloading trucks,20,,,0,1,S,no difference in any pair,trucks/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Grain received,20,,,0,1,S,no difference in any pair,t/day
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays busy,20,,,0,1,S,no difference in any pair,fraction
+0,0,S4 - S3,"bypass, sampler at weighbridge",0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,S,no difference in any pair,fraction
+87.724,64.2367,S3 - S1,"location, no bypass",75.9803,"Turnaround, sampled trucks",20,3.27999e-11,1.13488e-08,25.0928,1,S,supported (Holm p < 0.05),min
+,,S3 - S1,"location, no bypass",,"Turnaround, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+3.30456,2.8834,S3 - S1,"location, no bypass",3.09398,"Sampler waiting, sampled trucks",20,1.11022e-16,4.40759e-14,0.449948,1,S,supported (Holm p < 0.05),min
+-0.0120803,-0.0253015,S3 - S1,"location, no bypass",-0.0186909,"Weighbridge waiting, sampled trucks",20,1.06957e-05,0.00288784,0.0141249,1,S,supported (Holm p < 0.05),min
+,,S3 - S1,"location, no bypass",,"Weighbridge waiting, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+,,S3 - S1,"location, no bypass",,"Physically blocked behind another truck, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+91.9054,64.6806,S3 - S1,"location, no bypass",78.293,"Physically blocked behind another truck, sampled",20,2.45579e-10,8.22689e-08,29.0857,1,S,supported (Holm p < 0.05),min
+,,S3 - S1,"location, no bypass",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S3 - S1,"location, no bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,S,no difference in any pair,min
+,,S3 - S1,"location, no bypass",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S3 - S1,"location, no bypass",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,S,no difference in any pair,min
+1.46882,0.731177,S3 - S1,"location, no bypass",1.1,"Unfinished at closing, waiting at a hopper",20,5.38886e-06,0.00148732,0.788069,1,S,supported (Holm p < 0.05),trucks
+15.5414,10.4067,S3 - S1,"location, no bypass",12.974,Approach queue length (time-average),20,2.11695e-09,6.85893e-07,5.48577,1,S,supported (Holm p < 0.05),trucks
+-5.25229,-14.5477,S3 - S1,"location, no bypass",-9.9,Completed unloading trucks,20,0.000269555,0.0617282,9.93081,1,S,nominal only (CI excludes 0; not after Holm),trucks/day
+-161.882,-453.509,S3 - S1,"location, no bypass",-307.696,Grain received,20,0.000296288,0.0666649,311.561,1,S,nominal only (CI excludes 0; not after Holm),t/day
+0.305119,0.282901,S3 - S1,"location, no bypass",0.29401,Weighbridge bays busy,20,0,0,0.023737,1,S,supported (Holm p < 0.05),fraction
+0.305119,0.282901,S3 - S1,"location, no bypass",0.29401,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0,0,0.023737,1,S,supported (Holm p < 0.05),fraction
+87.724,64.2367,S4 - S2,"location, with bypass",75.9803,"Turnaround, sampled trucks",20,3.27999e-11,1.13488e-08,25.0928,1,S,supported (Holm p < 0.05),min
+,,S4 - S2,"location, with bypass",,"Turnaround, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+3.30456,2.8834,S4 - S2,"location, with bypass",3.09398,"Sampler waiting, sampled trucks",20,1.11022e-16,4.40759e-14,0.449948,1,S,supported (Holm p < 0.05),min
+-0.0120803,-0.0253015,S4 - S2,"location, with bypass",-0.0186909,"Weighbridge waiting, sampled trucks",20,1.06957e-05,0.00288784,0.0141249,1,S,supported (Holm p < 0.05),min
+,,S4 - S2,"location, with bypass",,"Weighbridge waiting, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+,,S4 - S2,"location, with bypass",,"Physically blocked behind another truck, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+91.9054,64.6806,S4 - S2,"location, with bypass",78.293,"Physically blocked behind another truck, sampled",20,2.45579e-10,8.22689e-08,29.0857,1,S,supported (Holm p < 0.05),min
+,,S4 - S2,"location, with bypass",,"Sampler queue (excl. road blocking), unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S4 - S2,"location, with bypass",0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,S,no difference in any pair,min
+,,S4 - S2,"location, with bypass",,"Blocked in sampler bay by full holding, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S4 - S2,"location, with bypass",0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,S,no difference in any pair,min
+1.46882,0.731177,S4 - S2,"location, with bypass",1.1,"Unfinished at closing, waiting at a hopper",20,5.38886e-06,0.00148732,0.788069,1,S,supported (Holm p < 0.05),trucks
+15.5414,10.4067,S4 - S2,"location, with bypass",12.974,Approach queue length (time-average),20,2.11695e-09,6.85893e-07,5.48577,1,S,supported (Holm p < 0.05),trucks
+-5.25229,-14.5477,S4 - S2,"location, with bypass",-9.9,Completed unloading trucks,20,0.000269555,0.0617282,9.93081,1,S,nominal only (CI excludes 0; not after Holm),trucks/day
+-161.882,-453.509,S4 - S2,"location, with bypass",-307.696,Grain received,20,0.000296288,0.0666649,311.561,1,S,nominal only (CI excludes 0; not after Holm),t/day
+0.305119,0.282901,S4 - S2,"location, with bypass",0.29401,Weighbridge bays busy,20,0,0,0.023737,1,S,supported (Holm p < 0.05),fraction
+0.305119,0.282901,S4 - S2,"location, with bypass",0.29401,Weighbridge bays occupied (incl. sampling at bay and blocking),20,0,0,0.023737,1,S,supported (Holm p < 0.05),fraction
+0.696582,0.114328,S1-h0 - S1,holding: none vs 2,0.405455,"Turnaround, sampled trucks",20,0.00888205,1,0.622054,1,S,nominal only (CI excludes 0; not after Holm),min
+,,S1-h0 - S1,holding: none vs 2,,"Turnaround, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+0.0421605,0.0154853,S1-h0 - S1,holding: none vs 2,0.0288229,"Sampler waiting, sampled trucks",20,0.000232706,0.0542204,0.0284986,1,S,nominal only (CI excludes 0; not after Holm),min
+8.46964e-05,-0.00176402,S1-h0 - S1,holding: none vs 2,-0.000839661,"Weighbridge waiting, sampled trucks",20,0.0725493,1,0.00197508,1,S,descriptive (CI includes 0),min
+,,S1-h0 - S1,holding: none vs 2,,"Weighbridge waiting, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+,,S1-h0 - S1,holding: none vs 2,,"Physically blocked behind another truck, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0.66354,0.0895524,S1-h0 - S1,holding: none vs 2,0.376546,"Physically blocked behind another truck, sampled",20,0.0128433,1,0.613222,1,S,nominal only (CI excludes 0; not after Holm),min
+,,S1-h0 - S1,holding: none vs 2,,"Sampler queue (excl. road blocking), unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0.024069,0.0116335,S1-h0 - S1,holding: none vs 2,0.0178512,"Blocked in sampler bay by full holding, sampled",20,8.80914e-06,0.00238728,0.0132856,1,S,supported (Holm p < 0.05),min
+,,S1-h0 - S1,holding: none vs 2,,"Blocked in sampler bay by full holding, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S1-h0 - S1,holding: none vs 2,0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S1-h0 - S1,holding: none vs 2,0,"Unfinished at closing, waiting at a hopper",20,,,0,1,S,no difference in any pair,trucks
+0.12325,0.0156163,S1-h0 - S1,holding: none vs 2,0.0694329,Approach queue length (time-average),20,0.0141789,1,0.114991,1,S,nominal only (CI excludes 0; not after Holm),trucks
+0,0,S1-h0 - S1,holding: none vs 2,0,Completed unloading trucks,20,,,0,1,S,no difference in any pair,trucks/day
+0,0,S1-h0 - S1,holding: none vs 2,0,Grain received,20,,,0,1,S,no difference in any pair,t/day
+0,0,S1-h0 - S1,holding: none vs 2,0,Weighbridge bays busy,20,,,0,1,S,no difference in any pair,fraction
+0,0,S1-h0 - S1,holding: none vs 2,0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,S,no difference in any pair,fraction
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Turnaround, sampled trucks",20,,,0,1,S,no difference in any pair,min
+,,S1-h5 - S1,holding: 5 vs 2,,"Turnaround, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Sampler waiting, sampled trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Weighbridge waiting, sampled trucks",20,,,0,1,S,no difference in any pair,min
+,,S1-h5 - S1,holding: 5 vs 2,,"Weighbridge waiting, unsampled trucks",0,,,,1,S,not applicable (no trucks of this class),min
+,,S1-h5 - S1,holding: 5 vs 2,,"Physically blocked behind another truck, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Physically blocked behind another truck, sampled",20,,,0,1,S,no difference in any pair,min
+,,S1-h5 - S1,holding: 5 vs 2,,"Sampler queue (excl. road blocking), unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Blocked in sampler bay by full holding, sampled",20,,,0,1,S,no difference in any pair,min
+,,S1-h5 - S1,holding: 5 vs 2,,"Blocked in sampler bay by full holding, unsampled",0,,,,1,S,not applicable (no trucks of this class),min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Hopper waiting (tip), all unloading trucks",20,,,0,1,S,no difference in any pair,min
+0,0,S1-h5 - S1,holding: 5 vs 2,0,"Unfinished at closing, waiting at a hopper",20,,,0,1,S,no difference in any pair,trucks
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Approach queue length (time-average),20,,,0,1,S,no difference in any pair,trucks
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Completed unloading trucks,20,,,0,1,S,no difference in any pair,trucks/day
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Grain received,20,,,0,1,S,no difference in any pair,t/day
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Weighbridge bays busy,20,,,0,1,S,no difference in any pair,fraction
+0,0,S1-h5 - S1,holding: 5 vs 2,0,Weighbridge bays occupied (incl. sampling at bay and blocking),20,,,0,1,S,no difference in any pair,fraction
