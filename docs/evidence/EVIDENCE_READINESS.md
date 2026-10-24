@@ -1,8 +1,8 @@
 # Evidence-readiness audit for Paper 2 (software-independent, transferable DES methodology for grain silos)
 
-Status: audit for review, 2026-10-23, at commit `10be6d1` (branch `feat/config-validate-port`). **No engine code was
-changed.** Added: this document and two synthetic configuration files (`site_c_proposal.json`,
-`site_c_segregation_trap.json`).
+Status: audit for review, 2026-10-23, at commit `10be6d1`; evidence package built in step 19 (`evidence/out/paper2-v1`, summary `docs/evidence/PAPER2_RESULTS.md`) (branch `feat/config-validate-port`). **No engine code was
+changed.** Added: this document and two synthetic configuration files (`evidence/configs/site_c.json`,
+`evidence/configs/site_c_segregation_trap.json`).
 
 ## 0. Verification, not validation
 
@@ -138,12 +138,17 @@ Legend:
   - `flow_audit`: bin identity over time, one commodity per segment.
 - **Commits:** `f61ceb4`, `04b359d`, `84cd926`, `d0dd950`, `d7f0aa7`.
 - **Observed:** Site C (graded yellow maize, 30 runs): 0 audit problems.
-- **New finding (this audit):** `site_c_segregation_trap.json` (South grade-1 maize has a single bin accepting
+- **New finding (this audit):** `evidence/configs/site_c_segregation_trap.json` (South grade-1 maize has a single bin accepting
   grades 1 and 2):
   - a 719 kg grade-2 residue left by a load blocks grade-1 intake permanently;
   - under strict FIFO on every queue, including intake, this stalls the plant (2 of 5 seeds; reported as a stall
     with `BIN_INCOMPATIBLE`);
-  - under feasible-first, or the prototype-equivalent mapping (strict only at the hopper), it does not stall.
+  - under feasible-first, or the prototype-equivalent mapping (strict only at the hopper), it did not stall with
+    the audit's seeds.
+  - **Correction (evidence package `paper2-v1`, EV-S2):** with the package seeds, feasible-first also stalled in
+    1 of 5 runs, at 18:55, after all arrivals. Every bin able to take grade-1 maize was unavailable: BN1 full,
+    BN2 and BS1 captured by grade-2 grain (BS1 by a 1.16 t residue). This is a legitimate exhaustion of
+    grade-specific storage, not a verification failure. Physical invariants held.
 
   The engine behaves consistently. The point is that segregation risks of this kind are not detected statically.
 - **Missing evidence:**
@@ -251,7 +256,7 @@ no grades, no multi-feed equipment and no choice of intermediate equipment. They
 one topological change, not structurally different silo designs. A third configuration with route choice,
 interconnected systems, grades and several compatible bins is needed (§4).
 
-## 4. Proposed Site C (`docs/evidence/site_c_proposal.json`; configuration only, nothing in the engine)
+## 4. Proposed Site C (`evidence/configs/site_c.json`; configuration only, nothing in the engine)
 
 **Layout:**
 - **North complex:**
@@ -280,7 +285,7 @@ So the structure exists, but without a bin-allocation policy (an unfinished capa
 and alternative routes are rarely exercised. Experiments that depend on them must wait for, or explicitly test,
 allocation rules.
 
-**Variant** `site_c_segregation_trap.json` (hash `37d5d3dd70dc`): the segregation finding in §2.3, kept as a
+**Variant** `evidence/configs/site_c_segregation_trap.json` (hash `37d5d3dd70dc`): the segregation finding in §2.3, kept as a
 negative scenario.
 
 ## 5. Which experiments can run now

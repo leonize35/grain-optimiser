@@ -1,0 +1,10 @@
+{
+ "_comment": "EV-F2a: North elevator EN1 unavailable from before opening until 12:00 on Site C, to exercise the alternative CN1->EN2 route.",
+ "outages": [
+  {
+   "equipment": "EN1",
+   "start": "05:00",
+   "end": "12:00"
+  }
+ ]
+}

@@ -1,0 +1,143 @@
+{
+ "_comment": "Deterministic disturbance plan for site_a (EV-C2): two scheduled outages of intake route equipment and stock events on bins with opening stock. Synthetic test inputs, not observed events.",
+ "outages": [
+  {
+   "equipment": "C1",
+   "start": "09:00",
+   "end": "10:00"
+  },
+  {
+   "equipment": "E1",
+   "start": "13:00",
+   "end": "13:40"
+  }
+ ],
+ "stock_events": [
+  {
+   "kind": "process_loss",
+   "time": "10:30",
+   "bin": "B1",
+   "tonnes": 1.5,
+   "cause": "moisture",
+   "posted": true
+  },
+  {
+   "kind": "process_loss",
+   "time": "10:45",
+   "bin": "B1",
+   "tonnes": 0.5,
+   "cause": "cleaning",
+   "posted": false
+  },
+  {
+   "kind": "stock_measurement",
+   "id": "S-B1",
+   "time": "11:00",
+   "bin": "B1",
+   "observed_tonnes": 100
+  },
+  {
+   "kind": "book_correction",
+   "time": "11:30",
+   "bin": "B1",
+   "basis": "measurement",
+   "observation": "S-B1",
+   "reason": "survey accepted (synthetic)",
+   "authority": "evidence plan"
+  },
+  {
+   "kind": "book_correction",
+   "time": "12:15",
+   "bin": "B1",
+   "basis": "administrative",
+   "tonnes": -0.25,
+   "reason": "posting error (synthetic)",
+   "authority": "evidence plan"
+  },
+  {
+   "kind": "process_loss",
+   "time": "11:30",
+   "bin": "B3",
+   "tonnes": 1.5,
+   "cause": "moisture",
+   "posted": true
+  },
+  {
+   "kind": "process_loss",
+   "time": "11:45",
+   "bin": "B3",
+   "tonnes": 0.5,
+   "cause": "cleaning",
+   "posted": false
+  },
+  {
+   "kind": "stock_measurement",
+   "id": "S-B3",
+   "time": "12:00",
+   "bin": "B3",
+   "observed_tonnes": 100
+  },
+  {
+   "kind": "book_correction",
+   "time": "12:30",
+   "bin": "B3",
+   "basis": "measurement",
+   "observation": "S-B3",
+   "reason": "survey accepted (synthetic)",
+   "authority": "evidence plan"
+  },
+  {
+   "kind": "book_correction",
+   "time": "13:15",
+   "bin": "B3",
+   "basis": "administrative",
+   "tonnes": -0.25,
+   "reason": "posting error (synthetic)",
+   "authority": "evidence plan"
+  },
+  {
+   "kind": "process_loss",
+   "time": "12:30",
+   "bin": "B4",
+   "tonnes": 1.5,
+   "cause": "moisture",
+   "posted": true
+  },
+  {
+   "kind": "process_loss",
+   "time": "12:45",
+   "bin": "B4",
+   "tonnes": 0.5,
+   "cause": "cleaning",
+   "posted": false
+  },
+  {
+   "kind": "stock_measurement",
+   "id": "S-B4",
+   "time": "13:00",
+   "bin": "B4",
+   "observed_tonnes": 100
+  },
+  {
+   "kind": "book_correction",
+   "time": "13:30",
+   "bin": "B4",
+   "basis": "measurement",
+   "observation": "S-B4",
+   "reason": "survey accepted (synthetic)",
+   "authority": "evidence plan"
+  },
+  {
+   "kind": "book_correction",
+   "time": "14:15",
+   "bin": "B4",
+   "basis": "administrative",
+   "tonnes": -0.25,
+   "reason": "posting error (synthetic)",
+   "authority": "evidence plan"
+  }
+ ],
+ "reconciliation": {
+  "tolerance_t": 1
+ }
+}

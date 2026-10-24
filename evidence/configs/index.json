@@ -1,0 +1,29 @@
+{
+ "note": "All configurations are SYNTHETIC. None describes, or was calibrated to, a real silo. Results obtained with them are software-verification outputs, not observed silo performance.",
+ "configurations": [
+  {
+   "file": "site_a.json",
+   "label": "Site A",
+   "origin": "prototype demonstration configuration (siloEngine samples.siteA), copied from tests/golden/validation_cases.json",
+   "synthetic": true
+  },
+  {
+   "file": "site_b.json",
+   "label": "Site B",
+   "origin": "prototype demonstration configuration (siloEngine samples.siteB), copied from tests/golden/validation_cases.json",
+   "synthetic": true
+  },
+  {
+   "file": "site_c.json",
+   "label": "Site C",
+   "origin": "synthetic experimental configuration written for the Paper 2 evidence audit (two silo systems, interconnect, alternative intermediate routes, graded maize, multiple compatible bins)",
+   "synthetic": true
+  },
+  {
+   "file": "site_c_segregation_trap.json",
+   "label": "Site C segregation trap",
+   "origin": "synthetic negative variant of Site C: South grade-1 maize has a single bin that also accepts grade 2",
+   "synthetic": true
+  }
+ ]
+}

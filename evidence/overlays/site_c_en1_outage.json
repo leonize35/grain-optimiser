@@ -1,0 +1,10 @@
+{
+ "_comment": "EV-F2b: North elevator EN1 unavailable 08:00-12:00 on Site C (starts during operation). Under the provisional hold rule I1 a transfer running on CN1->EN1 keeps CN1 reserved, so the alternative CN1->EN2 route can be blocked; reported as an observation.",
+ "outages": [
+  {
+   "equipment": "EN1",
+   "start": "08:00",
+   "end": "12:00"
+  }
+ ]
+}

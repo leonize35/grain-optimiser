@@ -1,0 +1,6 @@
+{
+ "_comment": "EV-P2: starvation reporting threshold 10000 min (reporting only).",
+ "fairness": {
+  "starvation_wait_minutes": 10000
+ }
+}

@@ -1,0 +1,387 @@
+{
+ "id": "site-a",
+ "name": "Kareepan Silo",
+ "customer": "Demo Agri",
+ "version": 1,
+ "region": "North West",
+ "hours": {
+  "open": 6,
+  "close": 18,
+  "overtime": 4
+ },
+ "commodities": [
+  {
+   "id": "YM",
+   "name": "Yellow maize",
+   "color": "#d4a017"
+  },
+  {
+   "id": "WM",
+   "name": "White maize",
+   "color": "#c9c2a8"
+  },
+  {
+   "id": "SB",
+   "name": "Soybeans",
+   "color": "#8a9a3b"
+  }
+ ],
+ "equipment": [
+  {
+   "id": "S1",
+   "type": "sampler",
+   "name": "Sampler",
+   "cap": 1,
+   "time": [
+    1.5,
+    2.5,
+    4
+   ]
+  },
+  {
+   "id": "G1",
+   "type": "grader",
+   "name": "Grading lab",
+   "cap": 2,
+   "time": [
+    4,
+    6,
+    10
+   ],
+   "reject": 0.02
+  },
+  {
+   "id": "WB1",
+   "type": "weighbridge",
+   "name": "Weighbridge",
+   "cap": 1,
+   "time": [
+    1.5,
+    2,
+    3
+   ],
+   "moves": "both"
+  },
+  {
+   "id": "H1",
+   "type": "hopper",
+   "name": "Hopper 1",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM"
+   ]
+  },
+  {
+   "id": "H2",
+   "type": "hopper",
+   "name": "Hopper 2",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM",
+    "SB"
+   ]
+  },
+  {
+   "id": "C1",
+   "type": "conveyor",
+   "name": "Pit conveyor 1",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "C2",
+   "type": "conveyor",
+   "name": "Pit conveyor 2",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "E1",
+   "type": "elevator",
+   "name": "Elevator 1",
+   "rate": 200,
+   "changeover": 8
+  },
+  {
+   "id": "C3",
+   "type": "conveyor",
+   "name": "Top conveyor",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "B1",
+   "type": "bin",
+   "name": "Bin 1",
+   "capT": 4000,
+   "commodities": [
+    "YM"
+   ],
+   "inv": 1800,
+   "invCommodity": "YM"
+  },
+  {
+   "id": "B2",
+   "type": "bin",
+   "name": "Bin 2",
+   "capT": 4000,
+   "commodities": [
+    "YM",
+    "WM"
+   ],
+   "inv": 0
+  },
+  {
+   "id": "B3",
+   "type": "bin",
+   "name": "Bin 3",
+   "capT": 4000,
+   "commodities": [
+    "WM"
+   ],
+   "inv": 900,
+   "invCommodity": "WM"
+  },
+  {
+   "id": "B4",
+   "type": "bin",
+   "name": "Bin 4",
+   "capT": 2500,
+   "commodities": [
+    "SB"
+   ],
+   "inv": 400,
+   "invCommodity": "SB"
+  },
+  {
+   "id": "R1",
+   "type": "conveyor",
+   "name": "Reclaim conveyor",
+   "rate": 250,
+   "changeover": 6
+  },
+  {
+   "id": "L1",
+   "type": "loadpoint",
+   "name": "Load-out",
+   "rate": 250,
+   "setup": [
+    3,
+    5,
+    8
+   ]
+  }
+ ],
+ "edges": [
+  [
+   "H1",
+   "C1"
+  ],
+  [
+   "H2",
+   "C2"
+  ],
+  [
+   "C1",
+   "E1"
+  ],
+  [
+   "C2",
+   "E1"
+  ],
+  [
+   "E1",
+   "C3"
+  ],
+  [
+   "C3",
+   "B1"
+  ],
+  [
+   "C3",
+   "B2"
+  ],
+  [
+   "C3",
+   "B3"
+  ],
+  [
+   "C3",
+   "B4"
+  ],
+  [
+   "B1",
+   "R1"
+  ],
+  [
+   "B2",
+   "R1"
+  ],
+  [
+   "B3",
+   "R1"
+  ],
+  [
+   "B4",
+   "R1"
+  ],
+  [
+   "R1",
+   "E1"
+  ],
+  [
+   "E1",
+   "L1"
+  ]
+ ],
+ "sequences": {
+  "unload": [
+   "sample",
+   "grade",
+   "weigh_in",
+   "tip",
+   "weigh_out"
+  ],
+  "load": [
+   "weigh_in",
+   "load",
+   "weigh_out"
+  ],
+  "weigh": [
+   "weigh_in"
+  ]
+ },
+ "demand": {
+  "unload": {
+   "daily": 62,
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    4,
+    5,
+    6,
+    6,
+    6,
+    7,
+    9,
+    12,
+    13,
+    12,
+    8,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "payload": [
+    24,
+    32.5,
+    38
+   ],
+   "mix": {
+    "YM": 0.6,
+    "WM": 0.3,
+    "SB": 0.1
+   }
+  },
+  "load": {
+   "daily": 8,
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    3,
+    5,
+    6,
+    6,
+    5,
+    4,
+    3,
+    3,
+    2,
+    2,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "payload": [
+    30,
+    34,
+    36
+   ],
+   "mix": {
+    "YM": 1
+   }
+  },
+  "weigh": {
+   "daily": 5,
+   "profile": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  }
+ },
+ "policies": {
+  "tip": "feasible",
+  "weigh": "fifo",
+  "transfer": "fifo"
+ },
+ "initial": {
+  "queue": {
+   "unload": 6,
+   "load": 0,
+   "weigh": 0
+  }
+ }
+}
