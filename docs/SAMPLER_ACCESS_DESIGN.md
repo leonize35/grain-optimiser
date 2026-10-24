@@ -119,7 +119,10 @@ Script order is T1, T4, T2, T3.
 ### S1: separate upstream sampler, no bypass, holding space for 1 truck between sampler and weighbridges
 
 Layout: gate → single-file approach → sampler bay → holding area (capacity 1) → weighbridge bays.
-S2 adds a bypass from the gate to the holding area. In S4, trucks not needing sampling may pass a sampled truck
+S2 adds a bypass from the gate to the weighbridge: a truck that needs no sampling waits at the gate if both bays are
+busy. (Implementation finding: a bypass into the one-place holding area gives no benefit. Under
+`reserve_next_space`, the truck being sampled holds the promise of that place continuously, 07:00-07:08 in this
+trace. This is tested as its own case.) In S4, trucks not needing sampling may pass a sampled truck
 waiting at the front of the approach to reach the bay without a probe.
 
 | Time | Event |
@@ -253,3 +256,22 @@ waiting at the front of the approach to reach the bay without a probe.
 - **O10** Do staff control the order (e.g. a gatekeeper calling trucks forward), or is order purely physical?
 - **O11** Are sampled and unsampled trucks served in arrival order at the weighbridge, or is either class given
   priority?
+
+## 8. Provisional decisions for implementation (2026-10-24)
+
+Every choice below is a **provisional modelling assumption, not verified operating practice**, until silo operators
+confirm it.
+
+| Q | Provisional default (as implemented) | Simulation behaviour affected |
+|---|---|---|
+| O1 Which trucks need sampling; known at arrival? | Default: every truck whose activity sequence contains `sample` (unchanged behaviour). Override per truck (`requires_sampling` in arrival data) or by share (`demand.<activity>.sampling_share`, one seeded draw per truck). The requirement is known at arrival. | Which trucks receive `sample` and `grade` service; sampler load; the mix of trucks in each queue |
+| O2 Is the approach single-file; can trucks pass? | Areas are unordered unless configured `single_file: true` (unchanged default). S1-S4 set the approach to single-file. | Physical blocking behind the front truck (`PHYSICAL_QUEUE_ORDER`) |
+| O3 Bypass around the sampler? | None unless declared (`truck_paths.bypasses`). A bypass lane holds no trucks: a truck uses it only when its target place is free, otherwise it waits where it is. | Whether unsampled trucks skip the approach queue and the sampler bay |
+| O4 Sampler location, probe bays, crew mobility | Separate upstream station (unchanged default). Co-location via `located_at` (weighbridge id) and `located_lanes` (probe bays). The sampler's `cap` = number of sampling units; a unit may serve any listed probe bay. | Which positions sampled trucks need; bay occupancy; sampler-unit utilisation |
+| O5 Holding space between sampler and weighbridge | As configured: a finite area, or none. With none, a truck keeps the sampler bay until a weighbridge bay is free. | Upstream blocking of the sampler |
+| O6 At a probe bay: sampling before, during or after weighing? | Sampling, then weighing, on the same bay, with no overlap. The overlap option is **not implemented** in this increment. | Bay occupancy per sampled truck (sampling + weighing) |
+| O7 Drive-through time of an unsampled truck through a sampler bay | Default 0 min (`pass_through` not configured). S1 tests use 0.5 min. | Sampler-bay occupancy by unsampled trucks |
+| O8 Where a truck waits for its grading result | Where `grade` sits in the configured path. Experiment: in the yard after weigh-in. Unsampled trucks skip `grade`. | Whether waiting for the result blocks a bay |
+| O9 Travel times between positions | Zero (unchanged). | All times (lower bounds) |
+| O10 Who controls order: staff or physical order? | Physical order plus the configured queue policy; no discretionary calling forward. | Order of service within physical constraints |
+| O11 Priority of sampled or unsampled trucks | None. The queue policy treats both classes alike (M-FF in the experiment, stated). | Waiting by class |

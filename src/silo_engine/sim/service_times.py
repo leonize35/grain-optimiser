@@ -40,7 +40,9 @@ class StochasticServiceTimes:
 
     def duration_ms(self, truck_id: str, step: str, equipment_id: str) -> int:
         e = self._equipment[equipment_id]
-        params = e.tip if step == "tip" else e.setup if step == "load" else e.time
+        if step == "pass" and not e.pass_through:
+            return 0  # drive-through of a sampler bay: no time unless configured
+        params = e.tip if step == "tip" else e.setup if step == "load" else e.pass_through if step == "pass" else e.time
         if not params or len(params) < 3:
             raise ValueError(f"{e.name or e.id} has no [min, most likely, max] time for '{step}'")
         u = Stream(self.seed, "service", truck_id, step).uniform()

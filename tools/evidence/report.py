@@ -16,7 +16,7 @@ sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
 from silo_engine.experiments.runner import ci  # noqa: E402
 
 # Reference categorical palette (dataviz skill, slots in fixed order) and text tokens, light surface for print.
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 SURFACE, INK, INK2, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#e4e3df"
 POLICY_ORDER = ["M-FF", "M-PT", "M-SF"]
 SITE_ORDER = ["A", "B", "C"]
@@ -33,7 +33,7 @@ def fmt(i, digits=1):
 
 
 def grouped_bars(path: Path, title: str, subtitle: str, ylabel: str, data: dict, groups: list[str], series: list[str],
-                 labels: dict[str, str]) -> None:
+                 labels: dict[str, str], group_label: str = "Site {}", legend_width: int | None = None) -> None:
     """Static grouped bar chart with 95% CI whiskers. data[(group, series)] = Interval. One axis, thin bars with
     rounded data ends, 2px gaps, recessive grid, legend + direct value labels on bar tops, <title> per bar for hover."""
     W, H, L, R, T, B = 720, 380, 64, 16, 70, 56
@@ -64,18 +64,18 @@ def grouped_bars(path: Path, title: str, subtitle: str, ylabel: str, data: dict,
             r = min(4, bw / 2)
             out.append(f'<path d="M{x:.1f},{yb:.1f} V{yt + r:.1f} Q{x:.1f},{yt:.1f} {x + r:.1f},{yt:.1f} H{x + bw - r:.1f} '
                        f'Q{x + bw:.1f},{yt:.1f} {x + bw:.1f},{yt + r:.1f} V{yb:.1f} Z" fill="{SERIES[si]}">'
-                       f'<title>Site {g}, {labels[s]}: {fmt(i, 2)} (n={i.n})</title></path>')
+                       f'<title>{group_label.format(g)}, {labels[s]}: {fmt(i, 2)} (n={i.n})</title></path>')
             if i.half_width:
                 cx = x + bw / 2
                 out.append(f'<line x1="{cx:.1f}" x2="{cx:.1f}" y1="{y(i.mean + i.half_width):.1f}" y2="{y(max(0, i.mean - i.half_width)):.1f}" stroke="{INK}" stroke-width="1.5"/>')
             out.append(f'<text x="{x + bw / 2:.1f}" y="{y(i.mean + (i.half_width or 0)) - 5:.1f}" font-size="10" fill="{INK2}" text-anchor="middle">{i.mean:.0f}</text>')
-        out.append(f'<text x="{L + gi * gw + gw / 2:.1f}" y="{H - B + 20}" font-size="12" fill="{INK}" text-anchor="middle">Site {g}</text>')
+        out.append(f'<text x="{L + gi * gw + gw / 2:.1f}" y="{H - B + 20}" font-size="12" fill="{INK}" text-anchor="middle">{group_label.format(g)}</text>')
     out.append(f'<line x1="{L}" x2="{W - R}" y1="{y(0):.1f}" y2="{y(0):.1f}" stroke="{INK2}" stroke-width="1"/>')
     lx = L
     for si, s in enumerate(series):
         out.append(f'<rect x="{lx}" y="{H - 20}" width="10" height="10" rx="2" fill="{SERIES[si]}"/>')
         out.append(f'<text x="{lx + 14}" y="{H - 11}" font-size="11" fill="{INK}">{labels[s]}</text>')
-        lx += 14 + 7 * len(labels[s]) + 18
+        lx += legend_width or (14 + 7 * len(labels[s]) + 18)
     out.append("</svg>")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(out) + "\n", encoding="utf-8")

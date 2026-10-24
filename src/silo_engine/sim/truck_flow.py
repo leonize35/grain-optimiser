@@ -77,8 +77,8 @@ from .routing import RoutePlanner
 from .service_times import ServiceTimes
 from .time import MS_PER_DAY, MS_PER_MINUTE, hm, m
 
-STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
-QUEUE_GROUP = {"sample": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
+STATION_TYPE = {"sample": "sampler", "weigh_in": "weighbridge", "weigh_out": "weighbridge", "pass": "sampler"}
+QUEUE_GROUP = {"sample": "sample", "pass": "sample", "grade": "grade", "weigh_in": "weigh", "weigh_out": "weigh",
                "tip": "tip", "intake": "intake", "move": "move", "load": "load"}
 NOT_YET_SUPPORTED: tuple[str, ...] = ()
 ACTIVITY_LABEL = {"unload": "Unloading", "load": "Loading", "weigh": "Weighbridge-only"}
@@ -380,6 +380,12 @@ class TruckFlowResult:
     loads: list[LoadRecord] = field(default_factory=list)
     dispatched_kg: int = 0  # grain loaded onto trucks during the run
     queue_policies: dict[str, str] = field(default_factory=dict)  # queue group -> policy used
+    # Sampler access: per truck (requires_sampling, pass_throughs, blocked_behind_ms, bypass_used); per configured
+    # area (time_average, peak, single_file); exits from single-file areas (time, area, truck, via_bypass).
+    truck_access: dict[str, dict] = field(default_factory=dict)
+    area_occupancy: dict[str, dict] = field(default_factory=dict)
+    single_file_exits: list[tuple] = field(default_factory=list)
+    single_file_log: list[tuple] = field(default_factory=list)  # (time, area, truck, "enter"/"exit", via bypass)
     lots: dict[str, LotFlow] = field(default_factory=dict)  # lot id -> tipping-to-storage record
     # Step 18: process losses, book inventory per bin, observations, stock event log, reconciliation per bin + "site".
     losses: list[LossRecord] = field(default_factory=list)
@@ -494,6 +500,22 @@ class TruckFlowModel:
         self._rechecks: set[tuple[str, int]] = set()
         self._flowing: dict[str, TransferRecord] = {}  # transfers whose grain is moving now
         self._completion: dict[str, Event] = {}  # transfer id -> its (re)scheduled completion event
+        # Sampler access (docs/SAMPLER_ACCESS_DESIGN.md).
+        self._single_file = {a.id for a in site.truck_areas if a.single_file}
+        self._area_order: dict[str, list[str]] = {a: [] for a in self._single_file}
+        self._in_area: dict[str, str] = {}
+        self._behind_since: dict[str, int] = {}  # truck -> when it started waiting behind another in a single-file area
+        self._access: dict[str, dict] = {}
+        self._area_occ = {a.id: [0, None, 0, 0] for a in site.truck_areas}  # count, last change, integral, peak
+        self._sf_exits: list[tuple] = []
+        self._sf_log: list[tuple] = []  # chronological single-file entries and exits
+        self._bypass = {(b.activity, b.from_): b.to for b in site.truck_bypasses}
+        self._target: dict[str, int] = {}  # truck -> index of the path element it is about to occupy
+        self._via_bypass: set[str] = set()
+        self._colocated = {e.id: (e.located_at, e.located_lanes) for e in site.equipment if e.type == "sampler" and e.located_at}
+        self._bay_held: dict[str, tuple] = {}  # truck -> (bay unit, bay reservation id) after co-located sampling
+        self._crew_res: dict[str, str] = {}
+        self._truck_by_id = {t.id: t for t in trucks}
         # Step 17: suspended transfers and loads (route held), and each running load's completion.
         self._suspended: dict[str, TransferRecord | LoadRecord] = {}
         self._load_end: dict[str, tuple[Event, int]] = {}  # load id -> (completion event, end time)
@@ -732,11 +754,24 @@ class TruckFlowModel:
         """Ask for the next element of the truck's path (a waiting area or a step)."""
         rec = self.records[truck.id]
         path = self.paths[truck.activity]
-        nxt = self._position[truck.id] + 1
+        pos = self._position[truck.id]
+        nxt = pos + 1
+        via_bypass = False
+        if not self._needs_sampling(truck):
+            to = self._bypass.get((truck.activity, path[pos])) if pos >= 0 else None
+            if to is not None and path.index(to) > nxt:
+                nxt, via_bypass = path.index(to), True
+            # services this truck does not need are skipped; a separate sampler bay on the path is still traversed
+            while nxt < len(path) and (path[nxt] == "grade" or (path[nxt] == "sample" and self._colocated)):
+                nxt += 1
         if nxt >= len(path):
             self._leave_location(truck)
             rec.departed = self.cal.now
             return
+        self._target[truck.id] = nxt
+        if via_bypass:
+            self._via_bypass.add(truck.id)
+            self._access_of(truck)["bypass_used"] = True
         element = path[nxt]
         if element in self._area_caps:
             held = self._next_area_held.pop(truck.id, None)
@@ -744,8 +779,10 @@ class TruckFlowModel:
                 self._move_into_area(truck, held)
             else:
                 self._submit_for(truck, f"enter:{element}", f"{truck.id}/enter:{element}", "move",
-                                 lambda now, tr=truck, a=element: self._try_enter(tr, a))
+                                 self._guarded(truck, lambda now, tr=truck, a=element: self._try_enter(tr, a)))
             return
+        if element == "sample" and not self._needs_sampling(truck):
+            element = "pass"  # physically traverses a separate sampler bay: occupies it without sampling service
         step_rec = StepRecord(element, self.cal.now)
         rec.steps.append(step_rec)
         if element == "grade":
@@ -757,8 +794,130 @@ class TruckFlowModel:
                 self._awaiting_result[truck.id] = sample_id
             return
         handler = {"tip": self._try_tip, "load": self._try_load}.get(element, self._try_truck_station)
+        if element == "sample" and self._colocated:
+            handler = self._try_colocated_sample
         attempt = lambda now, tr=truck, sr=step_rec, h=handler: h(tr, sr)  # noqa: E731
-        self._submit_for(truck, element, f"{truck.id}/{element}", QUEUE_GROUP[element], attempt)
+        self._submit_for(truck, element, f"{truck.id}/{element}", QUEUE_GROUP[element], self._guarded(truck, attempt))
+
+    # ---- sampler access (docs/SAMPLER_ACCESS_DESIGN.md) ----
+    def _needs_sampling(self, truck: ScriptedTruck) -> bool:
+        if truck.requires_sampling is not None:
+            return truck.requires_sampling
+        return "sample" in getattr(self.site.sequences, truck.activity)
+
+    def _access_of(self, truck: ScriptedTruck) -> dict:
+        return self._access.setdefault(truck.id, {"requires_sampling": self._needs_sampling(truck), "pass_throughs": 0,
+                                                  "blocked_behind_ms": 0, "bypass_used": False})
+
+    def _guarded(self, truck: ScriptedTruck, attempt):
+        """Physical order: a truck in a single-file area may move on only from the front, unless it leaves through
+        a declared bypass. This is a feasibility rule of the layout; no queue policy can override it."""
+        area = self._in_area.get(truck.id)
+        if area not in self._single_file or truck.id in self._via_bypass:
+            return attempt
+
+        def guarded(now):
+            order = self._area_order[area]
+            if order and order[0] != truck.id:
+                return [WaitReason("PHYSICAL_QUEUE_ORDER", area, f"behind {order[0]} in single-file {area}")]
+            return attempt(now)
+        return guarded
+
+    def _area_change(self, area: str, delta: int) -> None:
+        occ = self._area_occ.get(area)
+        if occ is None:
+            return
+        now = self.cal.now
+        if occ[1] is not None:
+            occ[2] += occ[0] * (now - occ[1])
+        occ[0] += delta
+        occ[1] = now
+        occ[3] = max(occ[3], occ[0])
+
+    def _enter_area(self, truck: ScriptedTruck, area: str) -> None:
+        self._in_area[truck.id] = area
+        self._area_change(area, +1)
+        if area in self._single_file:
+            order = self._area_order[area]
+            order.append(truck.id)
+            self._sf_log.append((self.cal.now, area, truck.id, "enter", False))
+            if order[0] != truck.id and not (not self._needs_sampling(truck) and (truck.activity, area) in self._bypass):
+                self._behind_since[truck.id] = self.cal.now
+
+    def _exit_area(self, truck: ScriptedTruck) -> None:
+        area = self._in_area.pop(truck.id, None)
+        if area is None:
+            return
+        self._area_change(area, -1)
+        if area in self._single_file:
+            order = self._area_order[area]
+            was_front = order and order[0] == truck.id
+            self._sf_exits.append((self.cal.now, area, truck.id, truck.id in self._via_bypass))
+            self._sf_log.append((self.cal.now, area, truck.id, "exit", truck.id in self._via_bypass))
+            order.remove(truck.id)
+            start = self._behind_since.pop(truck.id, None)
+            if start is not None:  # left from behind (bypass): stop counting
+                self._access_of(truck)["blocked_behind_ms"] += self.cal.now - start
+            if was_front and order and order[0] in self._behind_since:
+                front = self._truck_by_id[order[0]]
+                self._access_of(front)["blocked_behind_ms"] += self.cal.now - self._behind_since.pop(front.id)
+        self._via_bypass.discard(truck.id)
+
+    def _try_colocated_sample(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
+        """Sampling at a weighbridge bay: the bay (the truck's position) and a sampling unit are reserved together;
+        the unit is released when sampling ends, the bay is kept for weighing in."""
+        if not self._serving(self.cal.now):
+            return self._closed()
+        wb, lanes = next(iter(self._colocated.values()))
+        bays = [u for u in self.units if u.equipment_id == wb and (lanes is None or u.lane in lanes)]
+        crews = [u for u in self.units if u.type == "sampler"]
+        bay = next((u for u in bays if self.ledger.lane_free(u.resource)), None)
+        crew = next((u for u in crews if self.ledger.lane_free(u.resource)), None)
+        if bay is None or crew is None:
+            busy = [u.resource for u in (bays if bay is None else crews)]
+            return [WaitReason("EQUIPMENT_BUSY", ",".join(busy), f"{', '.join(busy)} busy")]
+        bay_res, crew_res = f"{truck.id}/sample-bay", f"{truck.id}/sample-unit"
+        reasons = self.ledger.try_reserve_many([(bay_res, [LaneClaim(bay.resource)]), (crew_res, [LaneClaim(crew.resource)])],
+                                               self.cal.now)
+        if reasons:
+            return reasons
+        self._occupy_station(truck, bay_res, step_rec)
+        self._bay_held[truck.id] = (bay, bay_res)
+        self._crew_res[truck.id] = crew_res
+        step_rec.unit, step_rec.started = bay.resource, self.cal.now
+        end = self.cal.now + self.times.duration_ms(truck.id, "sample", crew.equipment_id)
+        self.cal.schedule(end, RELEASE, lambda c: self._colocated_sample_done(truck, step_rec),
+                          f"{truck.id} sampled at {bay.resource}")
+        return []
+
+    def _colocated_sample_done(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
+        self.ledger.release(self._crew_res.pop(truck.id), self.cal.now, "completed")
+        self._truck_service_done(truck, step_rec)
+
+    def _weigh_on_held_bay(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
+        """Weighing in on the bay the truck already holds after co-located sampling (no new bay reservation)."""
+        bay, bay_res = self._bay_held[truck.id]
+        path = self.paths[truck.activity]
+        after = self._target.get(truck.id, self._position[truck.id] + 1) + 1
+        if (self.site.deadlock_prevention == "reserve_next_space" and after < len(path)
+                and self._area_caps.get(path[after]) is not None):
+            self._area_count += 1
+            area_res = f"{truck.id}/area:{path[after]}#{self._area_count}"
+            reasons = self.ledger.try_reserve(area_res, [AreaClaim(path[after])], self.cal.now)
+            if reasons:
+                return reasons
+            self._next_area_held[truck.id] = area_res
+        del self._bay_held[truck.id]
+        prev = self._location[truck.id][1]
+        if prev is not None:
+            prev.left = self.cal.now
+        self._location[truck.id] = (bay_res, step_rec)
+        self._position[truck.id] = self._target.pop(truck.id, self._position[truck.id] + 1)
+        step_rec.unit, step_rec.started = bay.resource, self.cal.now
+        end = self.cal.now + self.times.duration_ms(truck.id, "weigh_in", bay.equipment_id)
+        self.cal.schedule(end, RELEASE, lambda c: self._truck_service_done(truck, step_rec),
+                          f"{truck.id} finishes weigh_in at {bay.equipment_id}")
+        return []
 
     def _submit_for(self, truck: ScriptedTruck, step: str, request_id: str, group: str, attempt) -> None:
         """Queue a truck's request; record its queue-entry order and show the policy read-only truck facts."""
@@ -775,6 +934,7 @@ class TruckFlowModel:
         loc = self._location.get(truck.id)
         if loc is None:
             return
+        self._exit_area(truck)
         res_id, step_rec = loc
         self.ledger.release(res_id, self.cal.now, "completed")
         if step_rec is not None:
@@ -784,7 +944,9 @@ class TruckFlowModel:
     def _move_into_area(self, truck: ScriptedTruck, res_id: str) -> None:
         self._leave_location(truck)
         self._location[truck.id] = (res_id, None)
-        self._position[truck.id] += 1
+        area = self.paths[truck.activity][self._target.get(truck.id, self._position[truck.id] + 1)]
+        self._position[truck.id] = self._target.pop(truck.id, self._position[truck.id] + 1)
+        self._enter_area(truck, area)
         self._advance(truck)
 
     def _try_enter(self, truck: ScriptedTruck, area: str) -> list[WaitReason]:
@@ -803,7 +965,7 @@ class TruckFlowModel:
         truck can always move on when the service ends."""
         items = [(res_id, claims)] + list(extra or [])
         path = self.paths[truck.activity]
-        after = self._position[truck.id] + 2
+        after = self._target.get(truck.id, self._position[truck.id] + 1) + 1
         area_res = None
         if (self.site.deadlock_prevention == "reserve_next_space" and after < len(path)
                 and self._area_caps.get(path[after]) is not None):
@@ -818,7 +980,7 @@ class TruckFlowModel:
     def _occupy_station(self, truck: ScriptedTruck, res_id: str, step_rec: StepRecord) -> None:
         self._leave_location(truck)
         self._location[truck.id] = (res_id, step_rec)
-        self._position[truck.id] += 1
+        self._position[truck.id] = self._target.pop(truck.id, self._position[truck.id] + 1)
 
     def _try_lane(self, reservation_id: str, kind: str, step: str) -> tuple[_Unit | None, list[WaitReason]]:
         """A lane for a sample (grading); samples do not occupy truck places."""
@@ -833,6 +995,8 @@ class TruckFlowModel:
     def _try_truck_station(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
         if not self._serving(self.cal.now):
             return self._closed()
+        if step_rec.step == "weigh_in" and truck.id in self._bay_held:
+            return self._weigh_on_held_bay(truck, step_rec)
         res_id = f"{truck.id}/{step_rec.step}"
         compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)]
         for u in compatible:
@@ -843,6 +1007,8 @@ class TruckFlowModel:
                 return got  # the next area is full: the same for every lane
             self._occupy_station(truck, res_id, step_rec)
             step_rec.unit, step_rec.started = u.resource, self.cal.now
+            if step_rec.step == "pass":
+                self._access_of(truck)["pass_throughs"] += 1
             end = self.cal.now + self.times.duration_ms(truck.id, step_rec.step, u.equipment_id)
             self.cal.schedule(end, RELEASE, lambda c: self._truck_service_done(truck, step_rec),
                               f"{truck.id} finishes {step_rec.step} at {u.equipment_id}")
@@ -852,7 +1018,7 @@ class TruckFlowModel:
 
     def _truck_service_done(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
         step_rec.finished = self.cal.now  # the truck keeps the lane until it can move on
-        if step_rec.step == "sample":
+        if step_rec.step == "sample" and "grade" in getattr(self.site.sequences, truck.activity):
             sample_id = f"S-{truck.id}"
             self._submit_for(truck, "grade", f"{sample_id}/grade", "grade", lambda now: self._try_grade(sample_id, truck))
         self._leave_or_send_away(truck)
@@ -1280,8 +1446,31 @@ class TruckFlowModel:
             summary=self._summaries(), received_kg=self._tipped_kg, loads=list(self.loads),
             dispatched_kg=self._dispatched_kg, queue_policies=dict(self.queue_policies),
             policy_source=self.policy_source, lots=self._lot_flows(), losses=list(self.losses),
+            truck_access=self._access_report(), area_occupancy=self._occupancy_report(),
+            single_file_exits=list(self._sf_exits), single_file_log=list(self._sf_log),
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(), **self._fairness())
+
+    def _access_report(self) -> dict[str, dict]:
+        now = min(self.cal.now, self._horizon_end)
+        out = {}
+        for t in self.trucks:
+            if t.id not in self.records:
+                continue
+            a = dict(self._access_of(t))
+            if t.id in self._behind_since:  # still waiting behind another truck at the end
+                a["blocked_behind_ms"] += max(0, now - self._behind_since[t.id])
+            out[t.id] = a
+        return out
+
+    def _occupancy_report(self) -> dict[str, dict]:
+        start = self.windows[0][0]
+        end = max(start + 1, min(self.cal.now, self._horizon_end))
+        out = {}
+        for area, (count, last, integral, peak) in self._area_occ.items():
+            total = integral + (count * (end - last) if last is not None else 0)
+            out[area] = {"time_average": total / (end - start), "peak": peak, "single_file": area in self._single_file}
+        return out
 
     def _lot_flows(self) -> dict[str, LotFlow]:
         out = {}

@@ -46,6 +46,13 @@ def _attributes(site: SiteConfig, act: str, d: ActivityDemand, stream: Stream) -
     return commodity, kg, grade
 
 
+def _sampling(seed: int, d, truck_id: str) -> bool | None:
+    """Sampler access: one draw per truck from its own stream (identical across layouts); None without a share."""
+    if d.sampling_share is None:
+        return None
+    return Stream(seed, "sampling", truck_id).uniform() < d.sampling_share
+
+
 def generate_arrivals(site: SiteConfig, seed: int, days: int = 1, demand_factor: float = 1.0) -> list[ScriptedTruck]:
     trucks: list[ScriptedTruck] = []
     open_min, close_min = _minutes(site.hours.open), _minutes(site.hours.close)
@@ -76,12 +83,13 @@ def generate_arrivals(site: SiteConfig, seed: int, days: int = 1, demand_factor:
                     index += 1
                     commodity, kg, grade = _attributes(site, act, d, Stream(seed, "truck", act, day + 1, index))
                     arrive = day * MS_PER_DAY + round(t * MS_PER_MINUTE)
-                    trucks.append(ScriptedTruck(f"{PREFIX[act]}{day + 1}-{index:03d}", act, arrive, commodity, kg,
-                                                False, grade))
+                    tid = f"{PREFIX[act]}{day + 1}-{index:03d}"
+                    trucks.append(ScriptedTruck(tid, act, arrive, commodity, kg, False, grade, _sampling(seed, d, tid)))
         for n in range(1, getattr(site.initial.queue, act) + 1):
             commodity, kg, grade = _attributes(site, act, d, Stream(seed, "backlog", act, n))
-            trucks.append(ScriptedTruck(f"{PREFIX[act]}B-{n:02d}", act, m(Decimal(str(open_min))), commodity, kg,
-                                        True, grade))
+            tid = f"{PREFIX[act]}B-{n:02d}"
+            trucks.append(ScriptedTruck(tid, act, m(Decimal(str(open_min))), commodity, kg, True, grade,
+                                        _sampling(seed, d, tid)))
     order = {a: i for i, a in enumerate(ACTIVITIES)}
     trucks.sort(key=lambda t: (t.arrive_ms, not t.backlog, order[t.activity], t.id))
     return trucks

@@ -17,7 +17,10 @@ Checks:
 - stock (docs/STOCK_ADJUSTMENTS.md): physical equations include process losses, which may take only uncommitted
   stock; the book is rebuilt from its postings; the reconciliation's components are rebuilt and the unexplained part
   must be 0; observations must match the replayed physical and book stock at their time. Book corrections and
-  observations do not appear in the physical equations, so one that changed physical stock shows as a bin imbalance.
+  observations do not appear in the physical equations, so one that changed physical stock shows as a bin imbalance;
+- truck access (docs/SAMPLER_ACCESS_DESIGN.md): a truck that needs no sampling receives no sampling or grading; no
+  two trucks occupy one station bay at the same time; co-located sampling never uses more sampling units than
+  exist; trucks leave a single-file area in the order they entered it, except through a declared bypass.
 
 Conveyors and elevators hold no inventory in this model: grain still in transit is counted in its source pit until
 the transfer ends (the same as the prototype).
@@ -143,6 +146,7 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
     if hasattr(result, "book"):
         _audit_stock(a, site, opening_bins, done_t, done_l, losses, result)
     _audit_outages(a, site, [*transfers, *loads])
+    _audit_access(a, site, trucks, result)
     _audit_segments(a, eq, transfers, loads, lot_commodity, truck)
     a.checked = {"lots": len(lot_kg), "transfers": len(transfers), "loads": len(loads), "bins": len(opening_bins),
                  "pits": len(result.pits)}
@@ -322,3 +326,44 @@ def _audit_stock(a, site, opening_bins, done_t, done_l, losses, result) -> None:
                            rec.unexplained_kg) != expected:
             a.problems.append(f"reconciliation {b}: reported {rec} differs from records {expected} "
                               f"(unexplained per records {unexplained} kg)")
+
+
+def _audit_access(a, site, trucks, result) -> None:
+    truck = {t.id: t for t in trucks}
+    needs = {t.id: (t.requires_sampling if t.requires_sampling is not None else "sample" in getattr(site.sequences, t.activity))
+             for t in trucks}
+    occupancy = defaultdict(list)  # station bay -> [(start, end, truck)]
+    sampling = []
+    for rec in result.records:
+        for s in rec.steps:
+            if s.step in ("sample", "grade") and not needs.get(rec.truck_id, True):
+                a.problems.append(f"{rec.truck_id} needs no sampling but has a {s.step} step")
+            if s.unit and "#" in s.unit and s.started is not None:
+                end = s.left if s.left is not None else (s.finished if s.finished is not None and rec.departed is not None else INF)
+                occupancy[s.unit].append((s.started, end, rec.truck_id))
+            if s.step == "sample" and s.started is not None and s.finished is not None:
+                sampling.append((s.started, s.finished))
+    for unit, spans in occupancy.items():
+        spans.sort()
+        for (s1, e1, t1), (s2, e2, t2) in zip(spans, spans[1:]):
+            if t1 != t2 and s2 < e1:
+                a.problems.append(f"bay {unit}: {t1} and {t2} occupy it together at {s2}")
+    located = [e for e in site.equipment if e.type == "sampler" and e.located_at]
+    if located:
+        units = sum(int(e.cap or 1) for e in located)
+        for t, _ in sampling:
+            busy = sum(1 for s_, f_ in sampling if s_ <= t < f_)
+            if busy > units:
+                a.problems.append(f"{busy} co-located samplings at {t} with {units} sampling unit(s)")
+    # Single-file areas: replay entries and exits in occurrence order; a normal exit must be the front truck.
+    queues = defaultdict(list)
+    for t, area, tid, kind, via in getattr(result, "single_file_log", []):
+        q = queues[area]
+        if kind == "enter":
+            q.append(tid)
+        elif tid not in q:
+            a.problems.append(f"single-file {area}: {tid} left at {t} without having entered")
+        else:
+            if not via and q[0] != tid:
+                a.problems.append(f"single-file {area}: {tid} left at {t} from behind {q[0]} without a bypass")
+            q.remove(tid)

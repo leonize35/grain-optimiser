@@ -51,6 +51,11 @@ class Equipment(_Model):
     cap: float | None = None  # trucks served at once (sampler, grader, weighbridge)
     time: list[float] | None = None  # triangular [min, mode, max] minutes
     moves: Literal["in", "out", "both"] | None = None  # weighbridge direction; None means both
+    # Sampler access (docs/SAMPLER_ACCESS_DESIGN.md): drive-through time of a truck that needs no sampling but must
+    # physically pass a sampler bay; a sampler located at weighbridge bays (probe) instead of its own station.
+    pass_through: list[float] | None = None  # triangular [min, mode, max] minutes; None = 0
+    located_at: str | None = None  # weighbridge id
+    located_lanes: list[int] | None = None  # bays (lane numbers) of that weighbridge with a probe
     reject: float | None = None  # grader rejection probability
     cap_t: float | None = Field(default=None, alias="capT")  # tonnes (hopper pit, bin)
     rate: float | None = None  # tonnes per hour
@@ -101,6 +106,7 @@ class ActivityDemand(_Model):
     payload: list[float] | None = None  # triangular [min, mode, max] tonnes
     mix: dict[str, float] = {}
     grade_mix: dict[str, dict[str, float]] = {}  # R4: per graded commodity, share of each grade
+    sampling_share: float | None = Field(default=None, ge=0, le=1)  # share of trucks needing sampling (None = all)
 
 
 class Demand(_Model):
@@ -209,6 +215,16 @@ class TruckArea(_Model):
     id: str
     name: str
     capacity: int | None = Field(default=None, ge=1)
+    single_file: bool = False  # ordered lane: only the front truck may move on (physical order, not policy)
+
+
+class TruckBypass(_Model):
+    """A physical bypass: a truck that needs no sampling may go from area `from` straight to path element `to`,
+    leaving `from` from any position. Only declared bypasses exist."""
+    activity: Literal["unload", "load", "weigh"]
+    from_: str = Field(alias="from")
+    to: str
+    for_: Literal["not_sampled"] = Field(default="not_sampled", alias="for")
 
 
 class TruckPaths(_Model):
@@ -247,6 +263,7 @@ class SiteConfig(_Model):
     fairness: FairnessReporting = FairnessReporting()
     queue_policies: QueuePolicies | None = None  # None: the run's argument, else feasible_first
     outages: list[Outage] = []  # scheduled equipment unavailability (step 17)
+    truck_bypasses: list[TruckBypass] = []  # sampler access (declared physical bypasses)
     # Step 18: stock events, opening book inventory (default: equal to physical), reporting tolerance, authorities.
     stock_events: list[StockEvent] = []
     opening_book: list[OpeningBook] = []
@@ -274,7 +291,17 @@ def load_site_config(raw: dict[str, Any]) -> SiteConfig:
 def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
     data = cfg.model_dump(mode="json", by_alias=True)
-    for added, unset in (("queue_policies", None), ("outages", []), ("stock_events", []), ("opening_book", []),
+    for e in data.get("equipment", []):  # sampler-access fields: hash as before when unset
+        for k in ("pass_through", "located_at", "located_lanes"):
+            if e.get(k) is None:
+                e.pop(k, None)
+    for a in data.get("truck_areas", []):
+        if a.get("single_file") is False:
+            a.pop("single_file")
+    for d in (data.get("demand") or {}).values():
+        if isinstance(d, dict) and d.get("sampling_share") is None:
+            d.pop("sampling_share", None)
+    for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),
                          ("reconciliation", {"tolerance_t": None, "tolerance_fraction": None}),
                          ("authorised_by", None)):  # not set: hash as before the setting existed
         if data.get(added) == unset:

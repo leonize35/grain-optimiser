@@ -151,6 +151,37 @@ def _validate_truck_paths(site: SiteConfig, result: RulesResult) -> None:
         if steps != list(sequence):
             result.errors.append(Issue(f"The {label} truck path's steps ({', '.join(steps)}) do not match the "
                                        f"{label} sequence ({', '.join(sequence)})."))
+    _validate_access(site, result, area_ids)
+
+
+def _validate_access(site: SiteConfig, result: RulesResult, area_ids: list[str]) -> None:
+    """Sampler access: declared bypasses run forward along a configured path from an area; a sampler at a
+    weighbridge names an existing weighbridge and bays, and sampling is immediately followed by weighing in."""
+    by_id = {e.id: e for e in site.equipment}
+    for b in site.truck_bypasses:
+        path = getattr(site.truck_paths, b.activity) or []
+        if b.from_ not in area_ids or b.from_ not in path or b.to not in path:
+            result.errors.append(Issue(f"The {b.activity} bypass from {b.from_} to {b.to} must start at a waiting area "
+                                       "on the configured truck path and end at an element of it."))
+        elif path.index(b.to) <= path.index(b.from_):
+            result.errors.append(Issue(f"The {b.activity} bypass from {b.from_} to {b.to} must lead forward along the path."))
+    located = [e for e in site.equipment if e.type == "sampler" and e.located_at is not None]
+    for e in located:
+        wb = by_id.get(e.located_at)
+        if wb is None or wb.type != "weighbridge":
+            result.errors.append(Issue(f"Sampler {e.name or e.id}: located_at {e.located_at} is not a weighbridge."))
+            continue
+        lanes = e.located_lanes if e.located_lanes is not None else list(range(int(wb.cap or 1)))
+        if not lanes or any(not 0 <= n < int(wb.cap or 1) for n in lanes):
+            result.errors.append(Issue(f"Sampler {e.name or e.id}: probe lane(s) {lanes} do not exist on {wb.name or wb.id} "
+                                       f"({int(wb.cap or 1)} lane(s))."))
+        for act, label in PATH_LABEL.items():
+            seq = list(getattr(site.sequences, act))
+            path = getattr(site.truck_paths, act) or seq
+            if "sample" in path and (path.index("sample") + 1 >= len(path) or path[path.index("sample") + 1] != "weigh_in"):
+                result.errors.append(Issue(f"Sampling at the weighbridge: the {label} path must weigh in directly after sampling."))
+    if located and len(located) != len([e for e in site.equipment if e.type == "sampler"]):
+        result.errors.append(Issue("Either every sampler is located at a weighbridge or none is."))
 
 
 def _clock(hours: float) -> str:

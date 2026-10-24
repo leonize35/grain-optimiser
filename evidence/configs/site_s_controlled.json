@@ -1,0 +1,29 @@
+{
+ "id": "site_s_controlled",
+ "name": "Site S (synthetic, controlled): truck access isolated from grain handling",
+ "version": 1,
+ "hours": {"open": 6, "close": 18, "overtime": 2},
+ "commodities": [{"id": "YM", "name": "Yellow maize"}],
+ "equipment": [
+  {"id": "S1", "type": "sampler", "name": "Sampler", "cap": 1, "time": [3, 4, 6]},
+  {"id": "G1", "type": "grader", "name": "Grading lab", "cap": 4, "time": [5, 8, 12]},
+  {"id": "WB1", "type": "weighbridge", "name": "Weighbridge", "cap": 2, "time": [1.5, 2, 3]},
+  {"id": "H1", "type": "hopper", "name": "Hopper 1", "capT": 1000, "rate": 2000, "tip": [1, 1.5, 2], "commodities": ["YM"]},
+  {"id": "H2", "type": "hopper", "name": "Hopper 2", "capT": 1000, "rate": 2000, "tip": [1, 1.5, 2], "commodities": ["YM"]},
+  {"id": "H3", "type": "hopper", "name": "Hopper 3", "capT": 1000, "rate": 2000, "tip": [1, 1.5, 2], "commodities": ["YM"]},
+  {"id": "H4", "type": "hopper", "name": "Hopper 4", "capT": 1000, "rate": 2000, "tip": [1, 1.5, 2], "commodities": ["YM"]},
+  {"id": "C1", "type": "conveyor", "name": "Line 1", "rate": 2000, "changeover": 0},
+  {"id": "C2", "type": "conveyor", "name": "Line 2", "rate": 2000, "changeover": 0},
+  {"id": "C3", "type": "conveyor", "name": "Line 3", "rate": 2000, "changeover": 0},
+  {"id": "C4", "type": "conveyor", "name": "Line 4", "rate": 2000, "changeover": 0},
+  {"id": "B1", "type": "bin", "name": "Bin 1", "capT": 100000, "commodities": ["YM"]},
+  {"id": "B2", "type": "bin", "name": "Bin 2", "capT": 100000, "commodities": ["YM"]},
+  {"id": "B3", "type": "bin", "name": "Bin 3", "capT": 100000, "commodities": ["YM"]},
+  {"id": "B4", "type": "bin", "name": "Bin 4", "capT": 100000, "commodities": ["YM"]}
+ ],
+ "edges": [["H1", "C1"], ["C1", "B1"], ["H2", "C2"], ["C2", "B2"], ["H3", "C3"], ["C3", "B3"], ["H4", "C4"], ["C4", "B4"]],
+ "sequences": {"unload": ["sample", "grade", "weigh_in", "tip", "weigh_out"], "load": [], "weigh": []},
+ "demand": {"unload": {"daily": 130, "payload": [28, 32, 36], "mix": {"YM": 1},
+                       "profile": [0, 0, 0, 0, 0, 0, 5, 8, 10, 10, 9, 8, 8, 9, 10, 10, 8, 5, 0, 0, 0, 0, 0, 0]}},
+ "initial": {"queue": {"unload": 0, "load": 0, "weigh": 0}}
+}

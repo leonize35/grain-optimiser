@@ -3,6 +3,8 @@
   python tools/evidence_run.py build [--quick] [--no-tests]   write evidence/out/paper2-v1
   python tools/evidence_run.py check                          rebuild and compare deterministic outputs
   python tools/evidence_run.py digest '<cell json>'           run one cell, print its result digest
+  python tools/evidence_run.py build-sampling                 write evidence/out/paper2-ext-sampling-v1
+  python tools/evidence_run.py check-sampling                 rebuild that extension and compare
 """
 import json
 import sys
@@ -17,6 +19,18 @@ OUT = ROOT / "evidence" / "out" / PACKAGE_ID
 
 
 def main(argv: list[str]) -> int:
+    if argv and argv[0] in ("build-sampling", "check-sampling"):
+        from tools.evidence import sampling_ext
+        ext = ROOT / "evidence" / "out" / sampling_ext.PACKAGE_ID
+        if argv[0] == "build-sampling":
+            v = sampling_ext.build(ext)
+            print(json.dumps(v))
+            return 0 if v["accepted"] else 1
+        report = sampling_ext.check(ext)
+        (ROOT / "evidence" / "out" / f"{sampling_ext.PACKAGE_ID}-reproduction-check.json").write_text(
+            json.dumps(report, indent=1) + "\n", encoding="utf-8")
+        print(json.dumps(report, indent=1))
+        return 0 if report["identical"] else 1
     if not argv or argv[0] not in ("build", "check", "digest"):
         print(__doc__)
         return 2
