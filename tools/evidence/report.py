@@ -39,8 +39,10 @@ def grouped_bars(path: Path, title: str, subtitle: str, ylabel: str, data: dict,
     W, H, L, R, T, B = 720, 380, 64, 16, 70, 56
     pw, ph = W - L - R, H - T - B
     top = max((i.mean + (i.half_width or 0)) for i in data.values() if i.mean is not None) * 1.12
-    step = 10 ** max(0, len(str(int(top))) - 1)
-    ticks = [k * step for k in range(0, int(top // step) + 2) if k * step <= top]
+    raw_step = top / 5
+    mag = 10 ** (len(str(int(raw_step))) - 1) if raw_step >= 1 else 1
+    step = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw_step)
+    ticks = [k * step for k in range(0, int(top // step) + 1)]
     y = lambda v: T + ph - ph * v / top  # noqa: E731
     gw = pw / len(groups)
     bw = min(34, (gw - 28) / len(series) - 2)
@@ -199,6 +201,9 @@ def main(pkg: Path) -> None:
            "Policy mappings: M-FF feasible-first in every queue (engine default); M-PT strict FIFO at the hopper, "
            "feasible-first elsewhere (prototype-equivalent); M-SF strict FIFO in every queue including transfers "
            "(stress case, not representative practice).", ""]
+    discussion = ROOT / "docs" / "evidence" / "paper2_discussion.md"  # hand-written interpretation, appended
+    if discussion.exists():
+        md += ["", discussion.read_text(encoding="utf-8")]
     out = ROOT / "docs" / "evidence" / "PAPER2_RESULTS.md"
     out.write_text("\n".join(md) + "\n", encoding="utf-8")
     print(f"wrote {out} and figures (manifest sha256 {msha[:16]}…)")

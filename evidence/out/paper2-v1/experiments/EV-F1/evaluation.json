@@ -1,0 +1,34 @@
+{
+ "accepted": true,
+ "claim": "Every evidence configuration passes the validators",
+ "configs": {
+  "A": {
+   "config_hash": "e214e4680b9a3789de055c9b195e6471574d782c08a2dc16fe221c561dd15aec",
+   "file": "evidence/configs/site_a.json",
+   "prototype_validate_errors": 0,
+   "prototype_validate_ok": true,
+   "rules_errors": []
+  },
+  "B": {
+   "config_hash": "f8a22f2f35f4a5a5439d45ece26033782780ed9a705b32f7ca0b90269dc4a8db",
+   "file": "evidence/configs/site_b.json",
+   "prototype_validate_errors": 0,
+   "prototype_validate_ok": true,
+   "rules_errors": []
+  },
+  "C": {
+   "config_hash": "56712a9a8716ebd32e5941036fa9c37e7f1fd9f7bb32843e33b97a0d681be9c3",
+   "file": "evidence/configs/site_c.json",
+   "prototype_validate_errors": 0,
+   "prototype_validate_ok": true,
+   "rules_errors": []
+  },
+  "C-trap": {
+   "config_hash": "37d5d3dd70dc8fbf9b0ae1f12dd35fc41024f55a9f278c622d183bfe67f979dd",
+   "file": "evidence/configs/site_c_segregation_trap.json",
+   "prototype_validate_errors": 0,
+   "prototype_validate_ok": true,
+   "rules_errors": []
+  }
+ }
+}

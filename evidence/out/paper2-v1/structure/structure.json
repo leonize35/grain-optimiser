@@ -1,0 +1,648 @@
+{
+ "A": {
+  "config_hash": "e214e4680b9a3789de055c9b195e6471574d782c08a2dc16fe221c561dd15aec",
+  "connections": 15,
+  "equipment_by_type": {
+   "bin": 4,
+   "conveyor": 4,
+   "elevator": 1,
+   "grader": 1,
+   "hopper": 2,
+   "loadpoint": 1,
+   "sampler": 1,
+   "weighbridge": 1
+  },
+  "equipment_total": 15,
+  "graded_commodities": [],
+  "grain_compatibility": {
+   "SB": {
+    "bins": [
+     "B4"
+    ],
+    "hoppers": [
+     "H2"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "H2": [
+      "B4"
+     ]
+    }
+   },
+   "WM": {
+    "bins": [
+     "B2",
+     "B3"
+    ],
+    "hoppers": [
+     "H1",
+     "H2"
+    ],
+    "min_reachable_bins": 2,
+    "reachable_bins_per_hopper": {
+     "H1": [
+      "B2",
+      "B3"
+     ],
+     "H2": [
+      "B2",
+      "B3"
+     ]
+    }
+   },
+   "YM": {
+    "bins": [
+     "B1",
+     "B2"
+    ],
+    "hoppers": [
+     "H1",
+     "H2"
+    ],
+    "min_reachable_bins": 2,
+    "reachable_bins_per_hopper": {
+     "H1": [
+      "B1",
+      "B2"
+     ],
+     "H2": [
+      "B1",
+      "B2"
+     ]
+    }
+   }
+  },
+  "hopper_bin_pairs": 8,
+  "id": "site-a",
+  "intake_routes": 8,
+  "intake_system_hoppers": [
+   [
+    "H1",
+    "H2"
+   ]
+  ],
+  "intake_systems": 1,
+  "intake_systems_without_interconnects": 1,
+  "interconnects": [],
+  "load_points": 1,
+  "load_routes": 4,
+  "multi_feed_equipment": [],
+  "pairs_with_alternative_intermediate_routes": [],
+  "shared_by_several_hoppers": [
+   "C3",
+   "E1"
+  ],
+  "shared_intake_and_loadout": [
+   "E1"
+  ],
+  "truck_sequences": {
+   "load": [
+    "weigh_in",
+    "load",
+    "weigh_out"
+   ],
+   "unload": [
+    "sample",
+    "grade",
+    "weigh_in",
+    "tip",
+    "weigh_out"
+   ],
+   "weigh": [
+    "weigh_in"
+   ]
+  },
+  "weighbridges": 1
+ },
+ "B": {
+  "config_hash": "f8a22f2f35f4a5a5439d45ece26033782780ed9a705b32f7ca0b90269dc4a8db",
+  "connections": 22,
+  "equipment_by_type": {
+   "bin": 6,
+   "conveyor": 6,
+   "elevator": 2,
+   "grader": 1,
+   "hopper": 4,
+   "loadpoint": 1,
+   "sampler": 1,
+   "weighbridge": 2
+  },
+  "equipment_total": 23,
+  "graded_commodities": [],
+  "grain_compatibility": {
+   "SB": {
+    "bins": [
+     "B4",
+     "B6"
+    ],
+    "hoppers": [
+     "H3",
+     "H4"
+    ],
+    "min_reachable_bins": 2,
+    "reachable_bins_per_hopper": {
+     "H3": [
+      "B4",
+      "B6"
+     ],
+     "H4": [
+      "B4",
+      "B6"
+     ]
+    }
+   },
+   "SF": {
+    "bins": [
+     "B5"
+    ],
+    "hoppers": [
+     "H3",
+     "H4"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "H3": [
+      "B5"
+     ],
+     "H4": [
+      "B5"
+     ]
+    }
+   },
+   "WM": {
+    "bins": [
+     "B2",
+     "B3"
+    ],
+    "hoppers": [
+     "H1",
+     "H2"
+    ],
+    "min_reachable_bins": 2,
+    "reachable_bins_per_hopper": {
+     "H1": [
+      "B2",
+      "B3"
+     ],
+     "H2": [
+      "B2",
+      "B3"
+     ]
+    }
+   },
+   "YM": {
+    "bins": [
+     "B1",
+     "B2",
+     "B6"
+    ],
+    "hoppers": [
+     "H1",
+     "H2",
+     "H3"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "H1": [
+      "B1",
+      "B2"
+     ],
+     "H2": [
+      "B1",
+      "B2"
+     ],
+     "H3": [
+      "B6"
+     ]
+    }
+   }
+  },
+  "hopper_bin_pairs": 12,
+  "id": "site-b",
+  "intake_routes": 12,
+  "intake_system_hoppers": [
+   [
+    "H1",
+    "H2"
+   ],
+   [
+    "H3",
+    "H4"
+   ]
+  ],
+  "intake_systems": 2,
+  "intake_systems_without_interconnects": 2,
+  "interconnects": [],
+  "load_points": 1,
+  "load_routes": 6,
+  "multi_feed_equipment": [],
+  "pairs_with_alternative_intermediate_routes": [],
+  "shared_by_several_hoppers": [
+   "C1",
+   "C2",
+   "C3",
+   "C4",
+   "E1",
+   "E2"
+  ],
+  "shared_intake_and_loadout": [],
+  "truck_sequences": {
+   "load": [
+    "weigh_in",
+    "load",
+    "weigh_out"
+   ],
+   "unload": [
+    "sample",
+    "grade",
+    "weigh_in",
+    "tip",
+    "weigh_out"
+   ],
+   "weigh": [
+    "weigh_in"
+   ]
+  },
+  "weighbridges": 2
+ },
+ "C": {
+  "config_hash": "56712a9a8716ebd32e5941036fa9c37e7f1fd9f7bb32843e33b97a0d681be9c3",
+  "connections": 39,
+  "equipment_by_type": {
+   "bin": 10,
+   "conveyor": 9,
+   "elevator": 3,
+   "grader": 1,
+   "hopper": 5,
+   "loadpoint": 2,
+   "sampler": 1,
+   "weighbridge": 3
+  },
+  "equipment_total": 34,
+  "graded_commodities": [
+   "YM"
+  ],
+  "grain_compatibility": {
+   "SB": {
+    "bins": [
+     "BN6",
+     "BS4"
+    ],
+    "hoppers": [
+     "HN3",
+     "HS2"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN3": [
+      "BN6",
+      "BS4"
+     ],
+     "HS2": [
+      "BS4"
+     ]
+    }
+   },
+   "WM": {
+    "bins": [
+     "BN4",
+     "BN5",
+     "BS3"
+    ],
+    "hoppers": [
+     "HN1",
+     "HN2",
+     "HS1",
+     "HS2"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN1": [
+      "BN4",
+      "BN5",
+      "BS3"
+     ],
+     "HN2": [
+      "BN4",
+      "BN5",
+      "BS3"
+     ],
+     "HS1": [
+      "BS3"
+     ],
+     "HS2": [
+      "BS3"
+     ]
+    }
+   },
+   "YM:1": {
+    "bins": [
+     "BN1",
+     "BN2",
+     "BS1"
+    ],
+    "hoppers": [
+     "HN1",
+     "HN2",
+     "HS1"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN1": [
+      "BN1",
+      "BN2",
+      "BS1"
+     ],
+     "HN2": [
+      "BN1",
+      "BN2",
+      "BS1"
+     ],
+     "HS1": [
+      "BS1"
+     ]
+    }
+   },
+   "YM:2": {
+    "bins": [
+     "BN2",
+     "BN3",
+     "BS2"
+    ],
+    "hoppers": [
+     "HN1",
+     "HN2",
+     "HS1"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN1": [
+      "BN2",
+      "BN3",
+      "BS2"
+     ],
+     "HN2": [
+      "BN2",
+      "BN3",
+      "BS2"
+     ],
+     "HS1": [
+      "BS2"
+     ]
+    }
+   }
+  },
+  "hopper_bin_pairs": 36,
+  "id": "site_c_proposal",
+  "intake_routes": 40,
+  "intake_system_hoppers": [
+   [
+    "HN1",
+    "HN2",
+    "HN3",
+    "HS1",
+    "HS2"
+   ]
+  ],
+  "intake_systems": 1,
+  "intake_systems_without_interconnects": 2,
+  "interconnects": [
+   "X1"
+  ],
+  "load_points": 2,
+  "load_routes": 10,
+  "multi_feed_equipment": [
+   "EN1"
+  ],
+  "pairs_with_alternative_intermediate_routes": [
+   "HN1->BN3",
+   "HN1->BN4",
+   "HN2->BN3",
+   "HN2->BN4"
+  ],
+  "shared_by_several_hoppers": [
+   "CN1",
+   "CS1",
+   "DN1",
+   "DN2",
+   "DS1",
+   "EN1",
+   "EN2",
+   "ES1",
+   "X1"
+  ],
+  "shared_intake_and_loadout": [
+   "EN2"
+  ],
+  "truck_sequences": {
+   "load": [
+    "weigh_in",
+    "load",
+    "weigh_out"
+   ],
+   "unload": [
+    "sample",
+    "grade",
+    "weigh_in",
+    "tip",
+    "weigh_out"
+   ],
+   "weigh": [
+    "weigh_in"
+   ]
+  },
+  "weighbridges": 3
+ },
+ "C-trap": {
+  "config_hash": "37d5d3dd70dc8fbf9b0ae1f12dd35fc41024f55a9f278c622d183bfe67f979dd",
+  "connections": 39,
+  "equipment_by_type": {
+   "bin": 10,
+   "conveyor": 9,
+   "elevator": 3,
+   "grader": 1,
+   "hopper": 5,
+   "loadpoint": 2,
+   "sampler": 1,
+   "weighbridge": 3
+  },
+  "equipment_total": 34,
+  "graded_commodities": [
+   "YM"
+  ],
+  "grain_compatibility": {
+   "SB": {
+    "bins": [
+     "BN6",
+     "BS4"
+    ],
+    "hoppers": [
+     "HN3",
+     "HS2"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN3": [
+      "BN6",
+      "BS4"
+     ],
+     "HS2": [
+      "BS4"
+     ]
+    }
+   },
+   "WM": {
+    "bins": [
+     "BN4",
+     "BN5",
+     "BS3"
+    ],
+    "hoppers": [
+     "HN1",
+     "HN2",
+     "HS1",
+     "HS2"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN1": [
+      "BN4",
+      "BN5",
+      "BS3"
+     ],
+     "HN2": [
+      "BN4",
+      "BN5",
+      "BS3"
+     ],
+     "HS1": [
+      "BS3"
+     ],
+     "HS2": [
+      "BS3"
+     ]
+    }
+   },
+   "YM:1": {
+    "bins": [
+     "BN1",
+     "BN2",
+     "BS1"
+    ],
+    "hoppers": [
+     "HN1",
+     "HN2",
+     "HS1"
+    ],
+    "min_reachable_bins": 1,
+    "reachable_bins_per_hopper": {
+     "HN1": [
+      "BN1",
+      "BN2",
+      "BS1"
+     ],
+     "HN2": [
+      "BN1",
+      "BN2",
+      "BS1"
+     ],
+     "HS1": [
+      "BS1"
+     ]
+    }
+   },
+   "YM:2": {
+    "bins": [
+     "BN2",
+     "BN3",
+     "BS1",
+     "BS2"
+    ],
+    "hoppers": [
+     "HN1",
+     "HN2",
+     "HS1"
+    ],
+    "min_reachable_bins": 2,
+    "reachable_bins_per_hopper": {
+     "HN1": [
+      "BN2",
+      "BN3",
+      "BS1",
+      "BS2"
+     ],
+     "HN2": [
+      "BN2",
+      "BN3",
+      "BS1",
+      "BS2"
+     ],
+     "HS1": [
+      "BS1",
+      "BS2"
+     ]
+    }
+   }
+  },
+  "hopper_bin_pairs": 36,
+  "id": "site_c_segregation_trap",
+  "intake_routes": 40,
+  "intake_system_hoppers": [
+   [
+    "HN1",
+    "HN2",
+    "HN3",
+    "HS1",
+    "HS2"
+   ]
+  ],
+  "intake_systems": 1,
+  "intake_systems_without_interconnects": 2,
+  "interconnects": [
+   "X1"
+  ],
+  "load_points": 2,
+  "load_routes": 10,
+  "multi_feed_equipment": [
+   "EN1"
+  ],
+  "pairs_with_alternative_intermediate_routes": [
+   "HN1->BN3",
+   "HN1->BN4",
+   "HN2->BN3",
+   "HN2->BN4"
+  ],
+  "shared_by_several_hoppers": [
+   "CN1",
+   "CS1",
+   "DN1",
+   "DN2",
+   "DS1",
+   "EN1",
+   "EN2",
+   "ES1",
+   "X1"
+  ],
+  "shared_intake_and_loadout": [
+   "EN2"
+  ],
+  "truck_sequences": {
+   "load": [
+    "weigh_in",
+    "load",
+    "weigh_out"
+   ],
+   "unload": [
+    "sample",
+    "grade",
+    "weigh_in",
+    "tip",
+    "weigh_out"
+   ],
+   "weigh": [
+    "weigh_in"
+   ]
+  },
+  "weighbridges": 3
+ }
+}

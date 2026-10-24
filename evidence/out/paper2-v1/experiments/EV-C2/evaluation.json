@@ -1,0 +1,13 @@
+{
+ "accepted": true,
+ "audit_problems_total": 0,
+ "claim": "Conservation under scheduled outages and stock events",
+ "max_abs_balance_kg": 0,
+ "physical_invariants_hold": true,
+ "runs": 30,
+ "stalled_runs": 0,
+ "stock_events_refused_total": 0,
+ "suspensions_total": 45,
+ "trucks_total": 3948,
+ "unfinished_trucks_total": 322
+}

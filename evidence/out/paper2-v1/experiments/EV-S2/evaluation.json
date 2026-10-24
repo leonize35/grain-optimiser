@@ -1,0 +1,37 @@
+{
+ "accepted": true,
+ "audit_problems_total": 0,
+ "by_policy": {
+  "M-FF": {
+   "runs": 5,
+   "stall_reason_codes": {
+    "BIN_FULL": 2,
+    "BIN_INCOMPATIBLE": 5,
+    "PIT_INCOMPATIBLE": 18,
+    "PIT_SPACE": 66
+   },
+   "stalled": 1
+  },
+  "M-PT": {
+   "runs": 5,
+   "stall_reason_codes": {},
+   "stalled": 0
+  },
+  "M-SF": {
+   "runs": 5,
+   "stall_reason_codes": {
+    "BIN_INCOMPATIBLE": 1,
+    "PIT_SPACE": 3,
+    "QUEUE_ORDER": 81
+   },
+   "stalled": 1
+  }
+ },
+ "claim": "Segregation risk is reported, physics preserved (trap variant)",
+ "max_abs_balance_kg": 0,
+ "physical_invariants_hold": true,
+ "runs": 15,
+ "stalled_runs": 2,
+ "trucks_total": 2633,
+ "unfinished_trucks_total": 356
+}

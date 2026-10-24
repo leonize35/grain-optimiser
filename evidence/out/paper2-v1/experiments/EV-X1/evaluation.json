@@ -1,0 +1,46 @@
+{
+ "accepted": true,
+ "admission_scenarios_compared": 10,
+ "claim": "Same admission decisions as the JavaScript prototype on the common subset",
+ "differ_only_by_equal_age_tie_break": [
+  "two_shared_opening_grain/tip=fifo",
+  "two_shared_opening_grain/tip=feasible"
+ ],
+ "identical_admission_decisions": [
+  "one_hopper/tip=fifo",
+  "one_hopper/tip=feasible",
+  "two_independent/tip=fifo",
+  "two_independent/tip=feasible",
+  "weighbridge/tip=fifo",
+  "weighbridge/tip=feasible",
+  "loading_shared_elevator/tip=fifo",
+  "loading_shared_elevator/tip=feasible"
+ ],
+ "not_representable_in_prototype": [
+  "grades and grade-specific bins",
+  "waiting areas and blocking",
+  "scheduled outages",
+  "stock events and reconciliation",
+  "concurrent feeds on one segment",
+  "commodity-pair changeover matrix",
+  "continuous hopper drain (prototype: stepwise)"
+ ],
+ "prototype_rules_refused_not_approximated": [
+  "one_hopper/tip=batch",
+  "two_shared_opening_grain/tip=feasible,transfer=batch",
+  "weighbridge/tip=feasible,weigh=out_first",
+  "loading_shared_elevator/tip=feasible,transfer=load_first"
+ ],
+ "prototype_selftests": {
+  "engine_sha256": "b46c2bc707adf27d60f405377a321366220c89fb3d7fc42dea16d960e08a1628",
+  "passed": 12,
+  "total": 12
+ },
+ "tie_break_substitution_diagnostics": {
+  "two_shared_opening_grain/tip=feasible": "passed",
+  "two_shared_opening_grain/tip=fifo": "passed"
+ },
+ "validation_parity_cases": {
+  "passed": 35
+ }
+}

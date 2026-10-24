@@ -1,0 +1,15 @@
+{
+ "accepted": true,
+ "claim": "No site-specific constants in the engine",
+ "equipment_ids_checked": 53,
+ "hits": [],
+ "site_name_words": [
+  "ventersdorp",
+  "senwes",
+  "site a",
+  "site b",
+  "site c",
+  "siteA",
+  "siteB"
+ ]
+}

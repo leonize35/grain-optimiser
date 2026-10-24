@@ -1,0 +1,542 @@
+[
+ {
+  "cell": "EV-P1/A/base/ADV-REV/d1.0/s0",
+  "checked": {
+   "bins": 4,
+   "loads": 11,
+   "lots": 67,
+   "pits": 2,
+   "transfers": 67
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-REV/d1.0/s1",
+  "checked": {
+   "bins": 4,
+   "loads": 7,
+   "lots": 64,
+   "pits": 2,
+   "transfers": 64
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-REV/d1.0/s2",
+  "checked": {
+   "bins": 4,
+   "loads": 10,
+   "lots": 69,
+   "pits": 2,
+   "transfers": 69
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-REV/d1.0/s3",
+  "checked": {
+   "bins": 4,
+   "loads": 9,
+   "lots": 70,
+   "pits": 2,
+   "transfers": 70
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-REV/d1.0/s4",
+  "checked": {
+   "bins": 4,
+   "loads": 5,
+   "lots": 57,
+   "pits": 2,
+   "transfers": 57
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RAND/d1.0/s0",
+  "checked": {
+   "bins": 4,
+   "loads": 11,
+   "lots": 67,
+   "pits": 2,
+   "transfers": 67
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RAND/d1.0/s1",
+  "checked": {
+   "bins": 4,
+   "loads": 7,
+   "lots": 64,
+   "pits": 2,
+   "transfers": 64
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RAND/d1.0/s2",
+  "checked": {
+   "bins": 4,
+   "loads": 10,
+   "lots": 61,
+   "pits": 2,
+   "transfers": 61
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RAND/d1.0/s3",
+  "checked": {
+   "bins": 4,
+   "loads": 9,
+   "lots": 68,
+   "pits": 2,
+   "transfers": 68
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RAND/d1.0/s4",
+  "checked": {
+   "bins": 4,
+   "loads": 5,
+   "lots": 57,
+   "pits": 2,
+   "transfers": 57
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RHOL/d1.0/s0",
+  "checked": {
+   "bins": 4,
+   "loads": 11,
+   "lots": 65,
+   "pits": 2,
+   "transfers": 65
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RHOL/d1.0/s1",
+  "checked": {
+   "bins": 4,
+   "loads": 7,
+   "lots": 64,
+   "pits": 2,
+   "transfers": 64
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RHOL/d1.0/s2",
+  "checked": {
+   "bins": 4,
+   "loads": 10,
+   "lots": 65,
+   "pits": 2,
+   "transfers": 65
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RHOL/d1.0/s3",
+  "checked": {
+   "bins": 4,
+   "loads": 9,
+   "lots": 65,
+   "pits": 2,
+   "transfers": 65
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/A/base/ADV-RHOL/d1.0/s4",
+  "checked": {
+   "bins": 4,
+   "loads": 5,
+   "lots": 57,
+   "pits": 2,
+   "transfers": 57
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-REV/d1.0/s0",
+  "checked": {
+   "bins": 6,
+   "loads": 14,
+   "lots": 113,
+   "pits": 4,
+   "transfers": 113
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-REV/d1.0/s1",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 129,
+   "pits": 4,
+   "transfers": 129
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-REV/d1.0/s2",
+  "checked": {
+   "bins": 6,
+   "loads": 15,
+   "lots": 123,
+   "pits": 4,
+   "transfers": 123
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-REV/d1.0/s3",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 111,
+   "pits": 4,
+   "transfers": 111
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-REV/d1.0/s4",
+  "checked": {
+   "bins": 6,
+   "loads": 8,
+   "lots": 92,
+   "pits": 4,
+   "transfers": 92
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RAND/d1.0/s0",
+  "checked": {
+   "bins": 6,
+   "loads": 14,
+   "lots": 113,
+   "pits": 4,
+   "transfers": 113
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RAND/d1.0/s1",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 126,
+   "pits": 4,
+   "transfers": 126
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RAND/d1.0/s2",
+  "checked": {
+   "bins": 6,
+   "loads": 15,
+   "lots": 123,
+   "pits": 4,
+   "transfers": 123
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RAND/d1.0/s3",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 111,
+   "pits": 4,
+   "transfers": 111
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RAND/d1.0/s4",
+  "checked": {
+   "bins": 6,
+   "loads": 8,
+   "lots": 92,
+   "pits": 4,
+   "transfers": 92
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RHOL/d1.0/s0",
+  "checked": {
+   "bins": 6,
+   "loads": 14,
+   "lots": 113,
+   "pits": 4,
+   "transfers": 113
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RHOL/d1.0/s1",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 129,
+   "pits": 4,
+   "transfers": 129
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RHOL/d1.0/s2",
+  "checked": {
+   "bins": 6,
+   "loads": 15,
+   "lots": 123,
+   "pits": 4,
+   "transfers": 123
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RHOL/d1.0/s3",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 111,
+   "pits": 4,
+   "transfers": 111
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/B/base/ADV-RHOL/d1.0/s4",
+  "checked": {
+   "bins": 6,
+   "loads": 8,
+   "lots": 92,
+   "pits": 4,
+   "transfers": 92
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-REV/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 154,
+   "pits": 5,
+   "transfers": 154
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-REV/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 159,
+   "pits": 5,
+   "transfers": 160
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-REV/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 175,
+   "pits": 5,
+   "transfers": 176
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-REV/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 148,
+   "pits": 5,
+   "transfers": 148
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-REV/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 149,
+   "pits": 5,
+   "transfers": 149
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RAND/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 154,
+   "pits": 5,
+   "transfers": 154
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RAND/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 152,
+   "pits": 5,
+   "transfers": 153
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RAND/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 169,
+   "pits": 5,
+   "transfers": 169
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RAND/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 148,
+   "pits": 5,
+   "transfers": 148
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RAND/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 149,
+   "pits": 5,
+   "transfers": 149
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 143,
+   "pits": 5,
+   "transfers": 144
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 155,
+   "pits": 5,
+   "transfers": 155
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 162,
+   "pits": 5,
+   "transfers": 162
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 148,
+   "pits": 5,
+   "transfers": 148
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 143,
+   "pits": 5,
+   "transfers": 143
+  },
+  "in_transit": [],
+  "problems": []
+ }
+]

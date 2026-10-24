@@ -1,0 +1,22 @@
+{
+ "accepted": true,
+ "applicable": 12,
+ "base_run": "EV-C3/C/disturbance_site_c/M-FF/d1.0/s0",
+ "base_run_sha256": "967b6bbbf1c4591558a3799c2b5c111c736beab0ec0088e7f439202da7298bb5",
+ "claim": "The independent audit detects corrupted records",
+ "corruptions": {
+  "bin closing +1 kg": "detected",
+  "book +1 kg": "detected",
+  "duplicate transfer record": "detected",
+  "observation altered": "detected",
+  "pit closing set to 1 kg": "detected",
+  "process losses dropped": "detected",
+  "received counter +1 kg": "detected",
+  "reconciliation component altered": "detected",
+  "route released before the grain finished": "detected",
+  "suspension removed (flow through unavailable equipment)": "detected",
+  "transfer moves 5 t more": "detected",
+  "transfer starts before its lot was tipped": "detected"
+ },
+ "detected": 12
+}

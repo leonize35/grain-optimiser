@@ -1,0 +1,213 @@
+{
+ "base_seed": 20261023,
+ "configurations": {
+  "A": {
+   "config_hash": "e214e4680b9a3789de055c9b195e6471574d782c08a2dc16fe221c561dd15aec",
+   "file": "configs/site_a.json"
+  },
+  "B": {
+   "config_hash": "f8a22f2f35f4a5a5439d45ece26033782780ed9a705b32f7ca0b90269dc4a8db",
+   "file": "configs/site_b.json"
+  },
+  "C": {
+   "config_hash": "56712a9a8716ebd32e5941036fa9c37e7f1fd9f7bb32843e33b97a0d681be9c3",
+   "file": "configs/site_c.json"
+  },
+  "C-trap": {
+   "config_hash": "37d5d3dd70dc8fbf9b0ae1f12dd35fc41024f55a9f278c622d183bfe67f979dd",
+   "file": "configs/site_c_segregation_trap.json"
+  }
+ },
+ "deterministic_files": {
+  "EVIDENCE_SUMMARY.md": "3a1cf0266dacf3f8453011d9cd10cdc4ab61ced32fa1048b08852fba49d6eb8b",
+  "configs/index.json": "a46401e0af8300b83d959f89de27d18d94d008da1e5248de60ec00a60e074741",
+  "configs/site_a.json": "bf9e32103592eb8e174dd134bb95f396fce02d047cf43a87f0bacf35c7b272a8",
+  "configs/site_b.json": "fda8139702fcff1e5ca46503144d28cf5ccaca821eca9a213837f4d7fdc99013",
+  "configs/site_c.json": "d1c180577f4e7f53a0cd7bbca01290d2dba584e73e483d7e03ab123902cbde11",
+  "configs/site_c_segregation_trap.json": "ddd6dc823e758a715ec519e776553b4553b84c67872bc7bb4e9d7b062e7f19f3",
+  "experiments/EV-C1/audit.json": "6bf32d65ca7d496a8d28495a33efa113450b23e2dfda199133eabafe2b2aff7d",
+  "experiments/EV-C1/evaluation.json": "9f2b839f2b602ecd1e70f8f47896f339458eca9c48be63d8ae2947a13fea2f20",
+  "experiments/EV-C1/runs.json": "7e7c6fca607ab7f9604c3ce4aec16d5bdb9703bf3d8eb792b30dc02c2918a627",
+  "experiments/EV-C1/traces/A__base__M-FF__d1.0__s0.jsonl.gz": "8a806000f74baf774fd12c7937689450a87d92af9277831a90acc9d6d7ddc484",
+  "experiments/EV-C1/traces/A__base__M-FF__d1.2__s0.jsonl.gz": "7c288c384dd2e976182557c543fb1f3c0f2a90f387f1fdb8f37a6bef41b01ccd",
+  "experiments/EV-C1/traces/A__base__M-PT__d1.0__s0.jsonl.gz": "978fb70f21fd403fac291978ed46c7806e75337bd8094cb19906e00e91f093ff",
+  "experiments/EV-C1/traces/A__base__M-PT__d1.2__s0.jsonl.gz": "cda5ef6b44b430def873a7b0be4b7925aa8c05b671d7cf465acd1fc069af079f",
+  "experiments/EV-C1/traces/A__base__M-SF__d1.0__s0.jsonl.gz": "978fb70f21fd403fac291978ed46c7806e75337bd8094cb19906e00e91f093ff",
+  "experiments/EV-C1/traces/A__base__M-SF__d1.2__s0.jsonl.gz": "cda5ef6b44b430def873a7b0be4b7925aa8c05b671d7cf465acd1fc069af079f",
+  "experiments/EV-C1/traces/B__base__M-FF__d1.0__s0.jsonl.gz": "cab220809bd7a5830ba060d16ba3232f48999657de7d81caae81dbece79add9a",
+  "experiments/EV-C1/traces/B__base__M-FF__d1.2__s0.jsonl.gz": "c6fae3bc446543c1f234804aed50745dbf922fd9733c075bef8d03a5b44d6cb0",
+  "experiments/EV-C1/traces/B__base__M-PT__d1.0__s0.jsonl.gz": "24218572d4634bca71f06eb94c9ae00634b60a43500951b7dca042744d28444a",
+  "experiments/EV-C1/traces/B__base__M-PT__d1.2__s0.jsonl.gz": "f0843516464e3da11e39ce6c782bcf76b5bd106de89d2dd2692f39993157cda5",
+  "experiments/EV-C1/traces/B__base__M-SF__d1.0__s0.jsonl.gz": "e84907e3f895316ae7aede2d822ee1c1b5775a7fdbb3f7b598b3b14a61322cb9",
+  "experiments/EV-C1/traces/B__base__M-SF__d1.2__s0.jsonl.gz": "582c796897a99576c25483e4a43c475f45118970e9d3bd22db2afb328f344447",
+  "experiments/EV-C1/traces/C__base__M-FF__d1.0__s0.jsonl.gz": "03bf67f323b65cdbc7b2f31d9bfc92d60248b5747643d6309b82a07a5a27c4cc",
+  "experiments/EV-C1/traces/C__base__M-FF__d1.2__s0.jsonl.gz": "83596f558b6d6ce5ad697b086bfb47232a74c34b671fe0d7ad0bdd1cdb23b5d0",
+  "experiments/EV-C1/traces/C__base__M-PT__d1.0__s0.jsonl.gz": "9299b469133681fbebc590d1412809a0047cc95c17c5c6a8dbbeec4c9ffb11ea",
+  "experiments/EV-C1/traces/C__base__M-PT__d1.2__s0.jsonl.gz": "64fdab20d0eea940554f7134db144112a0202f4d07715ebddfaf32ba990bed97",
+  "experiments/EV-C1/traces/C__base__M-SF__d1.0__s0.jsonl.gz": "c396b37b6f016d784ba8dfdcf72c596968eae30dd1e2bebd91026ec1e6f3a1cb",
+  "experiments/EV-C1/traces/C__base__M-SF__d1.2__s0.jsonl.gz": "592018a0fb8125646cf42a8f49f52e57b23b07320f2343b574f4a017f502eefe",
+  "experiments/EV-C2/audit.json": "c14cb98098c7f3c55ac1dbd8a33d61bb52b70483daac3d71cce7117ab97812db",
+  "experiments/EV-C2/evaluation.json": "479e8db453c48566410e89dd784dec5d083b521401e7f6ed20388ce3b323ad40",
+  "experiments/EV-C2/runs.json": "7d835cd68d84a26b585562346e8b0a25935af9c050307041fa2d09b920695863",
+  "experiments/EV-C2/traces/A__disturbance_site_a__M-FF__d1.0__s0.jsonl.gz": "b5e696a34a1bd7a9e220dde07fa67ac19af5ce26cfdb1335affc2c19fbd60354",
+  "experiments/EV-C2/traces/A__disturbance_site_a__M-PT__d1.0__s0.jsonl.gz": "51fdf9ba60fb80b113553c2e412819efd0374c235766185f490860d9d17121df",
+  "experiments/EV-C2/traces/B__disturbance_site_b__M-FF__d1.0__s0.jsonl.gz": "dff8ac502dee3ebad4865f2d47385d15f83a13a6a8e822ecad38e2f2d267c175",
+  "experiments/EV-C2/traces/B__disturbance_site_b__M-PT__d1.0__s0.jsonl.gz": "a7fa652a4d45e82fe2b62a21c717ac5ca5e009f504e118c73885504421e3d70c",
+  "experiments/EV-C2/traces/C__disturbance_site_c__M-FF__d1.0__s0.jsonl.gz": "09ea04ca40b5b9cb03d74e36123d536343d39a77f098c539d2671ec66f5a4179",
+  "experiments/EV-C2/traces/C__disturbance_site_c__M-PT__d1.0__s0.jsonl.gz": "78d9337378e806d45f500ba953d9cde150306727f2b9adc1faa9197afe7700fd",
+  "experiments/EV-C3/evaluation.json": "afe98d0af95192ed63b03594fe545616fa43852b49c92d0414fbc910462aa01a",
+  "experiments/EV-F1/evaluation.json": "d9d1d677a45a6e46f96bf8e8142c6b1d20ddd7425cb2772e96702878a88bb968",
+  "experiments/EV-F2/audit.json": "dfabf0d8270ae43aa806cf671e97dcdb68f815096cb0b998298ab48d20887330",
+  "experiments/EV-F2/evaluation.json": "31d94ffb4556f17b92b7a1bcbf7a8102485a369cb8710467be8f765deda0dae0",
+  "experiments/EV-F2/runs.json": "c6fd0be16dd60ef612ce3e96384f823e273f80b8dca2a0bfe0e9c29fb5273c6c",
+  "experiments/EV-F2/traces/C__site_c_en1_outage__M-FF__d1.0__s0.jsonl.gz": "7a4fcba454dcefb07424e7962f0c595c6f635e5e1f28f0830efc55d669043416",
+  "experiments/EV-F2/traces/C__site_c_en1_outage_from_start__M-FF__d1.0__s0.jsonl.gz": "d9196604e11c78274f87f5d2990bd5d96718dd77955ea49d7c2805176eb6baef",
+  "experiments/EV-P1/audit.json": "c893506be046bff4f6db6760db39dbe7de111ef4333165a875834ed8b2724508",
+  "experiments/EV-P1/evaluation.json": "b82a4438e0cb95fd69b9f583706b60e19cea669d496ec0f10983a1d68daeafad",
+  "experiments/EV-P1/runs.json": "9387b0db7435f4cdcde538238e2d912e5a9933468b79f51b6cf1a9932c317d5e",
+  "experiments/EV-P1/traces/A__base__ADV-RAND__d1.0__s0.jsonl.gz": "074a3693b35eee16baf701254a22b3748ebca9074e9dc4cb37a2dc9f837aed9c",
+  "experiments/EV-P1/traces/A__base__ADV-REV__d1.0__s0.jsonl.gz": "0242538693f91efd079be91eacb5fe5f17f02cb16f7ca4db2af7aa226a62e6e8",
+  "experiments/EV-P1/traces/A__base__ADV-RHOL__d1.0__s0.jsonl.gz": "999b152b77569dda105747acb51197af6ac23cfacc26cc5f44b1e767cc9be338",
+  "experiments/EV-P1/traces/B__base__ADV-RAND__d1.0__s0.jsonl.gz": "5f1b05544df1bea91398cef8adcb5c60e1e347d13c68994f523ca0016874bd4f",
+  "experiments/EV-P1/traces/B__base__ADV-REV__d1.0__s0.jsonl.gz": "8982f95853d4c1a08487680d45b6b7ee3ca9ab5186635f200bc6eaea3ab06027",
+  "experiments/EV-P1/traces/B__base__ADV-RHOL__d1.0__s0.jsonl.gz": "789577507dd74412d99a658a4b018e719a0cf45504f09080a80bc797a7a4a203",
+  "experiments/EV-P1/traces/C__base__ADV-RAND__d1.0__s0.jsonl.gz": "25a99fc131a4f445b25dc8e40e89d84ec876bd5ec0a6fc4aeac8aa74b57c1641",
+  "experiments/EV-P1/traces/C__base__ADV-REV__d1.0__s0.jsonl.gz": "efc6f10af1bf2526b7386f338c6c1d79cf0062a6351e5ddf3c63973dc0a29c9e",
+  "experiments/EV-P1/traces/C__base__ADV-RHOL__d1.0__s0.jsonl.gz": "31ac539959ef531b09b51770d8649b558a57eddcef10f541214d18c7af448ac8",
+  "experiments/EV-P2/audit.json": "f13d2dd41ea7d17d4d6f215ef312916a997989865d17bb159173c241f4ead9a9",
+  "experiments/EV-P2/evaluation.json": "60bbe4db9a3dd584f68a5cc9cc4d071fd4cd9f03e5b294135a87ea410818825e",
+  "experiments/EV-P2/runs.json": "a7e8ac7b82a47b02953006de371d59c2c4cc43fa8f3a2d8c44d730da3e392d9a",
+  "experiments/EV-P2/traces/A__starvation_threshold_0__M-FF__d1.0__s0.jsonl.gz": "8a806000f74baf774fd12c7937689450a87d92af9277831a90acc9d6d7ddc484",
+  "experiments/EV-P2/traces/A__starvation_threshold_10000__M-FF__d1.0__s0.jsonl.gz": "8a806000f74baf774fd12c7937689450a87d92af9277831a90acc9d6d7ddc484",
+  "experiments/EV-P2/traces/A__starvation_threshold_120__M-FF__d1.0__s0.jsonl.gz": "8a806000f74baf774fd12c7937689450a87d92af9277831a90acc9d6d7ddc484",
+  "experiments/EV-P2/traces/B__starvation_threshold_0__M-FF__d1.0__s0.jsonl.gz": "cab220809bd7a5830ba060d16ba3232f48999657de7d81caae81dbece79add9a",
+  "experiments/EV-P2/traces/B__starvation_threshold_10000__M-FF__d1.0__s0.jsonl.gz": "cab220809bd7a5830ba060d16ba3232f48999657de7d81caae81dbece79add9a",
+  "experiments/EV-P2/traces/B__starvation_threshold_120__M-FF__d1.0__s0.jsonl.gz": "cab220809bd7a5830ba060d16ba3232f48999657de7d81caae81dbece79add9a",
+  "experiments/EV-P2/traces/C__starvation_threshold_0__M-FF__d1.0__s0.jsonl.gz": "03bf67f323b65cdbc7b2f31d9bfc92d60248b5747643d6309b82a07a5a27c4cc",
+  "experiments/EV-P2/traces/C__starvation_threshold_10000__M-FF__d1.0__s0.jsonl.gz": "03bf67f323b65cdbc7b2f31d9bfc92d60248b5747643d6309b82a07a5a27c4cc",
+  "experiments/EV-P2/traces/C__starvation_threshold_120__M-FF__d1.0__s0.jsonl.gz": "03bf67f323b65cdbc7b2f31d9bfc92d60248b5747643d6309b82a07a5a27c4cc",
+  "experiments/EV-R1/evaluation.json": "7417478c71bc929d0e5666ce0da6ba647f3785f42a02441134a24ae40637c184",
+  "experiments/EV-S1/evaluation.json": "93e99ab982606e951c861dfa9de1e80777e5628bf4e787580c1c77de5af1e5df",
+  "experiments/EV-S2/audit.json": "345b8084286e3013695eada3641a1cd25c5ca6d4c64c4cfc10b81ccf31322077",
+  "experiments/EV-S2/evaluation.json": "083409d5a2b78684c4a5d6a1e4e264a4480d6ddd1d5e1921ea0804d637a08196",
+  "experiments/EV-S2/runs.json": "4d5e09ee0e02279fe7fd1767cd55202a2ad210922956c6640a3874fae117ebea",
+  "experiments/EV-S2/traces/C-trap__base__M-FF__d1.0__s0.jsonl.gz": "03bf67f323b65cdbc7b2f31d9bfc92d60248b5747643d6309b82a07a5a27c4cc",
+  "experiments/EV-S2/traces/C-trap__base__M-PT__d1.0__s0.jsonl.gz": "9299b469133681fbebc590d1412809a0047cc95c17c5c6a8dbbeec4c9ffb11ea",
+  "experiments/EV-S2/traces/C-trap__base__M-SF__d1.0__s0.jsonl.gz": "c396b37b6f016d784ba8dfdcf72c596968eae30dd1e2bebd91026ec1e6f3a1cb",
+  "experiments/EV-T1/evaluation.json": "53df24f934114568a28f13a55eb6e43201743e1c4a35ad90b7e503a89f17c09a",
+  "experiments/EV-T2/evaluation.json": "c198dd1c30875195dd5879043364b97b7d23b17ffe801daea0ce74cb26ce1af6",
+  "experiments/EV-X1/evaluation.json": "6b7954ca7b2d79340e28e95c20393bf64883d124608fdfec8bbb2430d170031c",
+  "overlays/disturbance_site_a.json": "7e6638617057f8b5a43f2490aae4b4cca45f84d1dd004eaa9abc2e01399a23e8",
+  "overlays/disturbance_site_b.json": "3dc78546c137806b034e09ca53052a6e53ec599ae421bc0727cce678b848d6dd",
+  "overlays/disturbance_site_c.json": "1bc8b6d82065adc5b1ba743ef25f72fc0ea0835a6dda2009b2d5dfb561e4ba93",
+  "overlays/site_c_en1_outage.json": "fec61803c6bc30ff1799029f55332ac96407a4fb603c1ed134679197f09646f0",
+  "overlays/site_c_en1_outage_from_start.json": "620181a3731e5c6348928392ee7ee8e393426acd918a8d3cc33b2eef18e9cacb",
+  "overlays/starvation_threshold_0.json": "040bc9444d7a0b45cd9e7de02d4424b69dc0042e2dccd8e7e8519d6b218ee983",
+  "overlays/starvation_threshold_10000.json": "0342d43648827dbe2096e08ae86203fd2298f532719d0b159068c2a4e50c4b8a",
+  "overlays/starvation_threshold_120.json": "a017de8b306bc2c1dae2bb1e50cb2bd07066a459840bd56b96af7de8f09cc3ce",
+  "structure/structure.json": "e4d69e152504e158d7af0ad870f756ef17ef18b970b75f167f2c8b6ccbe6432c",
+  "structure/structure.md": "fa04f5769fdcac3cf0673d2fbf25da1e457eec3c523e70b9cef40e32c9934a9f",
+  "tests/prototype_selftests.json": "fd33bf8f8e14918e6f1b238e4be1f01dd51f04bf8d48f0cb306d18f5345f67ce",
+  "tests/test_outcomes.json": "18fa2070fd6fa358f20ac495afff37a42025de8ce7fea8b021701ef31c353f1b"
+ },
+ "engine_source_sha256": "bb6d050d170971f9ccb5640c1452bfcc3e7ed355161719f8e4ccbcbe7aea5295",
+ "engine_version": "0.3.0.dev0",
+ "excluded_from_reproduction": [
+  "environment/"
+ ],
+ "experiments": {
+  "EV-C1": {
+   "cells": 90,
+   "claim": "Physical grain conservation"
+  },
+  "EV-C2": {
+   "cells": 30,
+   "claim": "Conservation under scheduled outages and stock events"
+  },
+  "EV-F2": {
+   "cells": 10,
+   "claim": "Route feasibility: alternative route used while equipment is unavailable"
+  },
+  "EV-P1": {
+   "cells": 45,
+   "claim": "Physical invariants independent of the queue policy (adversarial policies)"
+  },
+  "EV-P2": {
+   "cells": 27,
+   "claim": "Reporting threshold does not change decisions"
+  },
+  "EV-S2": {
+   "cells": 15,
+   "claim": "Segregation risk is reported, physics preserved (trap variant)"
+  }
+ },
+ "package": "paper2-v1",
+ "policy_mapping_detail": {
+  "ADV-RAND": {
+   "grade": "adv_random",
+   "intake": "adv_random",
+   "load": "adv_random",
+   "move": "adv_random",
+   "sample": "adv_random",
+   "tip": "adv_random",
+   "weigh": "adv_random"
+  },
+  "ADV-REV": {
+   "grade": "adv_reverse",
+   "intake": "adv_reverse",
+   "load": "adv_reverse",
+   "move": "adv_reverse",
+   "sample": "adv_reverse",
+   "tip": "adv_reverse",
+   "weigh": "adv_reverse"
+  },
+  "ADV-RHOL": {
+   "grade": "adv_random_head_of_line",
+   "intake": "adv_random_head_of_line",
+   "load": "adv_random_head_of_line",
+   "move": "adv_random_head_of_line",
+   "sample": "adv_random_head_of_line",
+   "tip": "adv_random_head_of_line",
+   "weigh": "adv_random_head_of_line"
+  },
+  "M-FF": {
+   "grade": "feasible_first",
+   "intake": "feasible_first",
+   "load": "feasible_first",
+   "move": "feasible_first",
+   "sample": "feasible_first",
+   "tip": "feasible_first",
+   "weigh": "feasible_first"
+  },
+  "M-PT": {
+   "grade": "feasible_first",
+   "intake": "feasible_first",
+   "load": "feasible_first",
+   "move": "feasible_first",
+   "sample": "feasible_first",
+   "tip": "strict_fifo",
+   "weigh": "feasible_first"
+  },
+  "M-SF": {
+   "grade": "strict_fifo",
+   "intake": "strict_fifo",
+   "load": "strict_fifo",
+   "move": "strict_fifo",
+   "sample": "strict_fifo",
+   "tip": "strict_fifo",
+   "weigh": "strict_fifo"
+  }
+ },
+ "policy_mappings": {
+  "ADV-RAND": "adversarial: seeded random order (work-conserving)",
+  "ADV-REV": "adversarial: latest request first (work-conserving)",
+  "ADV-RHOL": "adversarial: seeded random order with head-of-line blocking",
+  "M-FF": "feasible_first in every queue group (engine default)",
+  "M-PT": "strict FIFO at the hopper, feasible_first elsewhere (prototype tip='fifo' equivalent)",
+  "M-SF": "strict FIFO in every queue group incl. grain transfers (stress case; not representative practice)"
+ },
+ "prototype_engine_sha256": "b46c2bc707adf27d60f405377a321366220c89fb3d7fc42dea16d960e08a1628",
+ "quick": false,
+ "replication_seed_rule": "derived_seed(base_seed, 'replication', i)",
+ "statement": "Software verification outputs on synthetic configurations; not observations of a real silo."
+}

@@ -1,0 +1,13 @@
+{
+ "accepted": true,
+ "audit_problems_total": 0,
+ "cells": 9,
+ "cells_with_identical_decisions": 9,
+ "claim": "Reporting threshold does not change decisions",
+ "max_abs_balance_kg": 0,
+ "physical_invariants_hold": true,
+ "runs": 27,
+ "stalled_runs": 0,
+ "trucks_total": 3783,
+ "unfinished_trucks_total": 159
+}

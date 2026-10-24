@@ -1,0 +1,28 @@
+{
+ "accepted": true,
+ "alternative_route_transfers_during_outage_per_run": {
+  "site_c_en1_outage": [
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "site_c_en1_outage_from_start": [
+   7,
+   10,
+   7,
+   10,
+   16
+  ]
+ },
+ "audit_problems_total": 0,
+ "claim": "Route feasibility: alternative route used while equipment is unavailable",
+ "max_abs_balance_kg": 0,
+ "observation_mid_day_outage": "With EN1 stopping at 08:00 a transfer running on CN1->EN1 is suspended and, under the provisional hold rule I1, keeps CN1 reserved; the alternative CN1->EN2 route then cannot be used during the outage.",
+ "physical_invariants_hold": true,
+ "runs": 10,
+ "stalled_runs": 0,
+ "trucks_total": 1808,
+ "unfinished_trucks_total": 279
+}

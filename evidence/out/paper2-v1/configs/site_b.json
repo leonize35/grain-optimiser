@@ -1,0 +1,509 @@
+{
+ "id": "site-b",
+ "name": "Rietvlei Depot",
+ "customer": "Demo Agri",
+ "version": 1,
+ "region": "Free State",
+ "hours": {
+  "open": 6,
+  "close": 18,
+  "overtime": 4
+ },
+ "commodities": [
+  {
+   "id": "YM",
+   "name": "Yellow maize",
+   "color": "#d4a017"
+  },
+  {
+   "id": "WM",
+   "name": "White maize",
+   "color": "#c9c2a8"
+  },
+  {
+   "id": "SB",
+   "name": "Soybeans",
+   "color": "#8a9a3b"
+  },
+  {
+   "id": "SF",
+   "name": "Sunflower",
+   "color": "#5b5f6b"
+  }
+ ],
+ "equipment": [
+  {
+   "id": "S1",
+   "type": "sampler",
+   "name": "Sampling bay",
+   "cap": 2,
+   "time": [
+    1.5,
+    2.5,
+    4
+   ]
+  },
+  {
+   "id": "G1",
+   "type": "grader",
+   "name": "Grading lab",
+   "cap": 3,
+   "time": [
+    4,
+    6,
+    10
+   ],
+   "reject": 0.02
+  },
+  {
+   "id": "WB1",
+   "type": "weighbridge",
+   "name": "Weighbridge in",
+   "cap": 1,
+   "time": [
+    1.5,
+    2,
+    3
+   ],
+   "moves": "in"
+  },
+  {
+   "id": "WB2",
+   "type": "weighbridge",
+   "name": "Weighbridge out",
+   "cap": 1,
+   "time": [
+    1.5,
+    2,
+    3
+   ],
+   "moves": "out"
+  },
+  {
+   "id": "H1",
+   "type": "hopper",
+   "name": "Hopper 1",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM"
+   ]
+  },
+  {
+   "id": "H2",
+   "type": "hopper",
+   "name": "Hopper 2",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "WM"
+   ]
+  },
+  {
+   "id": "H3",
+   "type": "hopper",
+   "name": "Hopper 3",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "YM",
+    "SB",
+    "SF"
+   ]
+  },
+  {
+   "id": "H4",
+   "type": "hopper",
+   "name": "Hopper 4",
+   "capT": 60,
+   "rate": 400,
+   "tip": [
+    4,
+    6,
+    9
+   ],
+   "commodities": [
+    "SB",
+    "SF"
+   ]
+  },
+  {
+   "id": "C1",
+   "type": "conveyor",
+   "name": "Pit conveyor A",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "E1",
+   "type": "elevator",
+   "name": "Elevator A",
+   "rate": 240,
+   "changeover": 8
+  },
+  {
+   "id": "C3",
+   "type": "conveyor",
+   "name": "Top conveyor A",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "C2",
+   "type": "conveyor",
+   "name": "Pit conveyor B",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "E2",
+   "type": "elevator",
+   "name": "Elevator B",
+   "rate": 180,
+   "changeover": 8
+  },
+  {
+   "id": "C4",
+   "type": "conveyor",
+   "name": "Top conveyor B",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "B1",
+   "type": "bin",
+   "name": "Bin A1",
+   "capT": 5000,
+   "commodities": [
+    "YM"
+   ],
+   "inv": 2200,
+   "invCommodity": "YM"
+  },
+  {
+   "id": "B2",
+   "type": "bin",
+   "name": "Bin A2",
+   "capT": 5000,
+   "commodities": [
+    "YM",
+    "WM"
+   ],
+   "inv": 0
+  },
+  {
+   "id": "B3",
+   "type": "bin",
+   "name": "Bin A3",
+   "capT": 5000,
+   "commodities": [
+    "WM"
+   ],
+   "inv": 1500,
+   "invCommodity": "WM"
+  },
+  {
+   "id": "B4",
+   "type": "bin",
+   "name": "Bin B1",
+   "capT": 3000,
+   "commodities": [
+    "SB"
+   ],
+   "inv": 600,
+   "invCommodity": "SB"
+  },
+  {
+   "id": "B5",
+   "type": "bin",
+   "name": "Bin B2",
+   "capT": 3000,
+   "commodities": [
+    "SF"
+   ],
+   "inv": 300,
+   "invCommodity": "SF"
+  },
+  {
+   "id": "B6",
+   "type": "bin",
+   "name": "Bin B3",
+   "capT": 3000,
+   "commodities": [
+    "YM",
+    "SB"
+   ],
+   "inv": 0
+  },
+  {
+   "id": "R1",
+   "type": "conveyor",
+   "name": "Reclaim A",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "R2",
+   "type": "conveyor",
+   "name": "Reclaim B",
+   "rate": 300,
+   "changeover": 6
+  },
+  {
+   "id": "L1",
+   "type": "loadpoint",
+   "name": "Load-out",
+   "rate": 250,
+   "setup": [
+    3,
+    5,
+    8
+   ]
+  }
+ ],
+ "edges": [
+  [
+   "H1",
+   "C1"
+  ],
+  [
+   "H2",
+   "C1"
+  ],
+  [
+   "C1",
+   "E1"
+  ],
+  [
+   "E1",
+   "C3"
+  ],
+  [
+   "C3",
+   "B1"
+  ],
+  [
+   "C3",
+   "B2"
+  ],
+  [
+   "C3",
+   "B3"
+  ],
+  [
+   "H3",
+   "C2"
+  ],
+  [
+   "H4",
+   "C2"
+  ],
+  [
+   "C2",
+   "E2"
+  ],
+  [
+   "E2",
+   "C4"
+  ],
+  [
+   "C4",
+   "B4"
+  ],
+  [
+   "C4",
+   "B5"
+  ],
+  [
+   "C4",
+   "B6"
+  ],
+  [
+   "B1",
+   "R1"
+  ],
+  [
+   "B2",
+   "R1"
+  ],
+  [
+   "B3",
+   "R1"
+  ],
+  [
+   "R1",
+   "L1"
+  ],
+  [
+   "B4",
+   "R2"
+  ],
+  [
+   "B5",
+   "R2"
+  ],
+  [
+   "B6",
+   "R2"
+  ],
+  [
+   "R2",
+   "L1"
+  ]
+ ],
+ "sequences": {
+  "unload": [
+   "sample",
+   "grade",
+   "weigh_in",
+   "tip",
+   "weigh_out"
+  ],
+  "load": [
+   "weigh_in",
+   "load",
+   "weigh_out"
+  ],
+  "weigh": [
+   "weigh_in"
+  ]
+ },
+ "demand": {
+  "unload": {
+   "daily": 115,
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    4,
+    5,
+    6,
+    6,
+    6,
+    7,
+    9,
+    12,
+    13,
+    12,
+    8,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "payload": [
+    24,
+    32.5,
+    38
+   ],
+   "mix": {
+    "YM": 0.5,
+    "WM": 0.2,
+    "SB": 0.2,
+    "SF": 0.1
+   }
+  },
+  "load": {
+   "daily": 12,
+   "profile": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    3,
+    5,
+    6,
+    6,
+    5,
+    4,
+    3,
+    3,
+    2,
+    2,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "payload": [
+    30,
+    34,
+    36
+   ],
+   "mix": {
+    "YM": 0.7,
+    "SB": 0.3
+   }
+  },
+  "weigh": {
+   "daily": 8,
+   "profile": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+   ]
+  }
+ },
+ "policies": {
+  "tip": "feasible",
+  "weigh": "fifo",
+  "transfer": "fifo"
+ },
+ "initial": {
+  "queue": {
+   "unload": 4,
+   "load": 0,
+   "weigh": 0
+  }
+ }
+}

@@ -1,0 +1,30 @@
+{
+ "PYTHONHASHSEED": null,
+ "command": "tools/evidence_run.py build",
+ "cpu_count": 24,
+ "durations_s": {
+  "EV-C1": 110.5,
+  "EV-C2": 39.9,
+  "EV-F2": 158.2,
+  "EV-P1": 43.3,
+  "EV-P2": 85.0,
+  "EV-S2": 20.0,
+  "checks": 6.3,
+  "reproduction": 30.5,
+  "tests": 47.3,
+  "total": 541.0
+ },
+ "generated_utc": "2026-10-24T19:00:02Z",
+ "git_commit": "54d3869089b77053c3c050a1a790a9752ca0b158",
+ "git_dirty_files": [
+  "?? evidence/out/"
+ ],
+ "implementation": "CPython",
+ "packages": {
+  "pydantic": "2.14.1",
+  "pydantic_core": "2.50.1",
+  "pytest": "9.1.1"
+ },
+ "platform": "Windows-11-10.0.26200-SP0",
+ "python": "3.14.8 (tags/v3.14.8:8e6e75d, Sep 30 2026, 18:19:33) [MSC v.1944 64 bit (AMD64)]"
+}

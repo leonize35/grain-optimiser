@@ -1,0 +1,182 @@
+[
+ {
+  "cell": "EV-S2/C-trap/base/M-FF/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 152,
+   "pits": 5,
+   "transfers": 153
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-FF/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 146,
+   "pits": 5,
+   "transfers": 143
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-FF/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 164,
+   "pits": 5,
+   "transfers": 164
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-FF/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 147,
+   "pits": 5,
+   "transfers": 147
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-FF/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 131,
+   "pits": 5,
+   "transfers": 131
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-PT/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 145,
+   "pits": 5,
+   "transfers": 145
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-PT/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 132,
+   "pits": 5,
+   "transfers": 130
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-PT/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 149,
+   "pits": 5,
+   "transfers": 149
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-PT/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 148,
+   "pits": 5,
+   "transfers": 148
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-PT/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 139,
+   "pits": 5,
+   "transfers": 139
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-SF/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 121,
+   "pits": 5,
+   "transfers": 121
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-SF/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 7,
+   "lots": 18,
+   "pits": 5,
+   "transfers": 14
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-SF/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 131,
+   "pits": 5,
+   "transfers": 131
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-SF/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 134,
+   "pits": 5,
+   "transfers": 134
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-S2/C-trap/base/M-SF/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 122,
+   "pits": 5,
+   "transfers": 122
+  },
+  "in_transit": [],
+  "problems": []
+ }
+]

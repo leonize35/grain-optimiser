@@ -1,0 +1,67 @@
+{
+ "accepted": true,
+ "audit_problems_total": 0,
+ "claim": "Physical invariants independent of the queue policy (adversarial policies)",
+ "max_abs_balance_kg": 0,
+ "operational_by_site_policy": {
+  "A/ADV-RAND": {
+   "completed": 384,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 14
+  },
+  "A/ADV-REV": {
+   "completed": 396,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 2
+  },
+  "A/ADV-RHOL": {
+   "completed": 384,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 14
+  },
+  "B/ADV-RAND": {
+   "completed": 669,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 3
+  },
+  "B/ADV-REV": {
+   "completed": 672,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 0
+  },
+  "B/ADV-RHOL": {
+   "completed": 672,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 0
+  },
+  "C/ADV-RAND": {
+   "completed": 877,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 27
+  },
+  "C/ADV-REV": {
+   "completed": 890,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 14
+  },
+  "C/ADV-RHOL": {
+   "completed": 856,
+   "runs": 5,
+   "stalled": 0,
+   "unfinished": 48
+  }
+ },
+ "physical_invariants_hold": true,
+ "runs": 45,
+ "stalled_runs": 0,
+ "trucks_total": 5922,
+ "unfinished_trucks_total": 122
+}

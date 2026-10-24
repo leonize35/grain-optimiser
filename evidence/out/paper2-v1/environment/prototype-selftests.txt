@@ -1,0 +1,27 @@
+PASS Test 1: two different layouts run from configuration only
+     2-hopper shared-elevator site and 4-hopper two-route site both ran; rule failures: 0.
+PASS Test 2: changed hopper-to-bin reach is respected
+     After rerouting, Hopper 3 sent 0 t to Bin B1 (expected 0).
+PASS Test 3: additional hopper shares the same downstream limits
+     Hopper 3 was used 12.1% of the day; Elevator 1 never exceeded one stream.
+PASS Test 4: incompatible commodities never share a route at once
+     71 changeovers enforced; overlap or mixing failures: 0.
+PASS Test 5: fractional payloads keep the material balance
+     Largest balance error 1.82e-12 t across 5 days.
+PASS Test 6: arrivals reproduce the hourly profile
+     Mean 195.9 arrivals per day for 200 configured; largest hourly share gap 0.75 points.
+PASS Test 7: FIFO and commodity batching compared without code changes
+     Changeovers FIFO 79, batching 43.
+PASS Test 8: concurrent activities share the weighbridge
+     Departed: 64 unloading, 6 loading, 7 weighbridge-only; weighbridge busy 33%.
+PASS Reproducibility: same seed gives identical results
+     Seed 42 run twice matched; seed 43 differed.
+PASS Invalid layout is blocked with a plain explanation
+     Hopper 2 cannot deliver Soybeans to any eligible storage bin because Top conveyor is not connected to Bin 4.
+PASS Opening backlog and stock are loaded
+     Opening stock 3100 t; 68 unloading trucks including 15 waiting at the gate.
+PASS Sample results match their own trucks
+     Highly variable grading times reorder samples; mismatches: 0.
+
+12/12 passed in 176 ms (engine v0.2.0)
+engine file sha256: b46c2bc707adf27d60f405377a321366220c89fb3d7fc42dea16d960e08a1628

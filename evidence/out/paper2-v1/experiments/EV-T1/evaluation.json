@@ -1,0 +1,12 @@
+{
+ "accepted": true,
+ "claim": "Transferability: one unchanged engine runs every configuration",
+ "configs_run": [
+  "A",
+  "B",
+  "C",
+  "C-trap"
+ ],
+ "engine_source_sha256": "bb6d050d170971f9ccb5640c1452bfcc3e7ed355161719f8e4ccbcbe7aea5295",
+ "runs_total": 217
+}

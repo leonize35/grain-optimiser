@@ -1,0 +1,120 @@
+{
+ "accepted": true,
+ "checks": [
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-C1/A/base/M-FF/d1.0/s0",
+   "expected": "de3ba00f2f8d4ea6aa4c653536ca8326f8eb43a7340fb8ba111395ef3c5614e2",
+   "got": "de3ba00f2f8d4ea6aa4c653536ca8326f8eb43a7340fb8ba111395ef3c5614e2",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-C1/A/base/M-FF/d1.0/s0",
+   "expected": "de3ba00f2f8d4ea6aa4c653536ca8326f8eb43a7340fb8ba111395ef3c5614e2",
+   "got": "de3ba00f2f8d4ea6aa4c653536ca8326f8eb43a7340fb8ba111395ef3c5614e2",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-C1/B/base/M-FF/d1.0/s0",
+   "expected": "95b3086567ece796f1fec60cdb1c86ef76d5ac36c7701f4c796221df1a93150d",
+   "got": "95b3086567ece796f1fec60cdb1c86ef76d5ac36c7701f4c796221df1a93150d",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-C1/B/base/M-FF/d1.0/s0",
+   "expected": "95b3086567ece796f1fec60cdb1c86ef76d5ac36c7701f4c796221df1a93150d",
+   "got": "95b3086567ece796f1fec60cdb1c86ef76d5ac36c7701f4c796221df1a93150d",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-C1/C/base/M-FF/d1.0/s0",
+   "expected": "9bbb3186555c38c063967c6fc9a83388b1706342aaeb6be7a4f0e95be59f2cd2",
+   "got": "9bbb3186555c38c063967c6fc9a83388b1706342aaeb6be7a4f0e95be59f2cd2",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-C1/C/base/M-FF/d1.0/s0",
+   "expected": "9bbb3186555c38c063967c6fc9a83388b1706342aaeb6be7a4f0e95be59f2cd2",
+   "got": "9bbb3186555c38c063967c6fc9a83388b1706342aaeb6be7a4f0e95be59f2cd2",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s0",
+   "expected": "c6a6e7e5c57aedf4d4bbc92b3aa2133b1b5f5ad78e463d629fa8a3f4b721c9d5",
+   "got": "c6a6e7e5c57aedf4d4bbc92b3aa2133b1b5f5ad78e463d629fa8a3f4b721c9d5",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s0",
+   "expected": "c6a6e7e5c57aedf4d4bbc92b3aa2133b1b5f5ad78e463d629fa8a3f4b721c9d5",
+   "got": "c6a6e7e5c57aedf4d4bbc92b3aa2133b1b5f5ad78e463d629fa8a3f4b721c9d5",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s0",
+   "expected": "d5d268eb9d2c6e6b102e90f9313f08c66d9ead9362db92e1cef294f092eb5585",
+   "got": "d5d268eb9d2c6e6b102e90f9313f08c66d9ead9362db92e1cef294f092eb5585",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s0",
+   "expected": "d5d268eb9d2c6e6b102e90f9313f08c66d9ead9362db92e1cef294f092eb5585",
+   "got": "d5d268eb9d2c6e6b102e90f9313f08c66d9ead9362db92e1cef294f092eb5585",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-P1/C/base/ADV-REV/d1.0/s0",
+   "expected": "93add7815fc0fce240f86a6c198281f0e6e93605d6225cee0c1ad7cc65436221",
+   "got": "93add7815fc0fce240f86a6c198281f0e6e93605d6225cee0c1ad7cc65436221",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-P1/C/base/ADV-REV/d1.0/s0",
+   "expected": "93add7815fc0fce240f86a6c198281f0e6e93605d6225cee0c1ad7cc65436221",
+   "got": "93add7815fc0fce240f86a6c198281f0e6e93605d6225cee0c1ad7cc65436221",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-P1/C/base/ADV-RAND/d1.0/s0",
+   "expected": "e6cc4f258a61a8f130a86599df7b3cd946e76a82c5b574720852e43f32408e1d",
+   "got": "e6cc4f258a61a8f130a86599df7b3cd946e76a82c5b574720852e43f32408e1d",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-P1/C/base/ADV-RAND/d1.0/s0",
+   "expected": "e6cc4f258a61a8f130a86599df7b3cd946e76a82c5b574720852e43f32408e1d",
+   "got": "e6cc4f258a61a8f130a86599df7b3cd946e76a82c5b574720852e43f32408e1d",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "0",
+   "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s0",
+   "expected": "8946e3edf65a4f039606fd31f6f9ec3c4d0c33c5262c48740c5945a66423866a",
+   "got": "8946e3edf65a4f039606fd31f6f9ec3c4d0c33c5262c48740c5945a66423866a",
+   "identical": true
+  },
+  {
+   "PYTHONHASHSEED": "12345",
+   "cell": "EV-P1/C/base/ADV-RHOL/d1.0/s0",
+   "expected": "8946e3edf65a4f039606fd31f6f9ec3c4d0c33c5262c48740c5945a66423866a",
+   "got": "8946e3edf65a4f039606fd31f6f9ec3c4d0c33c5262c48740c5945a66423866a",
+   "identical": true
+  }
+ ],
+ "claim": "Identical results in fresh interpreters with different hash seeds",
+ "identical": 16,
+ "total": 16
+}

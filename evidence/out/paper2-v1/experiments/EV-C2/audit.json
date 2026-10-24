@@ -1,0 +1,362 @@
+[
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-FF/d1.0/s0",
+  "checked": {
+   "bins": 4,
+   "loads": 11,
+   "lots": 46,
+   "pits": 2,
+   "transfers": 46
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-FF/d1.0/s1",
+  "checked": {
+   "bins": 4,
+   "loads": 7,
+   "lots": 48,
+   "pits": 2,
+   "transfers": 48
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-FF/d1.0/s2",
+  "checked": {
+   "bins": 4,
+   "loads": 10,
+   "lots": 69,
+   "pits": 2,
+   "transfers": 69
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-FF/d1.0/s3",
+  "checked": {
+   "bins": 4,
+   "loads": 9,
+   "lots": 50,
+   "pits": 2,
+   "transfers": 50
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-FF/d1.0/s4",
+  "checked": {
+   "bins": 4,
+   "loads": 5,
+   "lots": 52,
+   "pits": 2,
+   "transfers": 52
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-PT/d1.0/s0",
+  "checked": {
+   "bins": 4,
+   "loads": 11,
+   "lots": 50,
+   "pits": 2,
+   "transfers": 50
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-PT/d1.0/s1",
+  "checked": {
+   "bins": 4,
+   "loads": 7,
+   "lots": 56,
+   "pits": 2,
+   "transfers": 56
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-PT/d1.0/s2",
+  "checked": {
+   "bins": 4,
+   "loads": 10,
+   "lots": 50,
+   "pits": 2,
+   "transfers": 50
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-PT/d1.0/s3",
+  "checked": {
+   "bins": 4,
+   "loads": 9,
+   "lots": 52,
+   "pits": 2,
+   "transfers": 52
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/A/disturbance_site_a/M-PT/d1.0/s4",
+  "checked": {
+   "bins": 4,
+   "loads": 5,
+   "lots": 57,
+   "pits": 2,
+   "transfers": 57
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-FF/d1.0/s0",
+  "checked": {
+   "bins": 6,
+   "loads": 14,
+   "lots": 111,
+   "pits": 4,
+   "transfers": 111
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-FF/d1.0/s1",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 129,
+   "pits": 4,
+   "transfers": 129
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-FF/d1.0/s2",
+  "checked": {
+   "bins": 6,
+   "loads": 15,
+   "lots": 123,
+   "pits": 4,
+   "transfers": 123
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-FF/d1.0/s3",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 111,
+   "pits": 4,
+   "transfers": 111
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-FF/d1.0/s4",
+  "checked": {
+   "bins": 6,
+   "loads": 8,
+   "lots": 92,
+   "pits": 4,
+   "transfers": 92
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-PT/d1.0/s0",
+  "checked": {
+   "bins": 6,
+   "loads": 14,
+   "lots": 113,
+   "pits": 4,
+   "transfers": 113
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-PT/d1.0/s1",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 120,
+   "pits": 4,
+   "transfers": 120
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-PT/d1.0/s2",
+  "checked": {
+   "bins": 6,
+   "loads": 15,
+   "lots": 122,
+   "pits": 4,
+   "transfers": 122
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-PT/d1.0/s3",
+  "checked": {
+   "bins": 6,
+   "loads": 13,
+   "lots": 111,
+   "pits": 4,
+   "transfers": 111
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/B/disturbance_site_b/M-PT/d1.0/s4",
+  "checked": {
+   "bins": 6,
+   "loads": 8,
+   "lots": 92,
+   "pits": 4,
+   "transfers": 92
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 151,
+   "pits": 5,
+   "transfers": 152
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 155,
+   "pits": 5,
+   "transfers": 156
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 146,
+   "pits": 5,
+   "transfers": 146
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 148,
+   "pits": 5,
+   "transfers": 148
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-FF/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 142,
+   "pits": 5,
+   "transfers": 142
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 134,
+   "pits": 5,
+   "transfers": 134
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 144,
+   "pits": 5,
+   "transfers": 144
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 140,
+   "pits": 5,
+   "transfers": 140
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 142,
+   "pits": 5,
+   "transfers": 142
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-C2/C/disturbance_site_c/M-PT/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 130,
+   "pits": 5,
+   "transfers": 130
+  },
+  "in_transit": [],
+  "problems": []
+ }
+]

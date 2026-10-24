@@ -1,0 +1,122 @@
+[
+ {
+  "cell": "EV-F2/C/site_c_en1_outage_from_start/M-FF/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 133,
+   "pits": 5,
+   "transfers": 133
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage_from_start/M-FF/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 138,
+   "pits": 5,
+   "transfers": 138
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage_from_start/M-FF/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 140,
+   "pits": 5,
+   "transfers": 140
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage_from_start/M-FF/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 134,
+   "pits": 5,
+   "transfers": 134
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage_from_start/M-FF/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 135,
+   "pits": 5,
+   "transfers": 135
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage/M-FF/d1.0/s0",
+  "checked": {
+   "bins": 10,
+   "loads": 18,
+   "lots": 129,
+   "pits": 5,
+   "transfers": 130
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage/M-FF/d1.0/s1",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 136,
+   "pits": 5,
+   "transfers": 137
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage/M-FF/d1.0/s2",
+  "checked": {
+   "bins": 10,
+   "loads": 21,
+   "lots": 127,
+   "pits": 5,
+   "transfers": 127
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage/M-FF/d1.0/s3",
+  "checked": {
+   "bins": 10,
+   "loads": 13,
+   "lots": 123,
+   "pits": 5,
+   "transfers": 123
+  },
+  "in_transit": [],
+  "problems": []
+ },
+ {
+  "cell": "EV-F2/C/site_c_en1_outage/M-FF/d1.0/s4",
+  "checked": {
+   "bins": 10,
+   "loads": 10,
+   "lots": 132,
+   "pits": 5,
+   "transfers": 132
+  },
+  "in_transit": [],
+  "problems": []
+ }
+]

@@ -1,0 +1,11 @@
+{
+ "accepted": true,
+ "audit_problems_total": 0,
+ "claim": "Physical grain conservation",
+ "max_abs_balance_kg": 0,
+ "physical_invariants_hold": true,
+ "runs": 90,
+ "stalled_runs": 0,
+ "trucks_total": 13095,
+ "unfinished_trucks_total": 1840
+}
