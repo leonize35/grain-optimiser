@@ -210,6 +210,12 @@ def _swap_exits(r, a, b):
     log[i], log[j] = log[j], log[i]
 
 
+def _mark_bypass(r, truck):
+    """Pretend the truck left the single-file approach through a bypass that S1 does not declare."""
+    k = next(i for i, e in enumerate(r.single_file_log) if e[2] == truck and e[3] == "exit")
+    return k, (*r.single_file_log[k][:4], True)
+
+
 def _rec(r, t):
     return next(x for x in r.records if x.truck_id == t)
 
@@ -219,7 +225,9 @@ def _rec(r, t):
     ("separate", lambda r: setattr(next(s for s in _rec(r, "T3").steps if s.step == "weigh_in"), "unit", "WB1#1"), "occupy it together"),
     ("separate", lambda r: _swap_exits(r, "T4", "T2"), "from behind"),
     ("colocated", lambda r: setattr(next(s for s in _rec(r, "T4").steps if s.step == "sample"), "started", hm("07:02")), "sampling unit"),
+    ("separate", lambda r: r.single_file_log.__setitem__(*_mark_bypass(r, "T2")), "not declared"),
 ])
+
 def test_audit_detects_access_violations(layout, fn, words):
     problems = _corrupt_and_audit(layout, fn)
     assert any(words in p for p in problems), problems

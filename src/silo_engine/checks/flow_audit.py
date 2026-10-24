@@ -356,6 +356,7 @@ def _audit_access(a, site, trucks, result) -> None:
             if busy > units:
                 a.problems.append(f"{busy} co-located samplings at {t} with {units} sampling unit(s)")
     # Single-file areas: replay entries and exits in occurrence order; a normal exit must be the front truck.
+    declared = {(b.activity, b.from_): b.to for b in getattr(site, "truck_bypasses", [])}
     queues = defaultdict(list)
     for t, area, tid, kind, via in getattr(result, "single_file_log", []):
         q = queues[area]
@@ -366,4 +367,6 @@ def _audit_access(a, site, trucks, result) -> None:
         else:
             if not via and q[0] != tid:
                 a.problems.append(f"single-file {area}: {tid} left at {t} from behind {q[0]} without a bypass")
+            if via and (needs.get(tid, True) or not declared.get((truck[tid].activity if tid in truck else None, area))):
+                a.problems.append(f"single-file {area}: {tid} used a bypass at {t} that is not declared for it")
             q.remove(tid)
