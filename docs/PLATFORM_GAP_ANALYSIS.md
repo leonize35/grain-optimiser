@@ -163,3 +163,21 @@ screen and primitive can be exercised with it.
 2. Approve the step order: engine and configuration (1–6) before the store, API and UI (7–9).
 3. The frontend stack and the HTTP framework (proposed when step 8 starts).
 4. Where private case-study configurations are stored (the repository is public).
+
+## 8. Progress
+
+- **Approved by the user (2026-10-25):** P1–P4, the backward-compatibility rule and the step order.
+- **Step 0 (done):** `tools/repro_check.py` checks, read-only, that the current engine reproduces the stored packages. It covers the simulation outputs of `paper2-v1`, all deterministic files of `paper2-ext-sampling-v1`, and the stored configuration hashes.
+- **Step 1 (done):**
+  - `config/report.py` → `prerun_report(site)`: one list with code, severity, source, message, location and fix (`as_dict()` for a UI).
+  - Legacy messages keep their exact wording (codes `structure.legacy`, `rules.legacy` and `structure.note` for now).
+  - New platform checks:
+    - `process.hold_without_path` (a);
+    - `hours.not_representable` (b);
+    - `storage.daily_receipts_exceed_space` (c);
+    - `labour.no_workers_in_overtime` (d);
+    - `places.unused_area` and `stations.unused` (e).
+  - Tests: `tests/test_prerun_report.py`.
+  - None of the synthetic sites (A, B, C, trap, S) triggers a platform check.
+  - Not yet done: individual codes for the legacy messages; the engine still refuses runs through the two validators, not through the report.
+- **Next:** step 2 (systems), then step 3 (conditions and release rules).
