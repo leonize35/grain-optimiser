@@ -44,6 +44,17 @@ class GradeMixingRule(_Model):
     result: str
 
 
+class Distribution(_Model):
+    """A fitted service-time distribution in minutes (sim/distributions.py): family, parameters, optional shift
+    (fixed minimum) and cap. Families: fixed, triangular, lognormal, gamma, weibull, empirical (`values`)."""
+    family: str
+    params: dict[str, float] = {}
+    values: list[float] | None = None
+    shift: float = 0
+    max: float | None = None
+    source: str | None = None  # e.g. "time study D-1, n=42, fitted 2026-11-02" (provenance, reported)
+
+
 class Equipment(_Model):
     id: str
     type: str  # checked by validate() so an unsupported type gets a manager-language message
@@ -51,6 +62,9 @@ class Equipment(_Model):
     cap: float | None = None  # trucks served at once (sampler, grader, weighbridge)
     time: list[float] | None = None  # triangular [min, mode, max] minutes
     moves: Literal["in", "out", "both"] | None = None  # weighbridge direction; None means both
+    # Stations (sampler, grader, weighbridge): the truck activities served, e.g. a loading sampling point ["load"];
+    # None = every activity.
+    activities: list[Literal["unload", "load", "weigh"]] | None = None
     # Sampler access (docs/SAMPLER_ACCESS_DESIGN.md): drive-through time of a truck that needs no sampling but must
     # physically pass a sampler bay; a sampler located at weighbridge bays (probe) instead of its own station.
     pass_through: list[float] | None = None  # triangular [min, mode, max] minutes; None = 0
@@ -76,6 +90,9 @@ class Equipment(_Model):
     max_concurrent_feeds: int = Field(default=1, ge=1)
     # R1: minutes the route stays reserved after the last grain is fed (equipment emptying). Site input.
     clear_minutes: float = Field(default=0, ge=0)
+    # Fitted distributions per step this equipment does (e.g. {"weigh_in": {...}}); they replace the triangular
+    # time for that step only. None: triangular as configured.
+    distributions: dict[str, Distribution] | None = None
 
 
 class Hours(_Model):
@@ -351,7 +368,7 @@ def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
     data = cfg.model_dump(mode="json", by_alias=True)
     for e in data.get("equipment", []):  # sampler-access fields: hash as before when unset
-        for k in ("pass_through", "located_at", "located_lanes"):
+        for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities"):
             if e.get(k) is None:
                 e.pop(k, None)
     for a in data.get("truck_areas", []):

@@ -122,3 +122,39 @@ def test_turned_away_is_a_separate_outcome():
     assert s["turned_away"] == {"arrived after the admission cut-off": {"count": 1, "mean_time_on_site_min": 0,
                                                                         "max_time_on_site_min": 0}}
     assert r.summary["unload"].mean_turnaround_min == (19 + 14 + 9 + 9) / 4  # completed trucks only, unchanged
+
+
+# ---- A5: restricted mean time to completion on the full-follow-up cohort (MEASUREMENT_FRAMEWORK K7) ----
+def test_rmst_cohort_hand_values():
+    """Horizon end H = 07:54. Times to completion (min): T5 19, T1 14, T2 9, T3 9; T4 never completes.
+    tau 10: cohort = arrivals <= 07:44 = all 5; X = 10, 10, 9, 9, 10 -> 9.6; completed within tau: T2, T3 (2/5).
+    tau 20: all 5; X = 19, 14, 9, 9, 20 -> 14.2; F_C = 4/5.
+    tau 40: cohort = arrivals <= 07:14: T5, T1, T2 -> X = 19, 14, 9 -> 14 = their completed mean (consistency);
+    T3 and T4 are outside the cohort."""
+    from silo_engine.sim.outcomes import restricted_mean_time_to_completion as rmst
+    o = run().outcomes
+    a = rmst(o, 10)
+    assert (a["cohort"], a["outside_cohort"], a["rmst_min"], a["completed_within_tau"], a["turned_away_within_tau"]) == \
+        (5, 0, 9.6, 0.4, 0.0)
+    assert (rmst(o, 20)["rmst_min"], rmst(o, 20)["completed_within_tau"]) == (14.2, 0.8)
+    c = rmst(o, 40)
+    assert (c["cohort"], c["outside_cohort"], c["rmst_min"]) == (3, 2, 14)
+
+
+def test_rmst_counts_a_turned_away_truck_as_not_completed():
+    """T4 turned away at arrival: X = tau (never completes); tau 20 -> (19 + 14 + 9 + 9 + 20) / 5 = 14.2, F_R = 1/5.
+    The completed-only mean is unchanged (12.75); the RMST does not reward sending a truck away."""
+    from silo_engine.sim.outcomes import restricted_mean_time_to_completion as rmst
+    r = run(end_of_day={"late_arrivals": "turned_away"})
+    x = rmst(r.outcomes, 20)
+    assert (x["rmst_min"], x["completed_within_tau"], x["turned_away_within_tau"]) == (14.2, 0.8, 0.2)
+
+
+def test_rmst_needs_a_positive_tau_and_reports_an_empty_cohort():
+    import pytest
+    from silo_engine.sim.outcomes import restricted_mean_time_to_completion as rmst
+    o = run().outcomes
+    with pytest.raises(ValueError):
+        rmst(o, 0)
+    e = rmst(o, 600)  # no arrival is 10 h before the horizon end
+    assert (e["cohort"], e["rmst_min"]) == (0, None)

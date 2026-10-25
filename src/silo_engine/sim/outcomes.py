@@ -82,3 +82,24 @@ def clearance(records, windows: list[tuple[int, int, int]], closes: list[int]) -
             "held_at_gate": len(held),
         })
     return out
+
+
+def restricted_mean_time_to_completion(outcomes: dict, tau_min: float, activity: str = "unload") -> dict:
+    """RMST_C(tau) on the cohort with full follow-up (MEASUREMENT_FRAMEWORK K7): trucks that arrived at least tau
+    before the horizon end. Each contributes min(time to completion, tau); a truck turned away or unfinished never
+    completes and contributes tau. No censoring occurs before tau, so no Kaplan-Meier assumption is needed; late
+    arrivals are outside the cohort (reported). Time origin: gate arrival. tau has no default (question Q-M4)."""
+    if not tau_min > 0:
+        raise ValueError("tau must be a positive number of minutes")
+    tau = round(tau_min * MS_PER_MINUTE)
+    end = outcomes["horizon_end"]
+    xs = [x for x in outcomes["trucks"].values() if x["activity"] == activity]
+    cohort = [x for x in xs if x["arrived"] <= end - tau]
+    done = [x for x in cohort if x["status"] == "completed" and x["exit"] - x["arrived"] <= tau]
+    away = [x for x in cohort if x["status"] == "turned_away" and x["exit"] - x["arrived"] <= tau]
+    total = sum(x["exit"] - x["arrived"] if x in done else tau for x in cohort)
+    n = len(cohort)
+    return {"activity": activity, "tau_min": tau_min, "cohort": n, "outside_cohort": len(xs) - n,
+            "rmst_min": _minutes(total) / n if n else None,
+            "completed_within_tau": len(done) / n if n else None,
+            "turned_away_within_tau": len(away) / n if n else None}

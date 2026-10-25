@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Protocol
 
 from ..config.schema import SiteConfig
+from .distributions import quantile
 from .random_streams import Stream, triangular
 from .time import MS_PER_MINUTE, m
 
@@ -42,6 +43,9 @@ class StochasticServiceTimes:
 
     def duration_ms(self, truck_id: str, step: str, equipment_id: str) -> int:
         e = self._equipment[equipment_id]
+        if e.distributions and step in e.distributions:  # fitted distribution: same uniform, other transform
+            u = Stream(self.seed, "service", truck_id, step).uniform()
+            return round(quantile(e.distributions[step].model_dump(), u) * MS_PER_MINUTE)
         if step in self._tasks:
             low, mode, high = self._tasks[step]
             return round(triangular(Stream(self.seed, "service", truck_id, step).uniform(), low, mode, high) * MS_PER_MINUTE)

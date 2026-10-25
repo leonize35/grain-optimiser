@@ -263,9 +263,9 @@ No dispatching intervention (overtaking limits, priorities, reservation changes)
 ## 9. Implementation status
 
 - **2026-10-25:** steps 1, 2 and the clearance part of step 6 are implemented: `result.outcomes` (per truck: outcome, reason, time on site, gate time, censoring, weighbridge instants; per activity: counts, turned-away by reason, truck-minutes split gate/site) and `result.clearance` (per day). Tests: `tests/test_outcomes_clearance.py` covers T1, T2 (outcomes), T3 (identity) and T10(a, b in part).
+- **Built later the same day:** RMST_C(τ) (step 3, `restricted_mean_time_to_completion`), and the runner's failure reporting and `compare()` (step 5, `tests/test_run_validity.py`).
 - **Not yet built:**
-  - the failure labels for failed runs and the runner changes (§3, step 5);
-  - RMST (step 3);
+  - the evidence-tool fields (in a new package version only);
   - tonnes and fairness bounds (step 4);
   - the overnight split of K6 (T13).
 - Existing fields are unchanged; the evidence packages reproduce (see the commit message).

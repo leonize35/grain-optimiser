@@ -416,6 +416,40 @@ def _validate_unloading(site: SiteConfig, pools: dict, err, most) -> None:
                     f"{' in scenario ' + scenario if scenario else ''}, which never has that many; it could never start.")
 
 
+STEPS_OF_TYPE = {"sampler": ("sample", "pass"), "grader": ("grade",), "weighbridge": ("weigh_in", "weigh_out"),
+                 "hopper": ("tip",), "loadpoint": ("load",)}
+
+
+STATION_OF_STEP = {"sample": "sampler", "grade": "grader", "weigh_in": "weighbridge", "weigh_out": "weighbridge"}
+ACTIVITY_NAME = {"unload": "receiving", "load": "loading", "weigh": "weigh-only"}
+
+
+def _validate_station_activities(site: SiteConfig, result: RulesResult) -> None:
+    """Every step of an activity's sequence needs a station that serves that activity (and direction)."""
+    for act in ("unload", "load", "weigh"):
+        for step in getattr(site.sequences, act):
+            kind = STATION_OF_STEP.get(step)
+            if kind is None:
+                continue
+            units = [e for e in site.equipment if e.type == kind and (e.cap or 0) > 0
+                     and (e.activities is None or act in e.activities)
+                     and (step != "weigh_in" or (e.moves or "both") in ("in", "both"))
+                     and (step != "weigh_out" or (e.moves or "both") in ("out", "both"))]
+            if not units and any(e.type == kind and e.activities is not None for e in site.equipment):
+                result.errors.append(Issue(f"No {kind} serves {ACTIVITY_NAME[act]} trucks for {step}."))
+
+
+def _validate_distributions(site: SiteConfig, result: RulesResult) -> None:
+    from ..sim.distributions import problems
+    for e in site.equipment:
+        for step, d in (e.distributions or {}).items():
+            label = e.name or e.id
+            if step not in STEPS_OF_TYPE.get(e.type, ()):
+                result.errors.append(Issue(f"{label} does not do {step}, so it cannot have a time distribution for it."))
+            for msg in problems(d.model_dump()):
+                result.errors.append(Issue(f"{label}, {step} time: {msg}."))
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
@@ -428,6 +462,8 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_outages(site, result)
     _validate_stock(site, result)
     _validate_staffing(site, result)
+    _validate_distributions(site, result)
+    _validate_station_activities(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

@@ -25,11 +25,11 @@ Each item follows the same cycle: failing test, minimal change, invariants, full
 | A2 | Truck outcomes: completed / unfinished on site / unfinished at gate / turned away (reason, time on site) | MEASUREMENT_FRAMEWORK K2, K3, §1 | **Done**: `result.clearance`, `result.outcomes` (tests/test_outcomes_clearance.py) |
 | A3 | Truck-hours on site and mean observed time on site within the horizon, split gate/site, with the exact ∫N(t)dt identity | MEASUREMENT_FRAMEWORK K6 | **Done**: `result.clearance`, `result.outcomes` (tests/test_outcomes_clearance.py) |
 | A4 | Weighbridge instants per truck (weigh-in start/end, weigh-out start/end), so the weigh-in-to-weigh-out interval can match the historical definition once Q-2 is answered | DATA_CALIBRATION_PLAN G-C9 | **Done**: `result.clearance`, `result.outcomes` (tests/test_outcomes_clearance.py) |
-| A5 | Restricted mean time to completion RMST_C(τ) on the full-follow-up cohort, with F_C(τ) and F_R(τ). τ is a parameter with no default | MEASUREMENT_FRAMEWORK K7 | Next |
-| A6 | Run validity: failed replications reported, never dropped (`run_experiment`, `paired`); arrival hash per pair; evidence tools get the new fields only in a new package version | MEASUREMENT_FRAMEWORK §3 | Next |
-| A7 | Fitted service-time distributions (lognormal, gamma, Weibull, empirical) alongside triangular; independent streams kept | DATA_CALIBRATION_PLAN G-C1 | Next |
-| A8 | A sampler restricted to activities (receiving or loading), like weighbridge direction | G-C2 | Next |
-| A9 | Loading sequence with sampling after loading (weigh in → load → sample → weigh out): test, fix if needed | G-C3 | Next |
+| A5 | Restricted mean time to completion RMST_C(τ) on the full-follow-up cohort, with F_C(τ) and F_R(τ). τ is a parameter with no default | MEASUREMENT_FRAMEWORK K7 | **Done**: `outcomes.restricted_mean_time_to_completion` (tests/test_outcomes_clearance.py) |
+| A6 | Run validity: failed replications reported, never dropped (`run_experiment`, `paired`); arrival hash per pair; evidence tools get the new fields only in a new package version | MEASUREMENT_FRAMEWORK §3 | **Done** (runner): `Replication` arrival hash, intended/arrived trucks, failure time; metadata `failures`, `summary_scope`; `compare()` (tests/test_run_validity.py). Evidence tools: only in a new package version |
+| A7 | Fitted service-time distributions (lognormal, gamma, Weibull, empirical) alongside triangular; independent streams kept | DATA_CALIBRATION_PLAN G-C1 | **Done**: `Equipment.distributions` per step; `sim/distributions.py` (tests/test_distributions.py). Not yet for unloading-task times |
+| A8 | A sampler restricted to activities (receiving or loading), like weighbridge direction | G-C2 | **Done**: `Equipment.activities` for stations (tests/test_station_activities.py) |
+| A9 | Loading sequence with sampling after loading (weigh in → load → sample → weigh out): test, fix if needed | G-C3 | **Verified**: works without an engine change; the loading sample is not graded (tests/test_station_activities.py) |
 | A10 | Tonnes consistency (received, completed-truck tonnes, work in progress) and fairness bounds per commodity | MEASUREMENT_FRAMEWORK K4, K8 | Next |
 | A11 | Distribution-fitting tool (maximum likelihood, Q-Q/AD, AIC, bootstrap CIs) tested on synthetic samples; no site data | DATA_CALIBRATION_PLAN §3 | After A7 |
 
@@ -44,6 +44,11 @@ configured overtime (the hard stop); a running service is completed. Each day's 
 For Ventersdorp the overtime is set as a cap long enough to clear. A day that does not clear by the cap is
 reported as **not cleared**, never as cleared (MEASUREMENT_FRAMEWORK §4). Whether workers are available in overtime is
 Q-M7.
+
+**Finding from A6 (not changed):** when operator shifts are configured, a run blocked for good (e.g. a full bin)
+is not flagged as a stall before the last shift change. It ends at the hard stop with trucks unfinished; the day's
+clearance record shows it as not cleared. Possible later refinement: ignore shift changes that cannot resolve the
+waiting reasons when detecting a stall.
 
 ## 2. Needs your data
 

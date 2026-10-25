@@ -5,11 +5,17 @@
   differences isolate the effect of the change.
 - Every replication is checked. A run that stalled, broke a rule, or does not balance its grain is marked failed
   and left out of the summary (CLAUDE.md: reject results from runs with invariant violations); `failed` counts
-  them and `values()` returns None in their place so paired comparisons stay aligned.
+  them and `values()` returns None in their place so paired comparisons stay aligned. Failures are never silent
+  (docs/MEASUREMENT_FRAMEWORK.md §3): metadata lists each one with its time and the intended trucks that never
+  arrived, and states the summary's scope. Each replication records a hash of its intended arrivals.
+- `compare(a, b, kpi)` pairs two arms by replication, refuses arms with different arrivals (unless the arrivals
+  differ by design), and reports the pairs left out and why; an arm with a failed replication is not rankable.
 - Confidence intervals: 95 %, Student t (table for up to 31 values, 1.96 beyond), as in the prototype.
 - Metadata records what a result depends on: engine version, configuration hash, base seed and seeds,
   replications, days, demand factor, dispatch policy and the run's assumptions (CLAUDE.md §9).
 """
+import hashlib
+import json
 import math
 from dataclasses import dataclass, field
 
@@ -63,6 +69,12 @@ def ci(values: list[float | None]) -> Interval:
     return Interval(n, mean, sd, None if t is None else t * sd / math.sqrt(n))
 
 
+def arrival_hash(trucks) -> str:
+    rows = sorted([t.id, t.activity, t.arrive_ms, t.commodity, t.kg, t.grade, t.backlog, t.requires_sampling]
+                  for t in trucks)
+    return hashlib.sha256(json.dumps(rows, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
 def paired(a: list[float | None], b: list[float | None]) -> PairedDifference:
     """Per-replication differences b - a, using only replications where both have a value."""
     diffs = [y - x for x, y in zip(a, b) if x is not None and y is not None]
@@ -78,6 +90,10 @@ class Replication:
     status: str  # ok, stalled, invalid
     kpis: dict[str, float | None]
     detail: str | None = None
+    arrival_hash: str = ""  # sha256 of the intended arrivals (common random numbers check)
+    intended: int = 0  # trucks generated for the run
+    arrived: int = 0  # trucks that reached the gate (fewer when a stall cancelled later arrivals)
+    failure_time: int | None = None  # ms, for a stalled run
 
 
 @dataclass
@@ -154,13 +170,16 @@ def run_experiment(site: SiteConfig, replications: int = 10, base_seed: int = 20
         resolved, source = model.queue_policies, model.policy_source
         result = model.run()
         assumptions = assumptions or result.assumptions
+        failure_time = None
         if result.stall is not None:
             status, detail = "stalled", f"no progress possible from {result.stall.time} ms"
+            failure_time = result.stall.time
         elif result.violations or result.material_balance_kg != 0:
             status, detail = "invalid", f"{len(result.violations)} rule violations, balance {result.material_balance_kg} kg"
         else:
             status, detail = "ok", None
-        reps.append(Replication(i, seed, status, kpis_of(result), detail))
+        reps.append(Replication(i, seed, status, kpis_of(result), detail, arrival_hash(trucks), len(trucks),
+                                len(result.records), failure_time))
     good = [r for r in reps if r.status == "ok"]
     summary = {k: ci([r.kpis[k] for r in good]) for k in (good[0].kpis if good else {})}
     metadata = {"engine_version": VERSION, "config_hash": config_hash(site), "base_seed": base_seed,
@@ -170,5 +189,47 @@ def run_experiment(site: SiteConfig, replications: int = 10, base_seed: int = 20
                     next(iter(set(resolved.values()))) if len(set(resolved.values())) == 1 else dict(resolved)),
                 "queue_policies": dict(resolved), "policy_source": source,
                 "deadlock_prevention": site.deadlock_prevention, "assumptions": assumptions,
-                "successful": len(good), "failed": len(reps) - len(good)}
+                "successful": len(good), "failed": len(reps) - len(good),
+                "summary_scope": ("all replications" if len(good) == len(reps)
+                                  else f"successful replications only: {len(good)} of {len(reps)}"),
+                "failures": [{"replication": r.index, "seed": r.seed, "status": r.status, "detail": r.detail,
+                              "failure_time": r.failure_time, "intended": r.intended,
+                              "not_arrived": r.intended - r.arrived} for r in reps if r.status != "ok"]}
     return ExperimentResult(reps, summary, len(reps) - len(good), metadata)
+
+
+@dataclass
+class Comparison:
+    kpi: str
+    planned: int
+    used: int
+    difference: PairedDifference  # b - a over the complete pairs
+    excluded: list[tuple[int, str]]  # (replication, reason)
+    failures_a: int
+    failures_b: int
+    rankable_a: bool  # an arm with any failed replication cannot be ranked best on the remaining pairs
+    rankable_b: bool
+    note: str
+
+
+def compare(a: ExperimentResult, b: ExperimentResult, kpi: str, same_arrivals: bool = True) -> Comparison:
+    """Paired comparison b - a by replication (MEASUREMENT_FRAMEWORK §3): no silent exclusion."""
+    if len(a.replications) != len(b.replications):
+        raise ValueError("The arms have different numbers of replications.")
+    if same_arrivals and any(x.arrival_hash != y.arrival_hash for x, y in zip(a.replications, b.replications)):
+        raise ValueError("The arms received different arrivals; pass same_arrivals=False if that is intended.")
+    diffs, excluded = [], []
+    for x, y in zip(a.replications, b.replications):
+        reasons = [f"{arm} {r.status}" for arm, r in (("A", x), ("B", y)) if r.status != "ok"]
+        if not reasons and (x.kpis.get(kpi) is None or y.kpis.get(kpi) is None):
+            reasons = ["no value"]
+        if reasons:
+            excluded.append((x.index, ", ".join(reasons)))
+        else:
+            diffs.append((x.kpis[kpi], y.kpis[kpi]))
+    d = paired([p for p, _ in diffs], [q for _, q in diffs])
+    fa = sum(r.status != "ok" for r in a.replications)
+    fb = sum(r.status != "ok" for r in b.replications)
+    n = len(a.replications)
+    note = f"all {n} pairs used" if not excluded else f"conditional on both arms running: {len(diffs)} of {n} pairs used"
+    return Comparison(kpi, n, len(diffs), d, excluded, fa, fb, fa == 0, fb == 0, note)

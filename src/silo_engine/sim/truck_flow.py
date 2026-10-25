@@ -99,6 +99,10 @@ class _Unit:
     lane: int
     type: str
     moves: str  # in, out, both
+    activities: tuple[str, ...] | None = None  # truck activities served; None = all
+
+    def for_activity(self, activity: str) -> bool:
+        return self.activities is None or activity in self.activities
 
     @property
     def resource(self) -> str:
@@ -465,7 +469,7 @@ class TruckFlowModel:
         self.mixing = self.grades.mixing()
         eq = site.equipment
         self.equipment = {e.id: e for e in eq}
-        self.units = [_Unit(e.id, lane, e.type, e.moves or "both")
+        self.units = [_Unit(e.id, lane, e.type, e.moves or "both", tuple(e.activities) if e.activities else None)
                       for e in eq if e.type in ("sampler", "grader", "weighbridge") for lane in range(int(e.cap or 0))]
         self.bins = {e.id: self._make_bin(e) for e in eq if e.type == "bin"}
         self._lots_seen: dict[str, tuple] = {}  # lot id -> (truck, pit, grain, kg, tipped at); reporting only
@@ -916,7 +920,7 @@ class TruckFlowModel:
             return self._closed()
         wb, lanes = next(iter(self._colocated.values()))
         bays = [u for u in self.units if u.equipment_id == wb and (lanes is None or u.lane in lanes)]
-        crews = [u for u in self.units if u.type == "sampler"]
+        crews = [u for u in self.units if u.type == "sampler" and u.for_activity(truck.activity)]
         bay = next((u for u in bays if self.ledger.lane_free(u.resource)), None)
         crew = next((u for u in crews if self.ledger.lane_free(u.resource)), None)
         if bay is None or crew is None:
@@ -1038,9 +1042,11 @@ class TruckFlowModel:
         self._location[truck.id] = (res_id, step_rec)
         self._position[truck.id] = self._target.pop(truck.id, self._position[truck.id] + 1)
 
-    def _try_lane(self, reservation_id: str, kind: str, step: str) -> tuple[_Unit | None, list[WaitReason]]:
+    def _try_lane(self, reservation_id: str, kind: str, step: str,
+                  activity: str | None = None) -> tuple[_Unit | None, list[WaitReason]]:
         """A lane for a sample (grading); samples do not occupy truck places."""
-        compatible = [u for u in self.units if u.type == kind and u.serves(step)]
+        compatible = [u for u in self.units if u.type == kind and u.serves(step)
+                      and (activity is None or u.for_activity(activity))]
         lab = self._labour_item(reservation_id, step)
         for u in compatible:
             if self.ledger.lane_free(u.resource):
@@ -1059,7 +1065,8 @@ class TruckFlowModel:
         if step_rec.step == "weigh_in" and truck.id in self._bay_held:
             return self._weigh_on_held_bay(truck, step_rec)
         res_id = f"{truck.id}/{step_rec.step}"
-        compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)]
+        compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)
+                      and u.for_activity(truck.activity)]
         for u in compatible:
             if not self.ledger.lane_free(u.resource):
                 continue
@@ -1093,7 +1100,7 @@ class TruckFlowModel:
         if not self._serving(self.cal.now):
             return self._closed()
         res_id = f"{sample_id}/grade"
-        unit, reasons = self._try_lane(res_id, "grader", "grade")
+        unit, reasons = self._try_lane(res_id, "grader", "grade", truck.activity)
         if unit is None:
             return reasons
         end = self.cal.now + self._dur(truck.id, "grade", unit.equipment_id)
@@ -1694,8 +1701,9 @@ class TruckFlowModel:
             **self._fairness())
 
     def _outcomes(self) -> dict:
-        trucks = truck_outcomes(list(self.records.values()), min(self.cal.now, self._horizon_end))
-        return {"trucks": trucks, "summary": outcome_summary(trucks)}
+        end = min(self.cal.now, self._horizon_end)
+        trucks = truck_outcomes(list(self.records.values()), end)
+        return {"trucks": trucks, "summary": outcome_summary(trucks), "horizon_end": end}
 
     def _access_report(self) -> dict[str, dict]:
         now = min(self.cal.now, self._horizon_end)
