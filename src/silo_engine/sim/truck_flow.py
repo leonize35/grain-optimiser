@@ -60,7 +60,7 @@ from fractions import Fraction
 
 from ..config.grades import GradePolicy
 from ..config.routes import build_routes
-from ..config.rules_validation import validate_rules
+from ..config.rules_validation import staffing_schedules, validate_rules
 from ..config.schema import ReconciliationSettings, SiteConfig
 from ..domain.book import BookLedger
 from ..domain.changeover import ChangeoverMatrix
@@ -69,7 +69,7 @@ from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
 from .calendar import ARRIVAL, CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
-from .ledger import (AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
+from .ledger import (LabourClaim, AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
                      SegmentClaim)
 from .pit import Lot, Pit
 from .queue_policy import DEFAULT_POLICY, UnsupportedPrototypePolicy, from_prototype
@@ -386,6 +386,11 @@ class TruckFlowResult:
     area_occupancy: dict[str, dict] = field(default_factory=dict)
     single_file_exits: list[tuple] = field(default_factory=list)
     single_file_log: list[tuple] = field(default_factory=list)  # (time, area, truck, "enter"/"exit", via bypass)
+    # Staffing: scenario, per pool utilisation and verification; operator use intervals; truck-minutes of waiting
+    # per (reason, resource) when labour is configured.
+    staffing: dict = field(default_factory=dict)
+    labour_use: list[dict] = field(default_factory=list)
+    waiting_attribution: dict[str, float] = field(default_factory=dict)
     lots: dict[str, LotFlow] = field(default_factory=dict)  # lot id -> tipping-to-storage record
     # Step 18: process losses, book inventory per bin, observations, stock event log, reconciliation per bin + "site".
     losses: list[LossRecord] = field(default_factory=list)
@@ -407,7 +412,7 @@ def _kg_per_ms(rate_tph: Fraction) -> Fraction:
 class TruckFlowModel:
     def __init__(self, site: SiteConfig, trucks: list[ScriptedTruck], times: ServiceTimes,
                  policy: str | dict[str, str] | None = None, days: int = 1,
-                 reconciliation_tolerance: dict | None = None):
+                 reconciliation_tolerance: dict | None = None, staffing: str | None = None):
         if days < 1:
             raise ModelError("A run covers at least one day.")
         self.site = site
@@ -435,6 +440,16 @@ class TruckFlowModel:
         rules = validate_rules(site)
         if rules.errors:
             raise ModelError("The site's operating rules are incomplete:\n" + "\n".join(i.msg for i in rules.errors))
+        if staffing is not None and staffing not in site.staffing_scenarios:
+            raise ModelError(f"Unknown staffing scenario {staffing}; the site defines {sorted(site.staffing_scenarios)}.")
+        self.staffing_scenario = staffing
+        schedules, operators = staffing_schedules(site, staffing)
+        self._schedules = schedules
+        self._labour = {r.step: (r.pool, operators.get(r.step, r.operators), r.held) for r in site.labour}
+        self._labour_use: list[dict] = []
+        self._labour_open: dict[str, tuple[str, dict]] = {}  # owner -> (labour reservation id, use record)
+        self._attribution: dict[str, float] = {}
+        self._attr_last: tuple[int, dict] | None = None
         self.changeover_matrix = ChangeoverMatrix.from_site(site)
         self.grades = GradePolicy(site)
         self.mixing = self.grades.mixing()
@@ -452,6 +467,7 @@ class TruckFlowModel:
         self.ledger = ReservationLedger(
             lanes={u.resource for u in self.units} | {f"{h}:tip" for h in self.pits}
                   | {f"{e.id}:load" for e in eq if e.type == "loadpoint"},
+            pools={pid: self._staff_at(pid, 0) for pid in self._schedules},
             segments={e.id: e.max_concurrent_feeds for e in eq if e.type in ("conveyor", "elevator")},
             pits=self.pits, bins=self.bins, areas=self._area_caps)
         self.assumptions = [f"{ACTIVITY_LABEL[act]} trucks have unlimited waiting space between steps "
@@ -546,6 +562,19 @@ class TruckFlowModel:
             ev_stop = self.cal.schedule(stops, CONTROL, lambda c, d=d: self._service_stops(d), f"day {d + 1}: service stops")
             self._day_events |= {ev_open, ev_stop}
         schedule_arrivals(self.cal, trucks, self._arrive)
+        for pid, windows in self._schedules.items():
+            times_ = sorted({d * MS_PER_DAY + hm(t) for d in range(days) for w in windows for t in (w.from_, w.to)})
+            for t in times_:
+                if t > 0:
+                    self.cal.schedule(t, CONTROL, lambda c, p=pid: self._staff_change(p), f"staffing change: {pid}")
+        if self._labour:
+            self.assumptions.append("Labour: operators are needed for the whole task unless configured otherwise; no "
+                                    "crew-size effect on task times unless crew_time is configured; operators finish a "
+                                    "running task at the end of a shift; no walking time between stations.")
+        unverified = sorted(p.id for p in site.operator_pools if not p.verified)
+        if unverified:
+            self.assumptions.append(f"Operator pool(s) {', '.join(unverified)} are unverified inputs (not confirmed by "
+                                    "the silo manager).")
         for i, ev in enumerate(site.stock_events, start=1):  # validated by validate_rules
             when = (ev.day - 1) * MS_PER_DAY + hm(ev.time)
             self.cal.schedule(when, CONTROL, lambda c, ev=ev, i=i: self._stock_event(ev, i), f"stock event {i}: {ev.kind}")
@@ -649,6 +678,8 @@ class TruckFlowModel:
     # ---- event plumbing ----
     def _after_event(self) -> None:
         self.dispatcher.reconsider(self.cal.now)
+        if self._labour:
+            self._attribute_waiting()
         for problem in self.ledger.check_invariants(self.cal.now):
             self.violations.append((self.cal.now, problem))
         # Stall: work is waiting and nothing is left that could change it. New arrivals and the daily open/stop
@@ -877,15 +908,17 @@ class TruckFlowModel:
             busy = [u.resource for u in (bays if bay is None else crews)]
             return [WaitReason("EQUIPMENT_BUSY", ",".join(busy), f"{', '.join(busy)} busy")]
         bay_res, crew_res = f"{truck.id}/sample-bay", f"{truck.id}/sample-unit"
-        reasons = self.ledger.try_reserve_many([(bay_res, [LaneClaim(bay.resource)]), (crew_res, [LaneClaim(crew.resource)])],
-                                               self.cal.now)
+        lab = self._labour_item(f"{truck.id}/sample", "sample")
+        reasons = self.ledger.try_reserve_many([(bay_res, [LaneClaim(bay.resource)]), (crew_res, [LaneClaim(crew.resource)])]
+                                               + ([lab] if lab else []), self.cal.now)
         if reasons:
             return reasons
+        self._labour_started(f"{truck.id}/sample", "sample")
         self._occupy_station(truck, bay_res, step_rec)
         self._bay_held[truck.id] = (bay, bay_res)
         self._crew_res[truck.id] = crew_res
         step_rec.unit, step_rec.started = bay.resource, self.cal.now
-        end = self.cal.now + self.times.duration_ms(truck.id, "sample", crew.equipment_id)
+        end = self.cal.now + self._dur(truck.id, "sample", crew.equipment_id)
         self.cal.schedule(end, RELEASE, lambda c: self._colocated_sample_done(truck, step_rec),
                           f"{truck.id} sampled at {bay.resource}")
         return []
@@ -899,14 +932,22 @@ class TruckFlowModel:
         bay, bay_res = self._bay_held[truck.id]
         path = self.paths[truck.activity]
         after = self._target.get(truck.id, self._position[truck.id] + 1) + 1
+        items, area_res = [], None
         if (self.site.deadlock_prevention == "reserve_next_space" and after < len(path)
                 and self._area_caps.get(path[after]) is not None):
             self._area_count += 1
             area_res = f"{truck.id}/area:{path[after]}#{self._area_count}"
-            reasons = self.ledger.try_reserve(area_res, [AreaClaim(path[after])], self.cal.now)
+            items.append((area_res, [AreaClaim(path[after])]))
+        lab = self._labour_item(f"{truck.id}/weigh_in", "weigh_in")
+        if lab:
+            items.append(lab)
+        if items:
+            reasons = self.ledger.try_reserve_many(items, self.cal.now)
             if reasons:
                 return reasons
+        if area_res is not None:
             self._next_area_held[truck.id] = area_res
+        self._labour_started(f"{truck.id}/weigh_in", "weigh_in")
         del self._bay_held[truck.id]
         prev = self._location[truck.id][1]
         if prev is not None:
@@ -914,7 +955,7 @@ class TruckFlowModel:
         self._location[truck.id] = (bay_res, step_rec)
         self._position[truck.id] = self._target.pop(truck.id, self._position[truck.id] + 1)
         step_rec.unit, step_rec.started = bay.resource, self.cal.now
-        end = self.cal.now + self.times.duration_ms(truck.id, "weigh_in", bay.equipment_id)
+        end = self.cal.now + self._dur(truck.id, "weigh_in", bay.equipment_id)
         self.cal.schedule(end, RELEASE, lambda c: self._truck_service_done(truck, step_rec),
                           f"{truck.id} finishes weigh_in at {bay.equipment_id}")
         return []
@@ -985,10 +1026,15 @@ class TruckFlowModel:
     def _try_lane(self, reservation_id: str, kind: str, step: str) -> tuple[_Unit | None, list[WaitReason]]:
         """A lane for a sample (grading); samples do not occupy truck places."""
         compatible = [u for u in self.units if u.type == kind and u.serves(step)]
+        lab = self._labour_item(reservation_id, step)
         for u in compatible:
             if self.ledger.lane_free(u.resource):
-                if self.ledger.try_reserve(reservation_id, [LaneClaim(u.resource)], self.cal.now) == []:
+                got = self.ledger.try_reserve_many([(reservation_id, [LaneClaim(u.resource)])] + ([lab] if lab else []),
+                                                   self.cal.now)
+                if got == []:
+                    self._labour_started(reservation_id, step)
                     return u, []
+                return None, got
         ids = sorted({u.equipment_id for u in compatible})
         return None, [WaitReason("EQUIPMENT_BUSY", ",".join(ids), f"{', '.join(ids)} busy")]
 
@@ -1002,14 +1048,16 @@ class TruckFlowModel:
         for u in compatible:
             if not self.ledger.lane_free(u.resource):
                 continue
-            got = self._reserve_service(truck, res_id, [LaneClaim(u.resource)])
+            lab = self._labour_item(res_id, step_rec.step)
+            got = self._reserve_service(truck, res_id, [LaneClaim(u.resource)], extra=[lab] if lab else None)
             if got:
-                return got  # the next area is full: the same for every lane
+                return got  # the next area is full or no operator: the same for every lane
+            self._labour_started(res_id, step_rec.step)
             self._occupy_station(truck, res_id, step_rec)
             step_rec.unit, step_rec.started = u.resource, self.cal.now
             if step_rec.step == "pass":
                 self._access_of(truck)["pass_throughs"] += 1
-            end = self.cal.now + self.times.duration_ms(truck.id, step_rec.step, u.equipment_id)
+            end = self.cal.now + self._dur(truck.id, step_rec.step, u.equipment_id)
             self.cal.schedule(end, RELEASE, lambda c: self._truck_service_done(truck, step_rec),
                               f"{truck.id} finishes {step_rec.step} at {u.equipment_id}")
             return []
@@ -1018,6 +1066,7 @@ class TruckFlowModel:
 
     def _truck_service_done(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
         step_rec.finished = self.cal.now  # the truck keeps the lane until it can move on
+        self._labour_finished(f"{truck.id}/{step_rec.step}")
         if step_rec.step == "sample" and "grade" in getattr(self.site.sequences, truck.activity):
             sample_id = f"S-{truck.id}"
             self._submit_for(truck, "grade", f"{sample_id}/grade", "grade", lambda now: self._try_grade(sample_id, truck))
@@ -1032,13 +1081,14 @@ class TruckFlowModel:
         unit, reasons = self._try_lane(res_id, "grader", "grade")
         if unit is None:
             return reasons
-        end = self.cal.now + self.times.duration_ms(truck.id, "grade", unit.equipment_id)
+        end = self.cal.now + self._dur(truck.id, "grade", unit.equipment_id)
         self.cal.schedule(end, RELEASE, lambda c: self._grading_done(sample_id, truck, res_id),
                           f"{sample_id} graded at {unit.equipment_id}")
         return []
 
     def _grading_done(self, sample_id: str, truck: ScriptedTruck, res_id: str) -> None:
         self.ledger.release(res_id, self.cal.now, "completed")
+        self._labour_finished(res_id)
         self._results[sample_id] = (truck.id, self.cal.now)
         waiting_for = self._awaiting_result.get(truck.id)
         if waiting_for is not None:
@@ -1061,11 +1111,14 @@ class TruckFlowModel:
                 if busy not in reasons:
                     reasons.append(busy)
                 continue
-            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, kg)])
+            lab = self._labour_item(res_id, "tip")
+            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, kg)],
+                                        extra=[lab] if lab else None)
             if not got:
+                self._labour_started(res_id, "tip")
                 self._occupy_station(truck, res_id, step_rec)
                 step_rec.unit, step_rec.started = pit.id, self.cal.now
-                end = self.cal.now + self.times.duration_ms(truck.id, "tip", pit.id)
+                end = self.cal.now + self._dur(truck.id, "tip", pit.id)
                 self.cal.schedule(end, RELEASE, lambda c, p=pit: self._tip_done(truck, step_rec, p, res_id),
                                   f"{truck.id} finishes tipping into {pit.id}")
                 return []
@@ -1084,6 +1137,7 @@ class TruckFlowModel:
         pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
         self._lots_seen[f"L-{truck.id}"] = (truck.id, pit.id, self._grain(truck), truck.kg, self.cal.now)
         self._tipped_kg += truck.kg  # the truck keeps the tipping lane until it can move on
+        self._labour_finished(res_id)
         step_rec.finished = self.cal.now
         if pit.id not in self._intake_active:
             self._submit_intake(pit.id)
@@ -1119,10 +1173,12 @@ class TruckFlowModel:
                 continue
             route = [SegmentClaim(s, grain, tuple(path[k:])) for k, s in enumerate(path) if 0 < k < len(path) - 1]
             route.append(BinOutgoingClaim(bin_id, truck.commodity, truck.kg))
-            got = self._reserve_service(truck, res_id, [LaneClaim(lane)], extra=[(route_res, route)])
+            lab = self._labour_item(res_id, "load")
+            got = self._reserve_service(truck, res_id, [LaneClaim(lane)], extra=[(route_res, route)] + ([lab] if lab else []))
             if got:
                 reasons.extend(r for r in got if r not in reasons)
                 continue
+            self._labour_started(res_id, "load")
             self._occupy_station(truck, res_id, step_rec)
             step_rec.unit, step_rec.started = lp, self.cal.now
             setup = self.times.duration_ms(truck.id, "load", lp)
@@ -1143,6 +1199,7 @@ class TruckFlowModel:
 
     def _load_done(self, truck: ScriptedTruck, step_rec: StepRecord, record: LoadRecord) -> None:
         self._load_end.pop(record.id, None)
+        self._labour_finished(f"{truck.id}/load")
         self.bins[record.bin].dispatch(record.id, record.kg)
         self.book.post(self.cal.now, record.bin, -record.kg, record.id)
         self._dispatched_kg += record.kg
@@ -1191,10 +1248,12 @@ class TruckFlowModel:
             changeovers = self._changeovers(segments, lot.grain)  # before reserving: joining needs no changeover
             claims = [SegmentClaim(s, lot.grain, tuple(path[i:])) for i, s in enumerate(path) if 0 < i < len(path) - 1]
             claims.append(BinIncomingClaim(b.id, lot.grain, kg))
-            got = self.ledger.try_reserve(req_id, claims, self.cal.now)
+            lab = self._labour_item(req_id, "intake")
+            got = self.ledger.try_reserve_many([(req_id, claims)] + ([lab] if lab else []), self.cal.now)
             if got:
                 reasons.extend(got)
                 continue
+            self._labour_started(req_id, "intake")
             flow_start = max(self.cal.now + max(changeovers.values(), default=0),  # own changeovers, in parallel (A5)
                              self._segments_ready(segments))  # not before a changeover already under way finishes
             pit.start_drain(kg, flow_start)
@@ -1262,6 +1321,7 @@ class TruckFlowModel:
                 f"{rec.lot_id}: {rec.kg} kg from {rec.pit} into {rec.bin}")
 
     def _intake_done(self, pit: Pit, b: StorageBin, record: TransferRecord) -> None:
+        self._labour_finished(record.id)
         del self._flowing[record.id]
         del self._completion[record.id]
         b.receive(record.id, record.kg)
@@ -1285,6 +1345,88 @@ class TruckFlowModel:
         record.released = self.cal.now
         if in_event:
             self._after_event()
+
+    # ---- staffing (docs/OPERATOR_STAFFING_DESIGN.md) ----
+    def _staff_at(self, pool: str, t: int) -> int:
+        tod = t % MS_PER_DAY
+        return sum(w.count for w in self._schedules[pool] if hm(w.from_) <= tod < hm(w.to))
+
+    def _staff_change(self, pool: str) -> None:
+        self.ledger.set_pool_capacity(pool, self._staff_at(pool, self.cal.now))
+        self._after_event()
+
+    def _labour_item(self, owner: str, step: str):
+        need = self._labour.get(step)
+        if need is None:
+            return None
+        return (f"{owner}/labour", [LabourClaim(need[0], need[1])])
+
+    def _labour_started(self, owner: str, step: str) -> None:
+        need = self._labour.get(step)
+        if need is None:
+            return
+        use = {"owner": owner, "step": step, "pool": need[0], "operators": need[1], "start": self.cal.now, "end": None}
+        self._labour_use.append(use)
+        if need[2] == "start_only":
+            self.ledger.release(f"{owner}/labour", self.cal.now, "completed")
+            use["end"] = self.cal.now
+        else:
+            self._labour_open[owner] = (f"{owner}/labour", use)
+
+    def _labour_finished(self, owner: str) -> None:
+        held = self._labour_open.pop(owner, None)
+        if held is not None:
+            self.ledger.release(held[0], self.cal.now, "completed")
+            held[1]["end"] = self.cal.now
+
+    def _dur(self, truck_id: str, step: str, equipment_id: str) -> int:
+        ms = self.times.duration_ms(truck_id, step, equipment_id)
+        need = self._labour.get(step)
+        factor = self.site.crew_time.get(step, {}).get(str(need[1])) if need else None
+        return ms if factor is None else round(ms * factor)
+
+    def _attribute_waiting(self) -> None:
+        """Truck-minutes of waiting per (reason, resource), integrated between events (labour configured only)."""
+        now = self.cal.now
+        if self._attr_last is not None:
+            t0, snap = self._attr_last
+            for k, n in snap.items():
+                self._attribution[k] = self._attribution.get(k, 0.0) + n * (now - t0) / MS_PER_MINUTE
+        snap: dict[str, int] = {}
+        for reasons in self.dispatcher.waiting_reasons().values():
+            for k in {f"{r.code}:{r.resource}" if r.resource else r.code for r in reasons}:
+                snap[k] = snap.get(k, 0) + 1
+        self._attr_last = (now, snap)
+
+    def _attribution_report(self) -> dict[str, float]:
+        if not self._labour:
+            return {}
+        out = dict(self._attribution)
+        if self._attr_last is not None:
+            t0, snap = self._attr_last
+            end = max(t0, min(self.cal.now, self._horizon_end))
+            for k, n in snap.items():
+                out[k] = out.get(k, 0.0) + n * (end - t0) / MS_PER_MINUTE
+        return {k: round(v, 6) for k, v in sorted(out.items())}
+
+    def _staffing_report(self) -> dict:
+        if not self._schedules:
+            return {}
+        end = self._horizon_end
+        pools = {}
+        for p in self.site.operator_pools:
+            avail = 0
+            for d in range(self.days):
+                for w in self._schedules[p.id]:
+                    a, b = d * MS_PER_DAY + hm(w.from_), d * MS_PER_DAY + hm(w.to)
+                    avail += w.count * max(0, min(b, end) - a)
+            busy = sum(u["operators"] * ((u["end"] if u["end"] is not None else self.cal.now) - u["start"])
+                       for u in self._labour_use if u["pool"] == p.id)
+            pools[p.id] = {"verified": p.verified, "busy_operator_minutes": busy / MS_PER_MINUTE,
+                           "available_operator_minutes": avail / MS_PER_MINUTE,
+                           "utilisation": busy / avail if avail else None}
+        return {"scenario": self.staffing_scenario or "baseline", "pools": pools,
+                "labour": {k: {"pool": v[0], "operators": v[1], "held": v[2]} for k, v in self._labour.items()}}
 
     # ---- stock events (step 18, docs/STOCK_ADJUSTMENTS.md) ----
     def _stock_event(self, ev, i: int) -> None:
@@ -1448,6 +1590,8 @@ class TruckFlowModel:
             policy_source=self.policy_source, lots=self._lot_flows(), losses=list(self.losses),
             truck_access=self._access_report(), area_occupancy=self._occupancy_report(),
             single_file_exits=list(self._sf_exits), single_file_log=list(self._sf_log),
+            staffing=self._staffing_report(), labour_use=[dict(u) for u in self._labour_use],
+            waiting_attribution=self._attribution_report(),
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(), **self._fairness())
 

@@ -147,6 +147,7 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
         _audit_stock(a, site, opening_bins, done_t, done_l, losses, result)
     _audit_outages(a, site, [*transfers, *loads])
     _audit_access(a, site, trucks, result)
+    _audit_labour(a, site, result)
     _audit_segments(a, eq, transfers, loads, lot_commodity, truck)
     a.checked = {"lots": len(lot_kg), "transfers": len(transfers), "loads": len(loads), "bins": len(opening_bins),
                  "pits": len(result.pits)}
@@ -370,3 +371,34 @@ def _audit_access(a, site, trucks, result) -> None:
             if via and (needs.get(tid, True) or not declared.get((truck[tid].activity if tid in truck else None, area))):
                 a.problems.append(f"single-file {area}: {tid} used a bypass at {t} that is not declared for it")
             q.remove(tid)
+
+
+def _audit_labour(a, site, result) -> None:
+    """Staffing: operators in use at any task start never exceed the scheduled count (tasks may run past a shift end),
+    and every task needing labour held its operators for the required phase."""
+    if not site.labour:
+        return
+    scenario = (getattr(result, "staffing", {}) or {}).get("scenario")
+    schedules = {p.id: list(p.schedule) for p in site.operator_pools}
+    operators = {r.step: r.operators for r in site.labour}
+    if scenario and scenario != "baseline":
+        schedules.update(site.staffing_scenarios[scenario].pools)
+        operators.update(site.staffing_scenarios[scenario].labour)
+    staff = lambda pool, t: sum(w.count for w in schedules[pool] if hm(w.from_) <= t % MS_PER_DAY < hm(w.to))  # noqa: E731
+    uses = list(getattr(result, "labour_use", []))
+    for u in uses:
+        t = u["start"]
+        busy = sum(v["operators"] for v in uses if v["pool"] == u["pool"] and v["start"] <= t
+                   and (v["end"] is None or v["end"] > t or v is u))
+        if busy > staff(u["pool"], t):
+            a.problems.append(f"operators of {u['pool']} in use at {t} ({busy}) exceeds the scheduled {staff(u['pool'], t)}")
+    held = {r.step: r.held for r in site.labour}
+    by_owner = {(u["owner"], u["step"]): u for u in uses}
+    for rec in result.records:
+        for s in rec.steps:
+            if s.step in held and s.started is not None and s.step in ("sample", "weigh_in", "weigh_out", "tip", "load"):
+                owner = f"{rec.truck_id}/{s.step}"
+                u = by_owner.get((owner, s.step))
+                end_needed = s.started if held[s.step] == "start_only" else s.finished
+                if u is None or u["start"] > s.started or (end_needed is not None and u["end"] is not None and u["end"] < end_needed):
+                    a.problems.append(f"{owner} ran without its operators")

@@ -25,6 +25,13 @@ class LaneClaim:
 
 
 @dataclass(frozen=True)
+class LabourClaim:
+    """Operators from a pool (docs/OPERATOR_STAFFING_DESIGN.md), reserved with the task's equipment."""
+    pool: str
+    operators: int = 1
+
+
+@dataclass(frozen=True)
 class SegmentClaim:
     equipment_id: str
     grain: GradedCommodity
@@ -61,7 +68,7 @@ class BinOutgoingClaim:
     kg: int
 
 
-Claim = LaneClaim | SegmentClaim | PitSpaceClaim | BinIncomingClaim | AreaClaim | BinOutgoingClaim
+Claim = LaneClaim | SegmentClaim | PitSpaceClaim | BinIncomingClaim | AreaClaim | BinOutgoingClaim | LabourClaim
 
 
 @dataclass(frozen=True)
@@ -86,19 +93,28 @@ class _Segment:
 
 class ReservationLedger:
     def __init__(self, lanes: set[str], segments: dict[str, int], pits: dict[str, Pit], bins: dict[str, StorageBin],
-                 areas: dict[str, int | None] | None = None):
+                 areas: dict[str, int | None] | None = None, pools: dict[str, int] | None = None):
         self._lanes: dict[str, str | None] = {lane: None for lane in lanes}
         self._area_capacity = dict(areas or {})
         self._area_holders: dict[str, set[str]] = {a: set() for a in self._area_capacity}
         self.area_peak: dict[str, int] = {a: 0 for a in self._area_capacity}
         self._segments = {sid: _Segment(cap) for sid, cap in segments.items()}
         self.down: set[str] = set()  # segments currently unavailable (step 17): no new reservations through them
+        self._pool_cap: dict[str, int] = dict(pools or {})  # operators available now (staffing schedule)
+        self._pool_used: dict[str, int] = {p: 0 for p in self._pool_cap}
         self.pits = pits
         self.bins = bins
         self._held: dict[str, tuple[Claim, ...]] = {}
         self.log: list[LedgerEntry] = []
 
     # ---- queries ----
+    def set_pool_capacity(self, pool: str, operators: int) -> None:
+        """A staffing change. Operators already at work finish their tasks (no pre-emption)."""
+        self._pool_cap[pool] = operators
+
+    def pool_in_use(self, pool: str) -> int:
+        return self._pool_used[pool]
+
     def lane_free(self, lane: str) -> bool:
         return self._lanes[lane] is None
 
@@ -150,6 +166,12 @@ class ReservationLedger:
             if any(d != claim.downstream for d in seg.downstream.values()):
                 return [WaitReason("MERGE_PATH_DIFFERS", claim.equipment_id,
                                    f"grain on {claim.equipment_id} is heading elsewhere; merged grain cannot be split")]
+            return []
+        if isinstance(claim, LabourClaim):
+            free = self._pool_cap[claim.pool] - self._pool_used[claim.pool]
+            if claim.operators > free:
+                return [WaitReason("LABOUR_UNAVAILABLE", claim.pool,
+                                   f"{claim.pool}: {max(free, 0)} of {claim.operators} operator(s) free")]
             return []
         if isinstance(claim, AreaClaim):
             if claim.area not in self._area_capacity:
@@ -211,6 +233,8 @@ class ReservationLedger:
                 self.bins[claim.bin_id].reserve_incoming(reservation_id, claim.grain, claim.kg)
             elif isinstance(claim, BinOutgoingClaim):
                 self.bins[claim.bin_id].reserve_outgoing(reservation_id, claim.commodity, claim.kg)
+            elif isinstance(claim, LabourClaim):
+                self._pool_used[claim.pool] += claim.operators
         self._held[reservation_id] = tuple(claims)
         self.log.append(LedgerEntry(now, "reserve", reservation_id, tuple(claims)))
 
@@ -239,6 +263,8 @@ class ReservationLedger:
                 b = self.bins[claim.bin_id]
                 if b.has_outgoing(reservation_id):  # stock not dispatched (cancelled or failed load)
                     b.release_outgoing(reservation_id)
+            elif isinstance(claim, LabourClaim):
+                self._pool_used[claim.pool] -= claim.operators
         self.log.append(LedgerEntry(now, f"release:{outcome}", reservation_id, claims))
 
     # ---- independent checks ----

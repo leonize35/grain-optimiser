@@ -315,6 +315,69 @@ def _validate_stock(site: SiteConfig, result: RulesResult) -> None:
                 err(f"{label} needs a basis (administrative or measurement).")
 
 
+def staffing_schedules(site: SiteConfig, scenario: str | None) -> tuple[dict, dict]:
+    """(pool -> schedule windows, step -> operators) for the baseline or a staffing scenario."""
+    schedules = {p.id: list(p.schedule) for p in site.operator_pools}
+    operators = {r.step: r.operators for r in site.labour}
+    if scenario is not None:
+        sc = site.staffing_scenarios[scenario]
+        schedules.update(sc.pools)
+        operators.update(sc.labour)
+    return schedules, operators
+
+
+def _validate_staffing(site: SiteConfig, result: RulesResult) -> None:
+    from ..sim.time import TimeFormatError, hm
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    pools = {p.id: p for p in site.operator_pools}
+    if len(pools) != len(site.operator_pools):
+        err("Two operator pools share an id.")
+
+    def check_windows(label, windows):
+        for w in windows:
+            try:
+                if hm(w.to) <= hm(w.from_):
+                    err(f"{label}: a shift must end after it starts ({w.from_}-{w.to}).")
+            except TimeFormatError:
+                err(f"{label}: shift times must be clock times like HH:MM ({w.from_}-{w.to}).")
+
+    def most(windows):
+        return max((w.count for w in windows), default=0)
+
+    for p in site.operator_pools:
+        check_windows(f"Operator pool {p.id}", p.schedule)
+    steps = [r.step for r in site.labour]
+    if len(set(steps)) != len(steps):
+        err("A task step has more than one labour requirement.")
+    for r in site.labour:
+        p = pools.get(r.pool)
+        if p is None:
+            err(f"The labour for {r.step} refers to unknown operator pool {r.pool}.")
+        elif r.step not in p.skills:
+            err(f"Operator pool {r.pool} does not have the skill {r.step}.")
+    for name, sc in site.staffing_scenarios.items():
+        for pid, windows in sc.pools.items():
+            if pid not in pools:
+                err(f"Staffing scenario {name} refers to unknown operator pool {pid}.")
+            check_windows(f"Staffing scenario {name}, pool {pid}", windows)
+        for step in sc.labour:
+            if step not in steps:
+                err(f"Staffing scenario {name} sets operators for {step}, which has no labour requirement.")
+    for scenario in [None, *site.staffing_scenarios]:
+        if any(pid not in pools for pid in (site.staffing_scenarios[scenario].pools if scenario else {})):
+            continue
+        schedules, operators = staffing_schedules(site, scenario)
+        for r in site.labour:
+            if r.pool in schedules and operators.get(r.step, r.operators) > most(schedules[r.pool]):
+                err(f"{r.step} needs {operators.get(r.step, r.operators)} operator(s) from {r.pool}"
+                    f"{' in scenario ' + scenario if scenario else ''}, which never has that many; the task could never start.")
+    for step, table in site.crew_time.items():
+        if step not in ("sample", "grade", "weigh_in", "weigh_out", "tip"):
+            err(f"Crew-time factors are supported for sample, grade, weigh_in, weigh_out and tip, not {step}.")
+        if any(not v > 0 for v in table.values()):
+            err(f"Crew-time factors for {step} must be positive.")
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
@@ -326,6 +389,7 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_truck_paths(site, result)
     _validate_outages(site, result)
     _validate_stock(site, result)
+    _validate_staffing(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

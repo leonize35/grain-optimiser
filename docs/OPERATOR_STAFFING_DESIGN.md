@@ -156,3 +156,61 @@ improvement that the table does not show.
   - a seasonal shift ending: running tasks finish, new ones wait;
   - labour and equipment reserved atomically;
   - audit sensitivity to over-allocation.
+
+## 9. Implementation (framework only; no staffing experiment)
+
+**Implemented as designed in §3-§4:**
+
+| Area | What exists |
+|---|---|
+| Configuration | `operator_pools` (skills, daily schedule windows, `verified`); `labour` (step, pool, operators, `held`: `whole_task` / `start_only`; steps `sample`, `grade`, `weigh_in`, `weigh_out`, `tip`, `load`, `intake`); `staffing_scenarios` (replacement schedules and/or operators per step); `crew_time` (task-time factor by crew size). All empty by default; left out of the configuration hash when empty. |
+| Validation (`_validate_staffing`) | Unknown pools; missing skill; a requirement that can **never** be met by the schedule (baseline or scenario); bad shift times; crew-time factors (positive; station tasks and tipping only) |
+| Ledger | `LabourClaim` reserved in the **same transaction** as the task's equipment. Waiting reason `LABOUR_UNAVAILABLE`. Pool capacity follows the schedule; a drop never interrupts a running task. |
+| Engine | Labour wired into truck stations, sampling at a weighbridge bay (and weighing on the held bay), grading, tipping, loading and intake-transfer start. `TruckFlowModel(staffing=...)` selects a scenario. Durations change only through `crew_time`. |
+| Results | `staffing` (scenario; per pool busy and available operator-minutes, utilisation, verified); `labour_use` (one record per task with its operators); `waiting_attribution` (truck-minutes per waiting reason and resource, the constraint table of §5). All empty when no labour is configured. |
+| Assumptions in results | The labour assumptions (L2-L5) and the list of **unverified** pools are added to every run that uses them. |
+| Audit | Operators in use at any task start never exceed the scheduled count; every truck task needing labour held its operators for the required phase. |
+
+**Verification:**
+- **New tests:** `tests/test_staffing.py`, 16 tests, hand-traced. They cover:
+  - no labour configured changes nothing;
+  - one shared operator serialises sampling and weighing (exact timeline and the waiting split: 14 truck-minutes for
+    labour, 11 for the sampler);
+  - a second operator at a single probe gives no gain without `crew_time`;
+  - `crew_time` applies only where configured;
+  - a shift end doesn't interrupt a running task;
+  - a scenario changes staffing without changing equipment;
+  - `start_only` versus `whole_task`;
+  - atomic reservation of labour and equipment;
+  - validation;
+  - audit sensitivity to over-allocation and to a task without its operators.
+- **Full suite:** 378 passed, 2 expected failures (all 362 earlier tests unchanged).
+- **Backward compatibility:** the version-tolerant fingerprint (32 runs) and the configuration hashes are identical.
+  Reproduction of `paper2-v1` and `paper2-ext-sampling-v1` with the new engine is recorded in §10.
+
+**Not done, by instruction:**
+- No staffing experiment.
+- No operator counts, shifts or policies for any real site.
+- All test pools are marked unverified.
+
+The experiment of §8 waits for answers to M1-M10.
+
+**Limitations of the framework:**
+- **Schedules** repeat daily, with no breaks unless entered as separate windows.
+- **Operators** are interchangeable within a pool (L6), with no walking time (L5).
+- **During an equipment outage** a suspended transfer or load keeps its operators (consistent with I1, hold).
+- **`crew_time`** applies to station tasks and tipping only, not loading or transfers.
+- **The audit's "held its operators" check** covers truck tasks; for grading and transfers only the capacity check
+  applies.
+- **Waiting attribution:** a truck waiting for two reasons at once is counted under each.
+
+## 10. Reproduction with the staffing engine (2026-10-25)
+
+With the staffing framework in place and no operators configured:
+- **`paper2-v1`:** all 84 compared deterministic experiment files identical. Excluded: engine-digest and test-run
+  files.
+- **`paper2-ext-sampling-v1`:** all 105 deterministic files identical.
+- **Fingerprint and hashes:** version-tolerant engine fingerprint (32 runs) and configuration hashes identical.
+- **Tests:** 378 passed, 2 expected failures.
+- **No site staffing anywhere:** no site or evidence configuration contains operator pools or labour requirements.
+  The only staffing values are the test inputs in `tests/test_staffing.py`, all marked unverified.

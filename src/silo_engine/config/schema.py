@@ -218,6 +218,38 @@ class TruckArea(_Model):
     single_file: bool = False  # ordered lane: only the front truck may move on (physical order, not policy)
 
 
+class ShiftWindow(_Model):
+    """Operators available every day from `from` to `to` (HH:MM)."""
+    from_: str = Field(alias="from")
+    to: str
+    count: int = Field(ge=0)
+
+
+class OperatorPool(_Model):
+    """Staffing (docs/OPERATOR_STAFFING_DESIGN.md): interchangeable operators with the listed skills (task steps).
+    A pool with several skills is shared; separate pools are dedicated. `verified` marks data confirmed by the silo
+    manager; unverified pools are reported in every result."""
+    id: str
+    name: str | None = None
+    skills: list[str]
+    schedule: list[ShiftWindow]
+    verified: bool = False
+
+
+class LabourRequirement(_Model):
+    """A task step that needs operators; steps without one are automated or not labour-constrained."""
+    step: Literal["sample", "grade", "weigh_in", "weigh_out", "tip", "load", "intake"]
+    pool: str
+    operators: int = Field(default=1, ge=1)
+    held: Literal["whole_task", "start_only"] = "whole_task"
+
+
+class StaffingScenario(_Model):
+    """An alternative staffing: replacement schedules per pool and/or operators per task step."""
+    pools: dict[str, list[ShiftWindow]] = {}
+    labour: dict[str, int] = {}
+
+
 class TruckBypass(_Model):
     """A physical bypass: a truck that needs no sampling may go from area `from` straight to path element `to`,
     leaving `from` from any position. Only declared bypasses exist."""
@@ -264,6 +296,11 @@ class SiteConfig(_Model):
     queue_policies: QueuePolicies | None = None  # None: the run's argument, else feasible_first
     outages: list[Outage] = []  # scheduled equipment unavailability (step 17)
     truck_bypasses: list[TruckBypass] = []  # sampler access (declared physical bypasses)
+    # Staffing (docs/OPERATOR_STAFFING_DESIGN.md); empty = no labour constraint (unchanged behaviour).
+    operator_pools: list[OperatorPool] = []
+    labour: list[LabourRequirement] = []
+    staffing_scenarios: dict[str, StaffingScenario] = {}
+    crew_time: dict[str, dict[str, float]] = {}  # step -> {operators: task-time factor}; only where verified
     # Step 18: stock events, opening book inventory (default: equal to physical), reporting tolerance, authorities.
     stock_events: list[StockEvent] = []
     opening_book: list[OpeningBook] = []
@@ -301,6 +338,9 @@ def config_hash(cfg: SiteConfig) -> str:
     for d in (data.get("demand") or {}).values():
         if isinstance(d, dict) and d.get("sampling_share") is None:
             d.pop("sampling_share", None)
+    for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {})):
+        if data.get(added) == unset:
+            data.pop(added, None)
     for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),
                          ("reconciliation", {"tolerance_t": None, "tolerance_fraction": None}),
                          ("authorised_by", None)):  # not set: hash as before the setting existed
