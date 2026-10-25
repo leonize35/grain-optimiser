@@ -69,6 +69,7 @@ from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
 from .calendar import ARRIVAL, CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
+from .outcomes import clearance, outcome_summary, truck_outcomes
 from .ledger import (LabourClaim, AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
                      SegmentClaim)
 from .pit import Lot, Pit
@@ -399,6 +400,10 @@ class TruckFlowResult:
     stock_log: list[StockLogEntry] = field(default_factory=list)
     reconciliation: dict[str, BinReconciliation] = field(default_factory=dict)
     policy_source: str = ""  # "argument", "site" or "default"
+    # Measurement framework (docs/MEASUREMENT_FRAMEWORK.md): per-truck outcome, time on site and weighbridge instants,
+    # summaries per activity, and per-day clearance (admission cut-off, closing, final clearance).
+    outcomes: dict = field(default_factory=dict)
+    clearance: list[dict] = field(default_factory=list)
 
 
 def _hours_ms(hours: float) -> int:
@@ -498,6 +503,7 @@ class TruckFlowModel:
             base = d * MS_PER_DAY
             cutoff = h.admission_cutoff if h.admission_cutoff is not None else h.close
             self.windows.append((base + _hours_ms(h.open), base + _hours_ms(cutoff), base + _hours_ms(h.close + h.overtime)))
+        self._closes = [d * MS_PER_DAY + _hours_ms(h.close) for d in range(days)]
         self._horizon_end = self.windows[-1][2]
         for t in trucks:
             if t.arrive_ms // MS_PER_DAY >= days:
@@ -1683,7 +1689,13 @@ class TruckFlowModel:
             staffing=self._staffing_report(), labour_use=[dict(u) for u in self._labour_use],
             waiting_attribution=self._attribution_report(),
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
-            stock_log=list(self.stock_log), reconciliation=self._reconciliation(), **self._fairness())
+            stock_log=list(self.stock_log), reconciliation=self._reconciliation(),
+            outcomes=self._outcomes(), clearance=clearance(list(self.records.values()), self.windows, self._closes),
+            **self._fairness())
+
+    def _outcomes(self) -> dict:
+        trucks = truck_outcomes(list(self.records.values()), min(self.cal.now, self._horizon_end))
+        return {"trucks": trucks, "summary": outcome_summary(trucks)}
 
     def _access_report(self) -> dict[str, dict]:
         now = min(self.cal.now, self._horizon_end)

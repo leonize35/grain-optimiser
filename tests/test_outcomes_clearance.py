@@ -1,0 +1,124 @@
+"""Truck outcomes, time on site, weighbridge instants and daily clearance (docs/MEASUREMENT_FRAMEWORK.md §1, K2, K3,
+K6, §4; checklist A1-A4). Hand-traced.
+
+Site (test input, not Ventersdorp data): a dedicated incoming weighbridge WB_IN and outgoing WB_OUT (one truck each,
+2 min), one hopper (tip 5 min) draining at 1 800 t/h (a 30 t lot in 1 min). Sequence weigh_in -> tip -> weigh_out;
+no truck path (unlimited waiting). Hours: open 07:00, admission cut-off 07:18, close 07:24, overtime 30 min
+(hard stop 07:54).
+
+Trucks: T5 06:50 (before opening), T1 07:00, T2 07:10, T3 07:17, T4 07:25 (after the cut-off).
+07:00 opening admits T5: WB_IN 07:00-07:02, tip 07:02-07:07, WB_OUT 07:07-07:09, departs 07:09.
+T1: WB_IN 07:02-07:04, waits for the hopper, tip 07:07-07:12, WB_OUT 07:12-07:14, departs 07:14.
+T2: WB_IN 07:10-07:12, tip 07:12-07:17, WB_OUT 07:17-07:19, departs 07:19.
+T3: WB_IN 07:17-07:19, tip 07:19-07:24, WB_OUT 07:24-07:26, departs 07:26 (processed after closing).
+T4: held at the gate for the next day (default), still there when the run ends at the hard stop 07:54.
+"""
+import copy
+
+from silo_engine.config import load_site_config
+from silo_engine.inputs.scripted import load_arrival_script
+from silo_engine.sim.service_times import FixedServiceTimes
+from silo_engine.sim.time import hm
+from silo_engine.sim.truck_flow import TruckFlowModel
+
+TIMES = FixedServiceTimes({"weigh_in": 2, "tip": 5, "weigh_out": 2})
+TRUCKS = [("T5", "06:50"), ("T1", "07:00"), ("T2", "07:10"), ("T3", "07:17"), ("T4", "07:25")]
+RAW = {
+    "id": "clearance", "name": "Clearance test site", "version": 1,
+    "hours": {"open": 7, "admission_cutoff": 7.3, "close": 7.4, "overtime": 0.5},
+    "commodities": [{"id": "YM", "name": "Yellow maize"}],
+    "equipment": [
+        {"id": "WB_IN", "type": "weighbridge", "name": "Incoming", "cap": 1, "moves": "in", "time": [2, 2, 2]},
+        {"id": "WB_OUT", "type": "weighbridge", "name": "Outgoing", "cap": 1, "moves": "out", "time": [2, 2, 2]},
+        {"id": "H1", "type": "hopper", "name": "H1", "capT": 60, "rate": 1800, "tip": [5, 5, 5], "commodities": ["YM"]},
+        {"id": "C1", "type": "conveyor", "name": "C1", "rate": 1800},
+        {"id": "E1", "type": "elevator", "name": "E1", "rate": 1800},
+        {"id": "B1", "type": "bin", "name": "B1", "capT": 5000, "commodities": ["YM"]}],
+    "edges": [["H1", "C1"], ["C1", "E1"], ["E1", "B1"]],
+    "sequences": {"unload": ["weigh_in", "tip", "weigh_out"]}, "demand": {}, "changeovers": {"default_minutes": 0}}
+
+
+def run(**changes):
+    raw = copy.deepcopy(RAW)
+    for k, v in changes.items():
+        raw[k] = {**raw.get(k, {}), **v} if isinstance(v, dict) else v
+    script = load_arrival_script({"trucks": [
+        {"id": t, "activity": "unload", "arrive": at, "commodity": "YM", "tonnes": 30} for t, at in TRUCKS]})
+    r = TruckFlowModel(load_site_config(raw), script, TIMES, policy="feasible_first").run()
+    assert r.violations == [] and r.material_balance_kg == 0 and r.stall is None
+    return r
+
+
+def test_each_truck_has_exactly_one_outcome():
+    o = run().outcomes
+    assert {t: x["status"] for t, x in o["trucks"].items()} == {
+        "T5": "completed", "T1": "completed", "T2": "completed", "T3": "completed", "T4": "unfinished_at_gate"}
+    assert o["summary"]["unload"]["counts"] == {"completed": 4, "unfinished_on_site": 0, "unfinished_at_gate": 1,
+                                                "turned_away": 0, "total": 5}
+
+
+def test_time_on_site_and_truck_hours():
+    """Time on site (min): T5 19 (10 at the gate before opening), T1 14, T2 9, T3 9, T4 29 at the gate (censored at
+    the hard stop). Truck-minutes 80 = gate 39 + site 41; mean observed time on site 80 / 5 = 16."""
+    o = run().outcomes
+    assert {t: (x["time_on_site_min"], x["gate_min"], x["censored"]) for t, x in o["trucks"].items()} == {
+        "T5": (19, 10, False), "T1": (14, 0, False), "T2": (9, 0, False), "T3": (9, 0, False), "T4": (29, 29, True)}
+    occ = o["summary"]["unload"]["occupancy"]
+    assert (occ["truck_minutes"], occ["gate_minutes"], occ["site_minutes"], occ["mean_observed_time_on_site_min"]) == \
+        (80, 39, 41, 16)
+
+
+def test_truck_minutes_equal_the_integral_of_trucks_present():
+    """K6 identity: the sum of each truck's time on site within the horizon equals the integral of the number of
+    trucks present (computed here independently by sweeping the arrival and exit instants)."""
+    r = run()
+    trucks = r.outcomes["trucks"]
+    end = hm("07:54")
+    events = sorted([(x["arrived"], 1) for x in trucks.values()] +
+                    [(min(x["exit"] if x["exit"] is not None else end, end), -1) for x in trucks.values()])
+    integral, present, last = 0, 0, None
+    for t, d in events:
+        if last is not None:
+            integral += present * (t - last)
+        present, last = present + d, t
+    assert integral / 60000 == r.outcomes["summary"]["unload"]["occupancy"]["truck_minutes"]
+
+
+def test_weighbridge_instants_per_truck():
+    t1 = run().outcomes["trucks"]["T1"]["weighbridge"]
+    assert t1 == {"weigh_in_start": hm("07:02"), "weigh_in_end": hm("07:04"),
+                  "weigh_out_start": hm("07:12"), "weigh_out_end": hm("07:14")}
+    assert run().outcomes["trucks"]["T4"]["weighbridge"] == {
+        "weigh_in_start": None, "weigh_in_end": None, "weigh_out_start": None, "weigh_out_end": None}
+
+
+def test_closing_continued_processing_and_final_clearance():
+    """Admission closes 07:18; closing 07:24; T3 (admitted 07:17) is still on site at closing and departs 07:26:
+    final clearance 07:26, 2 min after closing, before the hard stop. T4 was not admitted."""
+    day = run().clearance[0]
+    assert day == {"day": 1, "opens": hm("07:00"), "admission_cutoff": hm("07:18"), "close": hm("07:24"),
+                   "hard_stop": hm("07:54"), "admitted": 4, "last_admission": hm("07:17"),
+                   "on_site_at_close": 1, "final_clearance": hm("07:26"), "cleared": True,
+                   "overtime_used_min": 2.0, "after_hard_stop": False, "remaining": [], "held_at_gate": 1}
+
+
+def test_not_cleared_when_service_stops_at_closing():
+    """No overtime: the hard stop is 07:24. T3 finishes tipping at 07:24 and may not start weighing out at the stop,
+    so it is still on site: not cleared, no clearance time."""
+    day = run(hours={"overtime": 0}).clearance[0]
+    assert (day["cleared"], day["final_clearance"], day["overtime_used_min"], day["remaining"]) == \
+        (False, None, None, ["T3"])
+    assert run(hours={"overtime": 0}).outcomes["trucks"]["T3"]["status"] == "unfinished_on_site"
+
+
+def test_turned_away_is_a_separate_outcome():
+    """Late arrivals turned away: T4 leaves at 07:25 with its reason; it is not a completion and has no turnaround."""
+    r = run(end_of_day={"late_arrivals": "turned_away"})
+    t4 = r.outcomes["trucks"]["T4"]
+    assert (t4["status"], t4["reason"], t4["time_on_site_min"], t4["exit"]) == \
+        ("turned_away", "arrived after the admission cut-off", 0, hm("07:25"))
+    s = r.outcomes["summary"]["unload"]
+    assert s["counts"]["turned_away"] == 1 and s["counts"]["completed"] == 4
+    assert s["turned_away"] == {"arrived after the admission cut-off": {"count": 1, "mean_time_on_site_min": 0,
+                                                                        "max_time_on_site_min": 0}}
+    assert r.summary["unload"].mean_turnaround_min == (19 + 14 + 9 + 9) / 4  # completed trucks only, unchanged

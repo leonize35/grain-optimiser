@@ -248,7 +248,7 @@ All numbers above are placeholders, not Ventersdorp data.
 | 3. A worker cannot do two tasks at once | The pool's scheduled count caps workers in use (ledger), and the flow audit checks it independently |
 | 4. Manual activities | A configurable ordered task list per unloading. Tasks with the truck present run in order while the truck holds the hopper. Tasks after the truck occupy workers only |
 | 5. Workforce per normal, busy and peak period | Staffing scenarios replace the pool's schedule (e.g. scenarios `busy`, `peak`). Scenarios may also change a task's workers (`labour: {"tip:scrape": 2}`) |
-| 6. Minimum workforce for targets | `experiments.staffing_search.minimum_workforce` (§11.3) |
+| 6. Staffing levels against targets | `experiments.staffing_search.minimum_workforce` (§11.3). It reports every level's turnaround, completion, tonnage, overtime and worker use, so trade-offs between levels are visible. The smallest level meeting all targets is one output, not the objective (approved correction C3: balance turnaround, throughput, overtime and labour) |
 | 7. No dedicated operator per hopper assumed | Workers are required **per task** (0 allowed, e.g. a discharge needing nobody). Between tasks a truck releases its workers; it waits on the hopper if none are free for its next task |
 
 **Allocation rules** (configurable until the actual arrangement is verified):

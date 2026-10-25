@@ -218,6 +218,10 @@ def test_minimum_workforce_meets_turnaround_and_overtime_targets():
     assert (by[1].summary["overtime_min"]["mean"], by[2].summary["overtime_min"]["mean"]) == (1, 0)
     assert by[1].meets == {"mean_turnaround_min": False, "overtime_min": False} and by[2].all_met and by[3].all_met
     assert (r.minimum, r.non_monotonic) == (2, False)
+    # labour reported for balancing (correction C3): 2 trucks x (position 2 + scrape 3) = 10 worker-minutes at any level;
+    # availability counts each worker's shift up to the hard stop (closing 07:12 + 1 h overtime = 08:12: 72 min)
+    assert by[1].summary["worker_busy_min"]["mean"] == by[2].summary["worker_busy_min"]["mean"] == 10
+    assert by[2].summary["worker_utilisation"]["mean"] == 10 / (2 * 72)
     assert r.metadata["status"].startswith("calculation on unverified inputs")
 
 

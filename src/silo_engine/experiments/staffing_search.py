@@ -11,6 +11,9 @@ operator pool over the same seeds (common random numbers) and find the smallest 
   never left out (MEASUREMENT_FRAMEWORK §3).
 - No monotonicity is assumed: every level is reported, and a larger level failing after a smaller one met the
   targets is flagged.
+- Every level also reports worker busy minutes and utilisation, so turnaround, throughput, overtime and labour can be
+  weighed against each other. The smallest level meeting the targets is one output, not the staffing objective
+  (docs/ventersdorp/IMPLEMENTATION_CHECKLIST.md, correction C3).
 
 This is a calculation on the configured inputs. With unverified pools, task requirements or times it is not a
 staffing recommendation, and the result says so.
@@ -22,7 +25,6 @@ from ..config.schema import SiteConfig, config_hash
 from ..inputs.generated import generate_arrivals
 from ..sim.random_streams import derived_seed
 from ..sim.service_times import StochasticServiceTimes
-from ..sim.time import MS_PER_DAY, MS_PER_MINUTE
 from ..sim.truck_flow import ModelError, TruckFlowModel, TruckFlowResult
 from .runner import ci
 
@@ -71,19 +73,19 @@ def with_workers(site: SiteConfig, pool: str, workers: int) -> SiteConfig:
     return SiteConfig.model_validate(raw)
 
 
-def _measures(result: TruckFlowResult, site: SiteConfig, activity: str, days: int) -> dict[str, float | None]:
+def _measures(result: TruckFlowResult, pool: str, activity: str) -> dict[str, float | None]:
     s = result.summary.get(activity)
     arrived = (s.completed + s.unfinished + s.turned_away) if s else 0
-    stopped = any(r.turned_away == "still on site when service stopped" for r in result.records)
-    cleared = not result.unfinished and not stopped
-    close = (days - 1) * MS_PER_DAY + round(site.hours.close * 60) * MS_PER_MINUTE
-    last = max((r.departed for r in result.records if r.departed is not None), default=None)
+    day = result.clearance[-1] if result.clearance else None  # last day: admission cut-off, closing, final clearance
+    use = (result.staffing.get("pools") or {}).get(pool, {})
     return {
         "mean_turnaround_min": s.mean_turnaround_min if s else None,
         "completion_rate": s.completed / arrived if arrived else None,
         "received_t": result.received_kg / 1000,
-        "overtime_min": (max(0, last - close) / MS_PER_MINUTE if last is not None else 0.0) if cleared else None,
-        "cleared": 1.0 if cleared else 0.0,
+        "overtime_min": day["overtime_used_min"] if day and day["admitted"] else (0.0 if day else None),
+        "cleared": 1.0 if day and day["cleared"] else 0.0,
+        "worker_busy_min": use.get("busy_operator_minutes"),  # labour requirement, for balancing (correction C3)
+        "worker_utilisation": use.get("utilisation"),
     }
 
 
@@ -114,7 +116,7 @@ def minimum_workforce(site: SiteConfig, pool: str, levels: list[int], targets: S
             assumptions = assumptions or list(r.assumptions)
             statuses.append("stalled" if r.stall is not None else
                             "invalid" if r.violations or r.material_balance_kg != 0 else "ok")
-            for k, v in _measures(r, s, targets.activity, days).items():
+            for k, v in _measures(r, pool, targets.activity).items():
                 values.setdefault(k, []).append(v)
         summary = {}
         for k, vs in values.items():

@@ -24,7 +24,7 @@ acceptance criteria in §8 are met.
 | R-5 | Hopper/commodity assignment depends on connected storage, bin contents and the silo manager | Hopper chosen by a feasible grain route and bin compatibility | Manager decisions are **not modelled**. Baseline rule: feasible route + bin contents (**U**). Allocation shares from records if available (§2, D-2) |
 | R-6 | FIFO is normal, with exceptions | `strict_fifo` and `feasible_first` selectable per queue group | Baseline = FIFO (**M** as a rule). Exceptions are unmodelled and listed as a limitation. No dispatching intervention until the exceptions are understood |
 | R-7 | At closing, admission stops; trucks present are processed to completion | `admission_cutoff`, `close`, fixed `overtime` hours, `end_of_day` | **G-C4:** "process until clear" mode, plus outputs for overtime used and final clearance time (measurement framework step 6) |
-| R-8 | Staffing: sampling 2 (collector + runner to office), weighbridge 2–3, unloading ~4 depending on active hoppers; seasonal/shift workers added | Pools, shifts, scenarios; labour on sample, grade, weigh_in, weigh_out, tip, load and intake; shared unloading workers by task (`unloading_labour`, OPERATOR_STAFFING_DESIGN §11) | **G-C5 (corrected 2026-10-25):** labour on `load` is already supported; only crew-time factors are not. **G-C6:** the sample runner works off the truck (transport to the office); it matters only if the result gates the truck (Q-1). **G-C8:** per-silo crews if they exist (Q-9) |
+| R-8 | Staffing: sampling 2 (collector + runner to office), weighbridge 2–3, unloading ~4 depending on active hoppers; seasonal/shift workers added | Pools, shifts, scenarios; labour on sample, grade, weigh_in, weigh_out, tip, load and intake; shared unloading workers by task (`unloading_labour`, OPERATOR_STAFFING_DESIGN §11) | **G-C5 (corrected 2026-10-25):** labour on `load` is already supported; only crew-time factors are not. **G-C6:** the sample runner works off the truck (transport to the office); it matters only if the result gates the truck (Q-1). **G-C8:** not needed: Q-9 resolved, the unloading workers are shared across both silos |
 | R-9 | Unloading includes manual work: positioning, assisting, scraping, sweeping spill into hoppers | Tip time is one triangular duration per hopper; `crew_time` scales a step's time by operator count | **G-C7:** a crew-size effect on unloading needs time-study evidence (§3.4). Without it, more operators only reduce waiting for labour, never task time |
 
 The engine also needs:
@@ -94,7 +94,7 @@ truck leaves, is **Q-3**.
   - Anderson-Darling or Kolmogorov-Smirnov (noting that p-values are optimistic when parameters are estimated from the same data);
   - AIC between families;
   - the simplest adequate family wins.
-- **Minimum observations** (guidance): about 30 per activity and stratum for a fitted family. Fewer → pool strata (if no significant difference) or flag the input as **U**.
+- **Observations** (guideline, not a minimum; approved correction C2): about 30 per activity or stratum. Fewer observations still give a fit, reported with its (wider) bootstrap uncertainty. Subgroups (e.g. by truck type) are formed only where the data show a material difference, not by default.
 - **Output per activity:** family, parameters, n, date range, goodness-of-fit evidence, label **C**.
 
 ### 3.4 Uncertainty
@@ -165,7 +165,7 @@ Labels: PLC connectivity **M** after the silo manager confirms the reading; rate
 
 - Shift windows and seasonal additions come from D-7.
 - Staffing scenarios vary pool counts and windows only. Equipment stays unchanged.
-- Staffing optimisation is **not started** here. It needs §8 and an agreed objective that does not infer revenue (CLAUDE.md), e.g. minimum crew meeting a W2W or clearance target.
+- Staffing optimisation is **not started** here. It needs §8 and an agreed objective that does not infer revenue (CLAUDE.md). Approved correction C3: the objective is an allocation that **balances** turnaround, throughput, overtime and labour requirements, reported as trade-offs between staffing levels, not simply the smallest headcount meeting a target.
 
 ## 7. Downtime
 
@@ -188,7 +188,7 @@ Labels: PLC connectivity **M** after the silo manager confirms the reading; rate
 | AC-9 | Sensitivity of the baseline to the main U items (arrival profile correction, crew-time effect, assignment rule) known | Sensitivity table |
 | AC-10 | Data handling: no raw or identifying records in the repository; customer configuration stored only with permission | Repository check |
 
-Proposed starting thresholds for AC-7, to be confirmed by you before any comparison:
+Proposed starting thresholds for AC-7. They stay **provisional** until the historical data has been examined (approved correction C4); they are then fixed before any comparison with held-out days:
 - Receiving W2W mean within ±10% of the observed mean for each day type.
 - The observed daily-mean W2W within the simulated 95% interval on at least 80% of validation days.
 - p90 within ±15%.
@@ -198,7 +198,7 @@ Passing AC-7 supports validity **for Ventersdorp under the observed conditions a
 
 ## 9. Remaining operational questions
 
-1. **Q-1:** Does a receiving truck wait for the grading result (from the office) before it is sent to a hopper? Does the runner's transport time matter?
+1. **Q-1 (resolved 2026-10-25):** after sampling the truck moves to the incoming weighbridge, is weighed even if grading is pending, and stays on the bridge until the result is available; hopper assignment follows the result. See `RECEIVING_PROCESS.md`. Grading time (including the runner's transport) matters through bridge occupancy.
 2. **Q-2:** Which instant do weighbridge timestamps record: start or end of weighing, ticket print?
 3. **Q-3:** Are positioning and sweeping separate from tipping? Does sweeping keep a hopper unavailable after the truck leaves?
 4. **Q-4:** Where do trucks wait between stations? How many fit (e.g. between incoming weighbridge and hoppers, and before the outgoing weighbridge)?
@@ -206,7 +206,7 @@ Passing AC-7 supports validity **for Ventersdorp under the observed conditions a
 6. **Q-6:** How many unloading people does one active hopper need?
 7. **Q-7:** Who loads trucks, and is loading labour-constrained?
 8. **Q-8:** Which loading sampling point is used when, and who does it?
-9. **Q-9:** Are crews per silo or shared across A and B?
+9. **Q-9 (resolved 2026-10-25):** the about four unloading workers are shared across Silo A and Silo B; modelled as one shared pool.
 10. **Q-10:** Do the time studies include gate arrival times, and observations at different crew sizes?
 11. **Q-11:** Do weighbridge records include silo, bin or hopper, so that assignment shares can be estimated?
 12. **Q-12:** Are weigh-only trucks part of the operation? Which weighbridge do they use?
