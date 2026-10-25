@@ -4,6 +4,10 @@ Status: audit and design (2026-10-25). No engine, metric or evidence file was ch
 `paper2-ext-sampling-v1` and their manifests are untouched. No dispatching intervention (overtaking limits or
 similar) is proposed until the operational queueing rules are verified.
 
+**Revised (2026-10-25):** §3–§6 are superseded by `docs/MEASUREMENT_FRAMEWORK.md` after review. In particular, the §3
+"RMST" is an occupancy measure, not an unbiased turnaround estimate; turned-away trucks are a separate outcome;
+failed runs are not censored data; and drain-down clearance must be verified. §1–§2 (C1–C10) stand.
+
 Objective: future experiments must distinguish improvements in **average turnaround** from improvements in
 **throughput**, **backlog** and **fairness**, without survivorship bias.
 
