@@ -322,3 +322,17 @@ throughput is identical in every layout:
 difference equals the trucks left waiting at the hoppers at closing. Over 20 seeds the per-seed change in completed
 trucks mirrors the change in trucks waiting at the hoppers, with a correlation of −0.99 to −1.00. Site C and Site A
 throughput differences between layouts are descriptive, or nominal only.
+
+## 10. Correction (2026-10-25)
+
+- **Site C interpretation superseded.** The §9 "Site C throughput" reasoning relies on a correlation that is
+  mechanical (identical arrivals make completed + unfinished constant per seed). It is replaced by the event-trace
+  evidence in `docs/reviews/SAMPLER_ACCESS_REVIEW.md` §5: the access layout changes the commodity order reaching the
+  pits, which changes changeovers and intake capacity in either direction depending on the seed.
+- **Experiment deviations from this design** (the review, §1):
+  - demand ×1.2 was not run;
+  - bypasses have no capacity;
+  - the extension's Site A and Site C variants move the grading wait after weigh-in, and Site A gets a second
+    weighbridge bay.
+
+  The "sampler location" factor is reported as **sampling configuration**.
