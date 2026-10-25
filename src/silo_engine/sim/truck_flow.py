@@ -69,7 +69,7 @@ from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
 from .calendar import ARRIVAL, CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
-from .outcomes import clearance, outcome_summary, truck_outcomes
+from .outcomes import clearance, commodity_fairness, outcome_summary, truck_outcomes
 from .ledger import (LabourClaim, AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
                      SegmentClaim)
 from .pit import Lot, Pit
@@ -1678,7 +1678,7 @@ class TruckFlowModel:
                 unfinished.append(UnfinishedTruck(rec.truck_id, s.step, in_service, rec.arrived, s.entered,
                                                   loc[0] if loc else None, rec.admitted is not None))
         closing = sum(b.tonnage_kg for b in self.bins.values()) + sum(p.committed_kg for p in self.pits.values())
-        return TruckFlowResult(
+        result = TruckFlowResult(
             records=list(self.records.values()), unfinished=unfinished, samples=dict(self._results),
             overtaken=self.dispatcher.overtaken(), trace=list(self.cal.log), transfers=list(self.transfers),
             bins={bid: (b.tonnage_kg, b.identity) for bid, b in self.bins.items()},
@@ -1699,10 +1699,13 @@ class TruckFlowModel:
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(),
             outcomes=self._outcomes(), clearance=clearance(list(self.records.values()), self.windows, self._closes),
             **self._fairness())
+        result.outcomes["fairness"] = commodity_fairness(result.truck_metrics.values())
+        return result
 
     def _outcomes(self) -> dict:
         end = min(self.cal.now, self._horizon_end)
-        trucks = truck_outcomes(list(self.records.values()), end)
+        tipped = {v[0] for v in self._lots_seen.values() if v[0] is not None}
+        trucks = truck_outcomes(list(self.records.values()), end, {t.id: t.kg for t in self.trucks}, tipped)
         return {"trucks": trucks, "summary": outcome_summary(trucks), "horizon_end": end}
 
     def _access_report(self) -> dict[str, dict]:

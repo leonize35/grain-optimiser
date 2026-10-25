@@ -19,7 +19,10 @@ def _minutes(ms: int) -> float:
     return ms / MS_PER_MINUTE
 
 
-def truck_outcomes(records, end: int) -> dict[str, dict]:
+def truck_outcomes(records, end: int, kg: dict[str, int | None] | None = None,
+                   tipped: set[str] | None = None) -> dict[str, dict]:
+    """kg: each truck's payload; tipped: trucks whose grain entered a pit (K4 tonnes)."""
+    kg, tipped = kg or {}, tipped or set()
     out = {}
     for r in records:
         if r.departed is not None:
@@ -38,6 +41,7 @@ def truck_outcomes(records, end: int) -> dict[str, dict]:
             "time_on_site_min": _minutes(max(0, stop - r.arrived)),
             "gate_min": _minutes(max(0, gate_stop - r.arrived)),
             "censored": leave is None or leave > end,
+            "tonnes": (kg.get(r.truck_id) or 0) / 1000, "tipped": r.truck_id in tipped,
             "weighbridge": {"weigh_in_start": wi.started if wi else None, "weigh_in_end": wi.finished if wi else None,
                             "weigh_out_start": wo.started if wo else None, "weigh_out_end": wo.finished if wo else None},
         }
@@ -56,7 +60,12 @@ def outcome_summary(trucks: dict[str, dict]) -> dict[str, dict]:
             away[reason] = {"count": len(ts), "mean_time_on_site_min": sum(ts) / len(ts), "max_time_on_site_min": max(ts)}
         total = sum(x["time_on_site_min"] for x in xs)
         gate = sum(x["gate_min"] for x in xs)
-        out[act] = {"counts": counts, "turned_away": away,
+        done_t = sum(x["tonnes"] for x in xs if x["status"] == "completed")
+        tonnes = {"completed_trucks_t": done_t}
+        if act == "unload":  # K4: received into pits by the end, and grain of trucks not (yet) departed
+            received = sum(x["tonnes"] for x in xs if x["tipped"])
+            tonnes.update(received_t=received, in_progress_t=received - done_t)
+        out[act] = {"counts": counts, "turned_away": away, "tonnes": tonnes,
                     "occupancy": {"truck_minutes": total, "gate_minutes": gate, "site_minutes": total - gate,
                                   "mean_observed_time_on_site_min": total / len(xs) if xs else None}}
     return out
@@ -103,3 +112,27 @@ def restricted_mean_time_to_completion(outcomes: dict, tau_min: float, activity:
             "rmst_min": _minutes(total) / n if n else None,
             "completed_within_tau": len(done) / n if n else None,
             "turned_away_within_tau": len(away) / n if n else None}
+
+
+def commodity_fairness(metrics) -> dict:
+    """K8 per activity and commodity: completion rate, starvation bounds and overtaking; and the spread between
+    commodities. Lower bound: trucks starved by the end; upper bound: also unfinished (censored) trucks not yet
+    starved, which might still reach the threshold. No single index decides (criterion D4)."""
+    groups: dict[str, dict[str, list]] = {}
+    for x in metrics:
+        groups.setdefault(x.activity, {}).setdefault(x.commodity or "none", []).append(x)
+    out: dict = {"disparity": {}}
+    for act, by_c in sorted(groups.items()):
+        out[act] = {}
+        for c, xs in sorted(by_c.items()):
+            lower = sum(1 for x in xs if x.starved)
+            censored_open = sum(1 for x in xs if not x.starved and x.status == "unfinished" and x.wait_censored)
+            overtaken = [x.overtaken_by_later for x in xs]
+            out[act][c] = {"trucks": len(xs), "completed": sum(1 for x in xs if x.status == "completed"),
+                           "completion_rate": sum(1 for x in xs if x.status == "completed") / len(xs),
+                           "starved_lower": lower, "starved_upper": lower + censored_open,
+                           "mean_overtaken": sum(overtaken) / len(xs), "max_overtaken": max(overtaken)}
+        rates = [v["completion_rate"] for v in out[act].values()]
+        out["disparity"][act] = {"completion_rate": {"spread": max(rates) - min(rates),
+                                                     "ratio": min(rates) / max(rates) if max(rates) else None}}
+    return out

@@ -30,8 +30,8 @@ Each item follows the same cycle: failing test, minimal change, invariants, full
 | A7 | Fitted service-time distributions (lognormal, gamma, Weibull, empirical) alongside triangular; independent streams kept | DATA_CALIBRATION_PLAN G-C1 | **Done**: `Equipment.distributions` per step; `sim/distributions.py` (tests/test_distributions.py). Not yet for unloading-task times |
 | A8 | A sampler restricted to activities (receiving or loading), like weighbridge direction | G-C2 | **Done**: `Equipment.activities` for stations (tests/test_station_activities.py) |
 | A9 | Loading sequence with sampling after loading (weigh in → load → sample → weigh out): test, fix if needed | G-C3 | **Verified**: works without an engine change; the loading sample is not graded (tests/test_station_activities.py) |
-| A10 | Tonnes consistency (received, completed-truck tonnes, work in progress) and fairness bounds per commodity | MEASUREMENT_FRAMEWORK K4, K8 | Next |
-| A11 | Distribution-fitting tool (maximum likelihood, Q-Q/AD, AIC, bootstrap CIs) tested on synthetic samples; no site data | DATA_CALIBRATION_PLAN §3 | After A7 |
+| A10 | Tonnes consistency (received, completed-truck tonnes, work in progress) and fairness bounds per commodity | MEASUREMENT_FRAMEWORK K4, K8 | **Done**: `outcomes.summary[act].tonnes`, `outcomes.fairness` (per commodity: completion rate, starvation [lower, upper], overtaking; disparity) |
+| A11 | Distribution-fitting tool (maximum likelihood, Q-Q/AD, AIC, bootstrap CIs) tested on synthetic samples; no site data | DATA_CALIBRATION_PLAN §3 | **Done**: `silo_engine.calibration.fitting` (`fit`, `bootstrap`, `as_distribution`; tests/test_fitting.py, synthetic samples only) |
 
 **How A1 represents "processed to completion".** Services for admitted trucks may start until closing plus the
 configured overtime (the hard stop); a running service is completed. Each day's `clearance` then reports, separately:

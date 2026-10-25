@@ -158,3 +158,41 @@ def test_rmst_needs_a_positive_tau_and_reports_an_empty_cohort():
         rmst(o, 0)
     e = rmst(o, 600)  # no arrival is 10 h before the horizon end
     assert (e["cohort"], e["rmst_min"]) == (0, None)
+
+
+# ---- A10: tonnes consistency (K4) and commodity fairness bounds (K8) ----
+def test_tonnes_received_completed_and_in_progress():
+    """Base day: T5, T1, T2, T3 tip and depart: 120 t received = 120 t of completed trucks, nothing in progress.
+    No overtime: T3 finishes tipping at 07:24 but cannot weigh out: 120 t received, 90 t completed, 30 t in
+    progress. Received tonnes equal the engine's received_kg (grain balance)."""
+    for changes, completed, progress in (({}, 120, 0), ({"hours": {"overtime": 0}}, 90, 30)):
+        r = run(**changes)
+        t = r.outcomes["summary"]["unload"]["tonnes"]
+        assert (t["received_t"], t["completed_trucks_t"], t["in_progress_t"]) == (120, completed, progress)
+        assert t["received_t"] * 1000 == r.received_kg
+
+
+def test_starvation_bounds_include_censored_trucks_in_the_upper_bound():
+    """Threshold 30 min. Waits: T5 10, T1 5, T2 0, T3 0 (completed); T4 29 so far, censored (still at the gate).
+    Lower bound 0 (T4 not starved yet); upper bound 1 (T4 might reach 30). Completion rate 4/5."""
+    r = run(fairness={"starvation_wait_minutes": 30})
+    f = r.outcomes["fairness"]["unload"]["YM"]
+    assert (f["trucks"], f["completion_rate"], f["starved_lower"], f["starved_upper"]) == (5, 0.8, 0, 1)
+
+
+def test_commodity_disparity():
+    """YM: two completed (waits 10, 50). WM: one completed (5), one unfinished (20 so far), one turned away.
+    Threshold 30: YM starved [1, 1]; WM [0, 1]. Completion YM 1.0, WM 1/3: spread 2/3, ratio 1/3."""
+    from types import SimpleNamespace as M
+    from silo_engine.sim.outcomes import commodity_fairness
+
+    def m(c, status, wait, censored=False):
+        return M(activity="unload", commodity=c, status=status, total_waiting_min=wait, wait_censored=censored,
+                 starved=wait >= 30, overtaken_by_later=0)
+    metrics = [m("YM", "completed", 10), m("YM", "completed", 50), m("WM", "completed", 5),
+               m("WM", "unfinished", 20, True), m("WM", "turned_away", 0)]
+    f = commodity_fairness(metrics)
+    assert (f["unload"]["YM"]["starved_lower"], f["unload"]["YM"]["starved_upper"]) == (1, 1)
+    assert (f["unload"]["WM"]["starved_lower"], f["unload"]["WM"]["starved_upper"]) == (0, 1)
+    d = f["disparity"]["unload"]["completion_rate"]
+    assert (d["spread"], d["ratio"]) == (1 - 1 / 3, 1 / 3)
