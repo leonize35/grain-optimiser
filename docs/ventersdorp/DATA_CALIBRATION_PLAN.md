@@ -24,7 +24,7 @@ acceptance criteria in §8 are met.
 | R-5 | Hopper/commodity assignment depends on connected storage, bin contents and the silo manager | Hopper chosen by a feasible grain route and bin compatibility | Manager decisions are **not modelled**. Baseline rule: feasible route + bin contents (**U**). Allocation shares from records if available (§2, D-2) |
 | R-6 | FIFO is normal, with exceptions | `strict_fifo` and `feasible_first` selectable per queue group | Baseline = FIFO (**M** as a rule). Exceptions are unmodelled and listed as a limitation. No dispatching intervention until the exceptions are understood |
 | R-7 | At closing, admission stops; trucks present are processed to completion | `admission_cutoff`, `close`, fixed `overtime` hours, `end_of_day` | **G-C4:** "process until clear" mode, plus outputs for overtime used and final clearance time (measurement framework step 6) |
-| R-8 | Staffing: sampling 2 (collector + runner to office), weighbridge 2–3, unloading ~4 depending on active hoppers; seasonal/shift workers added | Pools, shifts, scenarios; labour on sample, grade, weigh_in, weigh_out, tip | **G-C5:** labour on `load`. **G-C6:** the sample runner works off the truck (transport to the office); it matters only if the result gates the truck (Q-1). **G-C8:** per-silo crews if they exist (Q-9) |
+| R-8 | Staffing: sampling 2 (collector + runner to office), weighbridge 2–3, unloading ~4 depending on active hoppers; seasonal/shift workers added | Pools, shifts, scenarios; labour on sample, grade, weigh_in, weigh_out, tip, load and intake; shared unloading workers by task (`unloading_labour`, OPERATOR_STAFFING_DESIGN §11) | **G-C5 (corrected 2026-10-25):** labour on `load` is already supported; only crew-time factors are not. **G-C6:** the sample runner works off the truck (transport to the office); it matters only if the result gates the truck (Q-1). **G-C8:** per-silo crews if they exist (Q-9) |
 | R-9 | Unloading includes manual work: positioning, assisting, scraping, sweeping spill into hoppers | Tip time is one triangular duration per hopper; `crew_time` scales a step's time by operator count | **G-C7:** a crew-size effect on unloading needs time-study evidence (§3.4). Without it, more operators only reduce waiting for labour, never task time |
 
 The engine also needs:
@@ -160,8 +160,8 @@ Labels: PLC connectivity **M** after the silo manager confirms the reading; rate
 | Sampling: collector | `sample` (receiving) | 1 | M (stated), schedule U |
 | Sampling: runner | Sample transport (off-truck; G-C6) | 1 | M (stated); modelled only if Q-1 says the result gates the truck |
 | Weighbridge | `weigh_in`, `weigh_out` (shared or split, **Q-5**) | 2–3 | M range; the split is U |
-| Unloading crew | `tip` (and sweeping, Q-3); operators per active hopper (**Q-6**) | ~4 | M (stated); per-hopper rule U |
-| Loading crew | `load` (G-C5) | **Q-7** | U |
+| Unloading crew | One pool **shared by Silo A and Silo B** (confirmed 2026-10-25), doing unloading tasks: positioning, assisting, scraping, sweeping (`unloading_labour`; task workers and times Q-3, Q-6) | ~4 | M (stated, shared); task requirements U |
+| Loading crew | `load` (supported) | **Q-7** | U |
 
 - Shift windows and seasonal additions come from D-7.
 - Staffing scenarios vary pool counts and windows only. Equipment stays unchanged.

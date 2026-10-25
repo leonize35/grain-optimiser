@@ -360,8 +360,9 @@ def _validate_staffing(site: SiteConfig, result: RulesResult) -> None:
             if pid not in pools:
                 err(f"Staffing scenario {name} refers to unknown operator pool {pid}.")
             check_windows(f"Staffing scenario {name}, pool {pid}", windows)
+        tasks = {f"tip:{t.id}" for t in site.unloading_labour.tasks} if site.unloading_labour else set()
         for step in sc.labour:
-            if step not in steps:
+            if step not in steps and step not in tasks:
                 err(f"Staffing scenario {name} sets operators for {step}, which has no labour requirement.")
     for scenario in [None, *site.staffing_scenarios]:
         if any(pid not in pools for pid in (site.staffing_scenarios[scenario].pools if scenario else {})):
@@ -371,11 +372,48 @@ def _validate_staffing(site: SiteConfig, result: RulesResult) -> None:
             if r.pool in schedules and operators.get(r.step, r.operators) > most(schedules[r.pool]):
                 err(f"{r.step} needs {operators.get(r.step, r.operators)} operator(s) from {r.pool}"
                     f"{' in scenario ' + scenario if scenario else ''}, which never has that many; the task could never start.")
+    if site.unloading_labour is not None:
+        _validate_unloading(site, pools, err, most)
     for step, table in site.crew_time.items():
         if step not in ("sample", "grade", "weigh_in", "weigh_out", "tip"):
             err(f"Crew-time factors are supported for sample, grade, weigh_in, weigh_out and tip, not {step}.")
         if any(not v > 0 for v in table.values()):
             err(f"Crew-time factors for {step} must be positive.")
+
+
+def _validate_unloading(site: SiteConfig, pools: dict, err, most) -> None:
+    """Shared unloading workers (docs/OPERATOR_STAFFING_DESIGN.md §11)."""
+    ul = site.unloading_labour
+    p = pools.get(ul.pool)
+    if p is None:
+        err(f"Unloading labour refers to unknown operator pool {ul.pool}.")
+    elif "tip" not in p.skills:
+        err(f"Operator pool {ul.pool} does not have the skill tip, so it cannot do the unloading tasks.")
+    if any(r.step == "tip" for r in site.labour):
+        err("Give the labour for unloading either as unloading tasks or as a labour requirement for tip, not both.")
+    ids = [t.id for t in ul.tasks]
+    if not ids or len(set(ids)) != len(ids):
+        err("Unloading tasks need at least one task, each with its own id.")
+    discharge = [t for t in ul.tasks if t.time == "tip"]
+    if len(discharge) != 1 or not discharge[0].truck_present:
+        err("Exactly one unloading task takes the hopper's tipping time (time \"tip\"), with the truck present.")
+    present = [t.truck_present for t in ul.tasks]
+    if present != sorted(present, reverse=True):
+        err("Unloading tasks with the truck present come first; tasks after the truck has unloaded come last.")
+    for t in ul.tasks:
+        if t.time != "tip" and (len(t.time) != 3 or not 0 <= t.time[0] <= t.time[1] <= t.time[2]):
+            err(f"Unloading task {t.id}: give its time as [min, most likely, max] minutes, in that order.")
+    if p is None:
+        return
+    for scenario in [None, *site.staffing_scenarios]:
+        if any(pid not in pools for pid in (site.staffing_scenarios[scenario].pools if scenario else {})):
+            continue
+        schedules, operators = staffing_schedules(site, scenario)
+        for t in ul.tasks:
+            need = operators.get(f"tip:{t.id}", t.operators)
+            if need > most(schedules[ul.pool]):
+                err(f"Unloading task {t.id} needs {need} worker(s) from {ul.pool}"
+                    f"{' in scenario ' + scenario if scenario else ''}, which never has that many; it could never start.")
 
 
 def validate_rules(site: SiteConfig) -> RulesResult:

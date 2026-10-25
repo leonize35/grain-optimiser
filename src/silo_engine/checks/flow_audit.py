@@ -68,10 +68,18 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
     received = 0
     for rec in result.records:
         for s in rec.steps:
-            if s.step == "tip" and s.finished is not None:
+            if s.step != "tip" or s.started is None:
+                continue
+            lot = f"L-{rec.truck_id}"
+            when = s.finished
+            if site.unloading_labour is not None:  # grain enters at the end of the discharge task, within the step
+                flow = (getattr(result, "lots", None) or {}).get(lot)
+                when = flow.tipped_at if flow is not None else None
+                if when is not None and not (s.started <= when and (s.finished is None or when <= s.finished)):
+                    a.problems.append(f"lot {lot} entered the pit outside its truck's unloading")
+            if when is not None:
                 t = truck[rec.truck_id]
-                lot = f"L-{rec.truck_id}"
-                lot_kg[lot], lot_pit[lot], lot_commodity[lot], lot_tipped[lot] = t.kg, s.unit, t.commodity, s.finished
+                lot_kg[lot], lot_pit[lot], lot_commodity[lot], lot_tipped[lot] = t.kg, s.unit, t.commodity, when
                 pit_in[s.unit] += t.kg
                 received += t.kg
 
@@ -376,7 +384,7 @@ def _audit_access(a, site, trucks, result) -> None:
 def _audit_labour(a, site, result) -> None:
     """Staffing: operators in use at any task start never exceed the scheduled count (tasks may run past a shift end),
     and every task needing labour held its operators for the required phase."""
-    if not site.labour:
+    if not site.labour and site.unloading_labour is None:
         return
     scenario = (getattr(result, "staffing", {}) or {}).get("scenario")
     schedules = {p.id: list(p.schedule) for p in site.operator_pools}
@@ -402,3 +410,16 @@ def _audit_labour(a, site, result) -> None:
                 end_needed = s.started if held[s.step] == "start_only" else s.finished
                 if u is None or u["start"] > s.started or (end_needed is not None and u["end"] is not None and u["end"] < end_needed):
                     a.problems.append(f"{owner} ran without its operators")
+    ul = site.unloading_labour
+    if ul is not None:  # every unloading task with the truck present held its workers within the tipping step
+        workers = {t.id: operators.get(f"tip:{t.id}", t.operators) for t in ul.tasks}
+        for rec in result.records:
+            tip = next((s for s in rec.steps if s.step == "tip" and s.finished is not None), None)
+            if tip is None:
+                continue
+            for k, t in enumerate(ul.tasks):
+                if not t.truck_present or not workers[t.id]:
+                    continue
+                u = by_owner.get((f"{rec.truck_id}/tip#{k}", f"tip:{t.id}"))
+                if u is None or u["operators"] != workers[t.id] or u["start"] < tip.started or u["end"] is None or u["end"] > tip.finished:
+                    a.problems.append(f"{rec.truck_id}/tip task {t.id} ran without its workers")

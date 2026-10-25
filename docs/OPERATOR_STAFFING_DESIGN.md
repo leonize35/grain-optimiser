@@ -214,3 +214,91 @@ With the staffing framework in place and no operators configured:
 - **Tests:** 378 passed, 2 expected failures.
 - **No site staffing anywhere:** no site or evidence configuration contains operator pools or labour requirements.
   The only staffing values are the test inputs in `tests/test_staffing.py`, all marked unverified.
+
+## 11. Shared unloading workers by task (2026-10-25)
+
+**Confirmed (user):** about four unloading workers are **shared between Silo A and Silo B**, not four per silo.
+Unloading includes manual tasks: guiding and positioning trucks, assisting the discharge, scraping and sweeping
+spilled grain into hoppers. The objective is to find appropriate staffing by simulation, not to assume today's
+staffing is optimal.
+
+### 11.1 Configuration (`unloading_labour`, optional; absent = unchanged behaviour)
+
+```json
+"operator_pools": [{"id": "unloaders", "skills": ["tip"], "verified": false,
+                    "schedule": [{"from": "07:00", "to": "18:00", "count": 4}]}],
+"unloading_labour": {
+  "pool": "unloaders",
+  "allocation": "oldest_task_first",
+  "tasks": [
+    {"id": "position",  "operators": 1, "time": [1, 2, 4]},
+    {"id": "discharge", "operators": 0, "time": "tip"},
+    {"id": "scrape",    "operators": 1, "time": [2, 3, 6]},
+    {"id": "sweep",     "operators": 1, "time": [2, 4, 8], "truck_present": false}
+  ]
+}
+```
+
+All numbers above are placeholders, not Ventersdorp data.
+
+| Requirement (user) | How it is represented |
+|---|---|
+| 1. Workers dynamically assignable to either silo | One pool; a task at any hopper draws from it. No worker belongs to a silo or hopper |
+| 2. Both silos operate simultaneously, subject to workers and equipment | Each task starts only when its hopper (first task, atomically with the hopper and pit space) and its workers are free |
+| 3. A worker cannot do two tasks at once | The pool's scheduled count caps workers in use (ledger), and the flow audit checks it independently |
+| 4. Manual activities | A configurable ordered task list per unloading. Tasks with the truck present run in order while the truck holds the hopper. Tasks after the truck occupy workers only |
+| 5. Workforce per normal, busy and peak period | Staffing scenarios replace the pool's schedule (e.g. scenarios `busy`, `peak`). Scenarios may also change a task's workers (`labour: {"tip:scrape": 2}`) |
+| 6. Minimum workforce for targets | `experiments.staffing_search.minimum_workforce` (§11.3) |
+| 7. No dedicated operator per hopper assumed | Workers are required **per task** (0 allowed, e.g. a discharge needing nobody). Between tasks a truck releases its workers; it waits on the hopper if none are free for its next task |
+
+**Allocation rules** (configurable until the actual arrangement is verified):
+- `oldest_task_first`: any waiting task that fits the free workers may start, oldest request first.
+- `strict_order`: no task starts while an older task is waiting.
+- `started_trucks_first`: tasks of trucks already at a hopper come before new trucks and cleaning.
+
+The first task's workers are claimed together with the hopper, so a new truck's first task competes under the hopper
+queue's policy.
+
+### 11.2 Provisional assumptions (reported with every run)
+
+- **No walking time** between hoppers or silos. This may understate the cost of sharing workers between silos.
+- **Cleaning after the truck** (`truck_present: false`) does not hold the hopper (Q-3 of the calibration plan).
+- **Task times do not depend on the number of workers.** Crew-time factors are not available for tasks. Task workers are fixed per task, or per scenario.
+- **Running tasks finish** at a shift end (as for other labour).
+- The **discharge task uses the hopper's tipping time**. Grain enters the pit when it ends, so intake may start while scraping goes on.
+
+### 11.3 Staffing levels against targets
+
+`minimum_workforce(site, pool, levels, targets, replications, …)` runs every level over the same seeds (common
+random numbers). It sets the pool's count to the level in each shift window that has workers.
+
+**Targets** (any subset):
+- mean turnaround of completed trucks (reported with the completion rate);
+- completion rate;
+- tonnes received;
+- overtime after closing on the last day. Overtime needs every admitted truck finished; a replication that did not clear fails it.
+
+**How a level is judged:**
+- Criterion `ci` (default) uses the conservative 95% CI bound; `mean` uses the mean.
+- A level with any stalled or invalid replication fails (MEASUREMENT_FRAMEWORK §3).
+- Every level is reported. A non-monotonic result is flagged.
+- The result states that it is a calculation on unverified inputs and not a staffing recommendation.
+
+No Ventersdorp staffing experiment has been run. That waits for the calibration plan's acceptance criteria (AC-1 to
+AC-10) and the staffing questions (M1–M10, Q-3, Q-6, Q-9).
+
+### 11.4 Verification (tests/test_unloading_labour.py, hand-traced)
+
+| Test | Proves |
+|---|---|
+| Two workers serve both silos at once | Requirements 1 and 2 |
+| One worker cannot do two tasks | Requirement 3; the truck waits on the hopper for its next task's worker; waiting attributed to the pool |
+| Allocation rule is configurable | `oldest_task_first` and `started_trucks_first` give the hand-traced orders |
+| Cleaning occupies workers, not the hopper | Requirement 4 and its provisional assumption |
+| Workforce per period is a staffing scenario; a scenario can change a task's workers | Requirement 5 |
+| Stochastic task times leave the discharge draw unchanged | Common random numbers |
+| Invalid configurations refused (8 cases); audit detects a task without its workers and over-use of the pool | Validation and the independent audit |
+| Minimum workforce meets turnaround and overtime targets; failed runs count against a level | Requirement 6 |
+
+The flow audit now takes a lot's tipping time from the discharge task when unloading tasks are configured. It checks
+that this time lies within the truck's unloading step.

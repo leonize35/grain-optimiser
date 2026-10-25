@@ -431,6 +431,8 @@ class TruckFlowModel:
         else:
             self.policy_source = "default"
             policies = {g: DEFAULT_POLICY for g in groups}
+        if site.unloading_labour is not None:  # worker allocation among unloading tasks (not truck dispatch)
+            policies["unload_labour"] = "strict_fifo" if site.unloading_labour.allocation == "strict_order" else "feasible_first"
         self.queue_policies = {g: p if isinstance(p, str) else p.name for g, p in policies.items()}
         try:
             self.dispatcher = Dispatcher(policies)
@@ -446,6 +448,9 @@ class TruckFlowModel:
         schedules, operators = staffing_schedules(site, staffing)
         self._schedules = schedules
         self._labour = {r.step: (r.pool, operators.get(r.step, r.operators), r.held) for r in site.labour}
+        ul = site.unloading_labour  # shared unloading workers: (task, workers) in order, or None
+        self._unload = None if ul is None else [(t, operators.get(f"tip:{t.id}", t.operators)) for t in ul.tasks]
+        self._cleaning_count = 0
         self._labour_use: list[dict] = []
         self._labour_open: dict[str, tuple[str, dict]] = {}  # owner -> (labour reservation id, use record)
         self._attribution: dict[str, float] = {}
@@ -567,6 +572,10 @@ class TruckFlowModel:
             for t in times_:
                 if t > 0:
                     self.cal.schedule(t, CONTROL, lambda c, p=pid: self._staff_change(p), f"staffing change: {pid}")
+        if self._unload:
+            self.assumptions.append("Unloading: one shared pool of workers serves every hopper; a worker does one task "
+                                    "at a time; no walking time between hoppers; workers for the first task are taken "
+                                    "with the hopper; tasks after the truck has unloaded occupy workers, not the hopper.")
         if self._labour:
             self.assumptions.append("Labour: operators are needed for the whole task unless configured otherwise; no "
                                     "crew-size effect on task times unless crew_time is configured; operators finish a "
@@ -678,7 +687,7 @@ class TruckFlowModel:
     # ---- event plumbing ----
     def _after_event(self) -> None:
         self.dispatcher.reconsider(self.cal.now)
-        if self._labour:
+        if self._labour or self._unload:
             self._attribute_waiting()
         for problem in self.ledger.check_invariants(self.cal.now):
             self.violations.append((self.cal.now, problem))
@@ -1112,8 +1121,15 @@ class TruckFlowModel:
                     reasons.append(busy)
                 continue
             lab = self._labour_item(res_id, "tip")
+            if self._unload and self._unload[0][1]:
+                lab = (f"{res_id}#0/labour", [LabourClaim(self.site.unloading_labour.pool, self._unload[0][1])])
             got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, kg)],
                                         extra=[lab] if lab else None)
+            if not got and self._unload:
+                self._occupy_station(truck, res_id, step_rec)
+                step_rec.unit, step_rec.started = pit.id, self.cal.now
+                self._unload_task_start(truck, step_rec, pit, res_id, 0)
+                return []
             if not got:
                 self._labour_started(res_id, "tip")
                 self._occupy_station(truck, res_id, step_rec)
@@ -1143,6 +1159,76 @@ class TruckFlowModel:
             self._submit_intake(pit.id)
         self._leave_or_send_away(truck)
         self._after_event()
+
+    # ---- unloading tasks with shared workers (docs/OPERATOR_STAFFING_DESIGN.md §11) ----
+    def _unload_task_start(self, truck: ScriptedTruck, step_rec: StepRecord, pit: Pit, res_id: str, k: int) -> None:
+        """Task k of unloading starts; its workers are already reserved under '<res_id>#k/labour'."""
+        task, workers = self._unload[k]
+        owner = f"{res_id}#{k}"
+        self._task_labour_started(owner, f"tip:{task.id}", workers)
+        ms = self._dur(truck.id, "tip", pit.id) if task.time == "tip" else self.times.duration_ms(truck.id, f"tip:{task.id}", pit.id)
+        self.cal.schedule(self.cal.now + ms, RELEASE, lambda c: self._unload_task_done(truck, step_rec, pit, res_id, k),
+                          f"{truck.id} finishes {task.id} at {pit.id}")
+
+    def _unload_task_done(self, truck: ScriptedTruck, step_rec: StepRecord, pit: Pit, res_id: str, k: int) -> None:
+        task, _ = self._unload[k]
+        self._labour_finished(f"{res_id}#{k}")
+        if task.time == "tip":  # the grain is in the pit
+            pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
+            self._lots_seen[f"L-{truck.id}"] = (truck.id, pit.id, self._grain(truck), truck.kg, self.cal.now)
+            self._tipped_kg += truck.kg
+            if pit.id not in self._intake_active:
+                self._submit_intake(pit.id)
+        nxt = k + 1
+        if nxt < len(self._unload) and self._unload[nxt][0].truck_present:  # the truck keeps the hopper meanwhile
+            self._request_unload_task(f"{res_id}#{nxt}", nxt, True,
+                                      lambda: self._unload_task_start(truck, step_rec, pit, res_id, nxt))
+        else:
+            step_rec.finished = self.cal.now
+            if nxt < len(self._unload):
+                self._cleaning_count += 1
+                self._request_cleaning(f"{pit.id}/after#{self._cleaning_count}", pit.id, nxt)
+            self._leave_or_send_away(truck)
+        self._after_event()
+
+    def _request_cleaning(self, base: str, pit_id: str, k: int) -> None:
+        """Tasks after the truck has unloaded (e.g. sweeping): workers only, one after another."""
+        def start() -> None:
+            task, workers = self._unload[k]
+            self._task_labour_started(f"{base}#{k}", f"tip:{task.id}", workers)
+            ms = self.times.duration_ms(base, f"tip:{task.id}", pit_id)
+            self.cal.schedule(self.cal.now + ms, RELEASE, lambda c: done(), f"{base}: {task.id} finished")
+
+        def done() -> None:
+            self._labour_finished(f"{base}#{k}")
+            if k + 1 < len(self._unload):
+                self._request_cleaning(base, pit_id, k + 1)
+            self._after_event()
+        self._request_unload_task(f"{base}#{k}", k, False, start)
+
+    def _request_unload_task(self, owner: str, k: int, started_truck: bool, start) -> None:
+        """Queue a task for free workers (allocation rule: the 'unload_labour' group policy and order key)."""
+        workers = self._unload[k][1]
+        if workers == 0:
+            start()
+            return
+        pool = self.site.unloading_labour.pool
+
+        def attempt(now: int) -> list[WaitReason]:
+            reasons = self.ledger.try_reserve(f"{owner}/labour", [LabourClaim(pool, workers)], now)
+            if not reasons:
+                start()
+            return reasons
+        first = started_truck and self.site.unloading_labour.allocation == "started_trucks_first"
+        self.dispatcher.submit(owner, "unload_labour", self.cal.now, attempt, order=(lambda: -1) if first else None)
+
+    def _task_labour_started(self, owner: str, step: str, workers: int) -> None:
+        if workers == 0:
+            return
+        use = {"owner": owner, "step": step, "pool": self.site.unloading_labour.pool, "operators": workers,
+               "start": self.cal.now, "end": None}
+        self._labour_use.append(use)
+        self._labour_open[owner] = (f"{owner}/labour", use)
 
     # ---- loading ----
     def _try_load(self, truck: ScriptedTruck, step_rec: StepRecord) -> list[WaitReason]:
@@ -1399,7 +1485,7 @@ class TruckFlowModel:
         self._attr_last = (now, snap)
 
     def _attribution_report(self) -> dict[str, float]:
-        if not self._labour:
+        if not self._labour and not self._unload:
             return {}
         out = dict(self._attribution)
         if self._attr_last is not None:
@@ -1426,7 +1512,11 @@ class TruckFlowModel:
                            "available_operator_minutes": avail / MS_PER_MINUTE,
                            "utilisation": busy / avail if avail else None}
         return {"scenario": self.staffing_scenario or "baseline", "pools": pools,
-                "labour": {k: {"pool": v[0], "operators": v[1], "held": v[2]} for k, v in self._labour.items()}}
+                "labour": {k: {"pool": v[0], "operators": v[1], "held": v[2]} for k, v in self._labour.items()},
+                **({"unloading_tasks": {"pool": self.site.unloading_labour.pool,
+                                        "allocation": self.site.unloading_labour.allocation,
+                                        "tasks": [{"id": t.id, "workers": n, "truck_present": t.truck_present}
+                                                  for t, n in self._unload]}} if self._unload else {})}
 
     # ---- stock events (step 18, docs/STOCK_ADJUSTMENTS.md) ----
     def _stock_event(self, ev, i: int) -> None:

@@ -36,10 +36,15 @@ class StochasticServiceTimes:
 
     def __init__(self, site: SiteConfig, seed: int):
         self._equipment = {e.id: e for e in site.equipment}
+        ul = site.unloading_labour  # unloading tasks other than the discharge: "tip:<task id>"
+        self._tasks = {f"tip:{t.id}": t.time for t in ul.tasks if t.time != "tip"} if ul else {}
         self.seed = seed
 
     def duration_ms(self, truck_id: str, step: str, equipment_id: str) -> int:
         e = self._equipment[equipment_id]
+        if step in self._tasks:
+            low, mode, high = self._tasks[step]
+            return round(triangular(Stream(self.seed, "service", truck_id, step).uniform(), low, mode, high) * MS_PER_MINUTE)
         if step == "pass" and not e.pass_through:
             return 0  # drive-through of a sampler bay: no time unless configured
         params = e.tip if step == "tip" else e.setup if step == "load" else e.pass_through if step == "pass" else e.time

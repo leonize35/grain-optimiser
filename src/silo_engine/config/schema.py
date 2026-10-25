@@ -250,6 +250,27 @@ class StaffingScenario(_Model):
     labour: dict[str, int] = {}
 
 
+class UnloadingTask(_Model):
+    """One manual task of unloading at a hopper (docs/OPERATOR_STAFFING_DESIGN.md §11), done by `operators` workers of
+    the unloading pool. `time` is triangular [min, mode, max] minutes, or "tip": the hopper's tipping time (the grain
+    discharge; exactly one task). Tasks with `truck_present` run in order while the truck holds the hopper; the others
+    run afterwards and occupy workers only, not the hopper."""
+    id: str
+    operators: int = Field(ge=0)
+    time: list[float] | Literal["tip"]
+    truck_present: bool = True
+
+
+class UnloadingLabour(_Model):
+    """Shared unloading workers: one pool serves the tasks at every hopper, whichever silo it belongs to. A worker does
+    one task at a time. `allocation` decides which waiting task gets free workers (configurable until verified):
+    oldest_task_first (any task that fits, oldest request first), strict_order (no task starts while an older one is
+    waiting), started_trucks_first (tasks of trucks already at a hopper before new trucks and cleaning)."""
+    pool: str
+    tasks: list[UnloadingTask]
+    allocation: Literal["oldest_task_first", "strict_order", "started_trucks_first"] = "oldest_task_first"
+
+
 class TruckBypass(_Model):
     """A physical bypass: a truck that needs no sampling may go from area `from` straight to path element `to`,
     leaving `from` from any position. Only declared bypasses exist."""
@@ -301,6 +322,7 @@ class SiteConfig(_Model):
     labour: list[LabourRequirement] = []
     staffing_scenarios: dict[str, StaffingScenario] = {}
     crew_time: dict[str, dict[str, float]] = {}  # step -> {operators: task-time factor}; only where verified
+    unloading_labour: UnloadingLabour | None = None  # None: tipping needs no workers unless `labour` says so
     # Step 18: stock events, opening book inventory (default: equal to physical), reporting tolerance, authorities.
     stock_events: list[StockEvent] = []
     opening_book: list[OpeningBook] = []
@@ -338,7 +360,8 @@ def config_hash(cfg: SiteConfig) -> str:
     for d in (data.get("demand") or {}).values():
         if isinstance(d, dict) and d.get("sampling_share") is None:
             d.pop("sampling_share", None)
-    for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {})):
+    for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {}),
+                         ("unloading_labour", None)):
         if data.get(added) == unset:
             data.pop(added, None)
     for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),
