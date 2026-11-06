@@ -52,3 +52,21 @@ def test_the_app_is_served(client):
     assert r.status_code == 200 and "Silo Optimiser" in r.text
     assert client.get("/", follow_redirects=False).headers["location"] == "/app/"
     assert client.get("/app/app.js").status_code == 200
+
+
+def test_catalogue_describes_truck_processes_from_the_engine_vocabulary(client):
+    """Slice 9b: steps, release conditions, steps that hold a place, and deadlock options come from the engine."""
+    import typing
+
+    from silo_engine.config.rules_validation import CONDITIONS, PLACE_STEPS
+    from silo_engine.config.schema import SiteConfig, TruckStep
+    meta = client.get("/meta").json()
+    assert [s["id"] for s in meta["truck_steps"]] == list(typing.get_args(TruckStep))
+    assert all(s["label"] for s in meta["truck_steps"])
+    assert {c["id"] for c in meta["release_conditions"]} == set(CONDITIONS) - {"service_done"}
+    assert meta["place_steps"] == list(PLACE_STEPS)
+    steps = meta["activity_steps"]
+    assert "tip" in steps["unload"] and "tip" not in steps["load"] and "load" in steps["load"]
+    assert "load" not in steps["unload"] and "tip" not in steps["weigh"] and "load" not in steps["weigh"]
+    deadlock = typing.get_args(SiteConfig.model_fields["deadlock_prevention"].annotation)
+    assert [d["id"] for d in meta["deadlock_prevention"]] == list(deadlock)

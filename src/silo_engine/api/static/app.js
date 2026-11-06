@@ -290,6 +290,172 @@ screens.connections = () => {
   document.querySelectorAll("[data-cx-del]").forEach((b) => { b.onclick = () => { c.edges.splice(+b.dataset.cxDel, 1); markDirty(); screens.connections(); }; });
 };
 
+// ---------- truck processes and movement (slice 9b) ----------
+// A truck path interleaves waiting areas and steps. The builder shows one "slot" before each step:
+//   open   unlimited waiting (the engine's default when an activity has no path at all)
+//   none   no waiting space: the truck goes straight on and blocks its station if the next one is busy
+//   area:X a configured waiting area
+// When every slot is "open" the activity has no explicit path. Otherwise "open" slots become automatic unlimited
+// areas (ids open_<activity>_<n>), kept only while a path uses them.
+const stepLabel = (s) => (S.meta.truck_steps.find((x) => x.id === s) || { label: s }).label;
+const actLabel = (a) => (S.meta.activities.find((x) => x.id === a) || { label: a }).label;
+const isAuto = (id) => /^open_/.test(id);
+
+function getSlots(act) {
+  const c = S.config, seq = c.sequences[act] || [], path = (c.truck_paths || {})[act];
+  if (!path) return seq.map(() => "open");
+  const out = []; let pending = null, i = 0;
+  for (const el of path) {
+    if (i < seq.length && el === seq[i]) { out.push(pending === null ? "none" : isAuto(pending) ? "open" : "area:" + pending); pending = null; i++; }
+    else pending = el;
+  }
+  while (out.length < seq.length) out.push("open");
+  return out;
+}
+
+function setSlots(act, slots) {
+  const c = S.config, seq = c.sequences[act] || [];
+  c.truck_paths = c.truck_paths || {};
+  c.truck_areas = c.truck_areas || [];
+  if (seq.every((step, i) => step === "grade" || (slots[i] || "open") === "open")) delete c.truck_paths[act];
+  else {
+    const path = [];
+    seq.forEach((step, i) => {
+      const s = step === "grade" ? "none" : slots[i] || "open";  // grading: the truck waits where it is
+      if (s === "open") {
+        const id = `open_${act}_${i + 1}`;
+        if (!c.truck_areas.some((a) => a.id === id)) c.truck_areas.push({ id, name: `Open waiting before ${stepLabel(step)}`, capacity: null });
+        path.push(id);
+      } else if (s.startsWith("area:")) path.push(s.slice(5));
+      path.push(step);
+    });
+    c.truck_paths[act] = path;
+  }
+  const used = new Set(Object.values(c.truck_paths).flat().filter(Boolean));
+  c.truck_areas = c.truck_areas.filter((a) => !isAuto(a.id) || used.has(a.id));
+  c.truck_bypasses = (c.truck_bypasses || []).filter((b) => (c.truck_paths[b.activity] || []).includes(b.from));
+}
+
+function setSequence(act, seq) {
+  const c = S.config, old = c.sequences[act] || [], oldSlots = getSlots(act);
+  const slotOf = Object.fromEntries(old.map((s, i) => [s, oldSlots[i]]));
+  c.sequences[act] = seq;
+  c.release_rules = (c.release_rules || []).filter((r) => r.activity !== act || seq.includes(r.step));
+  setSlots(act, seq.map((s) => slotOf[s] || "open"));
+}
+
+function stationsFor(step, act) {
+  const info = S.meta.truck_steps.find((x) => x.id === step);
+  if (!info) return [];
+  return S.config.equipment.filter((e) => e.type === info.station && (!e.activities || e.activities.includes(act))
+    && !(step === "weigh_in" && e.moves === "out") && !(step === "weigh_out" && e.moves === "in"));
+}
+
+screens.processes = () => {
+  if (needSite()) return;
+  const c = S.config;
+  c.release_rules = c.release_rules || [];
+  const cards = S.meta.activities.map(({ id: act, label }) => {
+    const seq = c.sequences[act] || [];
+    const unused = S.meta.activity_steps[act].filter((s) => !seq.includes(s));
+    const rows = seq.map((step, i) => {
+      const st = stationsFor(step, act);
+      const rule = c.release_rules.find((r) => r.activity === act && r.step === step);
+      const conds = S.meta.place_steps.includes(step) ? S.meta.release_conditions.map((cd) =>
+        `<label style="display:inline-flex;gap:4px;margin:0;color:var(--text)"><input type="checkbox" data-rule="${act}|${step}|${cd.id}" ${rule && rule.when.includes(cd.id) ? "checked" : ""}> only when ${esc(cd.label)}</label>`).join("") : `<span class="muted small">–</span>`;
+      return `<tr><td>${i + 1}</td><td><strong>${esc(stepLabel(step))}</strong><div class="muted small">${st.length ? "at " + st.map((e) => esc(e.name || e.id)).join(", ") : step === "grade" ? "graded off the truck" : `<span class="req">no equipment serves this step yet</span>`}</div></td>
+        <td>${conds}</td>
+        <td style="white-space:nowrap"><button data-mv="${act}|${i}|-1" ${i ? "" : "disabled"} aria-label="Move up">↑</button> <button data-mv="${act}|${i}|1" ${i < seq.length - 1 ? "" : "disabled"} aria-label="Move down">↓</button> <button class="danger" data-rm="${act}|${i}">Remove</button></td></tr>`;
+    }).join("");
+    return `<div class="card"><h2>${esc(label)} trucks</h2>
+      <table><thead><tr><th>#</th><th>Step</th><th>The truck leaves this place after the service, and…</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="4" class="muted">No steps: no ${esc(label.toLowerCase())} trucks will be simulated.</td></tr>`}</tbody></table>
+      <div class="actions">${unused.length ? `<select id="add-${act}">${unused.map((s) => `<option value="${s}">${esc(stepLabel(s))}</option>`).join("")}</select><button data-addstep="${act}">Add step</button>` : ""}</div></div>`;
+  }).join("");
+  $("#main").innerHTML = `<h1>Truck processes</h1><p class="lead">The steps each kind of truck goes through, in order. A sample is graded off the truck while it moves on; tick "only when its sample has been graded" on a step where the truck must wait for the result (for example on the incoming weighbridge).</p>${cards}`;
+  document.querySelectorAll("[data-addstep]").forEach((b) => { b.onclick = () => { const act = b.dataset.addstep; setSequence(act, [...(c.sequences[act] || []), $(`#add-${act}`).value]); markDirty(); render(); }; });
+  document.querySelectorAll("[data-rm]").forEach((b) => { b.onclick = () => { const [act, i] = b.dataset.rm.split("|"); const seq = [...c.sequences[act]]; seq.splice(+i, 1); setSequence(act, seq); markDirty(); render(); }; });
+  document.querySelectorAll("[data-mv]").forEach((b) => { b.onclick = () => {
+    const [act, i, d] = b.dataset.mv.split("|"); const seq = [...c.sequences[act]], j = +i + +d;
+    [seq[+i], seq[j]] = [seq[j], seq[+i]]; setSequence(act, seq); markDirty(); render();
+  }; });
+  document.querySelectorAll("[data-rule]").forEach((el) => { el.onchange = () => {
+    const [act, step, cond] = el.dataset.rule.split("|");
+    let rule = c.release_rules.find((r) => r.activity === act && r.step === step);
+    if (!rule) { rule = { activity: act, step, when: ["service_done"] }; c.release_rules.push(rule); }
+    rule.when = el.checked ? [...new Set([...rule.when, cond])] : rule.when.filter((x) => x !== cond);
+    if (!rule.when.some((x) => x !== "service_done")) c.release_rules = c.release_rules.filter((r) => r !== rule);
+    markDirty();
+  }; });
+};
+
+screens.movement = () => {
+  if (needSite()) return;
+  const c = S.config;
+  c.truck_areas = c.truck_areas || [];
+  const areas = c.truck_areas.filter((a) => !isAuto(a.id));
+  const areaRows = areas.map((a) => {
+    const i = c.truck_areas.indexOf(a);
+    return `<tr><td><input data-ar="${i}|id" value="${esc(a.id)}" size="10"></td><td><input data-ar="${i}|name" value="${esc(a.name)}"></td>
+      <td><input type="number" min="1" data-ar="${i}|capacity" value="${esc(a.capacity ?? "")}" placeholder="unlimited" style="width:100px"> <span class="unit">trucks</span></td>
+      <td><input type="checkbox" data-ar="${i}|single_file" ${a.single_file ? "checked" : ""} aria-label="single file"></td><td><button class="danger" data-ardel="${i}">Remove</button></td></tr>`;
+  }).join("");
+  const pathCards = S.meta.activities.map(({ id: act, label }) => {
+    const seq = c.sequences[act] || [];
+    if (!seq.length) return "";
+    const slots = getSlots(act);
+    const opts = (cur) => `<option value="open" ${cur === "open" ? "selected" : ""}>Unlimited waiting</option><option value="none" ${cur === "none" ? "selected" : ""}>No waiting space (goes straight on, blocks if busy)</option>` +
+      areas.map((a) => `<option value="area:${esc(a.id)}" ${cur === "area:" + a.id ? "selected" : ""}>${esc(a.name)} (${a.capacity ?? "unlimited"})</option>`).join("");
+    const rows = seq.map((step, i) => `<tr><td class="muted small">before</td><td>${step === "grade"
+      ? `<span class="muted small">none: the truck waits for its result where it is (set "only when graded" on the step before, in Truck processes, to hold that place)</span>`
+      : `<select data-slot="${act}|${i}" aria-label="Waiting before ${esc(stepLabel(step))}">${opts(slots[i])}</select>`}</td><td>→ <strong>${esc(stepLabel(step))}</strong></td></tr>`).join("");
+    return `<div class="card"><h2>${esc(label)} trucks</h2><p class="muted small">${(c.truck_paths || {})[act] ? "Explicit path: " + esc(c.truck_paths[act].join(" → ")) : "No explicit path: unlimited waiting before every step (default)."}</p><table><tbody>${rows}</tbody></table></div>`;
+  }).join("");
+  const bypasses = c.truck_bypasses || [];
+  const bpRows = bypasses.map((b, i) => `<tr><td>${esc(actLabel(b.activity))}</td><td>${esc(b.from)}</td><td>${esc(b.to)}</td><td><button class="danger" data-bpdel="${i}">Remove</button></td></tr>`).join("");
+  const bpAct = $("#bp-act") ? $("#bp-act").value : "unload";
+  const bpPath = (c.truck_paths || {})[bpAct] || [];
+  $("#main").innerHTML = `<h1>Truck movement</h1><p class="lead">Where trucks wait between steps and how many fit. A truck holds one place at a time; if the next place is full it stays where it is, blocking that station.</p>
+    <div class="card"><h2>Waiting areas</h2><table><thead><tr><th>Id</th><th>Name</th><th>Capacity</th><th>Single file</th><th></th></tr></thead><tbody>${areaRows || `<tr><td colspan="5" class="muted">No waiting areas defined.</td></tr>`}</tbody></table>
+      <div class="actions"><button id="ar-add">Add waiting area</button></div><p class="muted small">Single file: only the front truck may move on (a physical lane, not a queue rule).</p></div>
+    ${pathCards}
+    <div class="grid2"><div class="card"><h2>Bypasses</h2><p class="muted small">A declared lane that lets a truck needing no sampling leave a waiting area directly to a later point.</p>
+      <table><thead><tr><th>Trucks</th><th>From</th><th>To</th><th></th></tr></thead><tbody>${bpRows || `<tr><td colspan="4" class="muted">None.</td></tr>`}</tbody></table>
+      <div class="tri"><select id="bp-act">${S.meta.activities.map((a) => `<option value="${a.id}" ${a.id === bpAct ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select>
+      <select id="bp-from">${bpPath.filter((x) => c.truck_areas.some((a) => a.id === x)).map((x) => `<option>${esc(x)}</option>`).join("") || `<option value="">no area on this path</option>`}</select> →
+      <select id="bp-to">${bpPath.map((x) => `<option>${esc(x)}</option>`).join("")}</select><button id="bp-add">Add</button></div></div>
+      <div class="card"><h2>Gridlock prevention</h2><select id="dl" class="wide">${S.meta.deadlock_prevention.map((d) => `<option value="${d.id}" ${(c.deadlock_prevention || "reserve_next_space") === d.id ? "selected" : ""}>${esc(d.label)}</option>`).join("")}</select></div></div>`;
+  $("#ar-add").onclick = () => { let n = 1; while (c.truck_areas.some((a) => a.id === `Q${n}`)) n++; c.truck_areas.push({ id: `Q${n}`, name: `Queue ${n}`, capacity: 2 }); markDirty(); render(); };
+  document.querySelectorAll("[data-ar]").forEach((el) => { el.onchange = () => {
+    const [i, k] = el.dataset.ar.split("|"), a = c.truck_areas[+i];
+    if (k === "single_file") { if (el.checked) a.single_file = true; else delete a.single_file; }
+    else if (k === "capacity") a.capacity = el.value === "" ? null : Math.max(1, Math.round(+el.value));
+    else if (k === "id") {
+      const nid = el.value.trim(), old = a.id;
+      if (!nid || c.truck_areas.some((x) => x.id === nid)) { toast("That id is empty or already used."); return render(); }
+      a.id = nid;
+      Object.keys(c.truck_paths || {}).forEach((act) => { c.truck_paths[act] = (c.truck_paths[act] || []).map((x) => (x === old ? nid : x)); });
+      (c.truck_bypasses || []).forEach((b) => { if (b.from === old) b.from = nid; if (b.to === old) b.to = nid; });
+    } else a[k] = el.value;
+    markDirty(); render();
+  }; });
+  document.querySelectorAll("[data-ardel]").forEach((b) => { b.onclick = () => {
+    const a = c.truck_areas[+b.dataset.ardel];
+    Object.keys(c.truck_paths || {}).forEach((act) => { const slots = getSlots(act).map((s) => (s === "area:" + a.id ? "open" : s)); setSlots(act, slots); });
+    c.truck_areas = c.truck_areas.filter((x) => x !== a); markDirty(); render();
+  }; });
+  document.querySelectorAll("[data-slot]").forEach((el) => { el.onchange = () => {
+    const [act, i] = el.dataset.slot.split("|"), slots = getSlots(act); slots[+i] = el.value; setSlots(act, slots); markDirty(); render();
+  }; });
+  $("#bp-act").onchange = () => screens.movement();
+  $("#bp-add").onclick = () => {
+    const from = $("#bp-from").value, to = $("#bp-to").value;
+    if (!from || !to || bpPath.indexOf(to) <= bpPath.indexOf(from)) return toast("Choose a waiting area and a later point on the path.");
+    c.truck_bypasses = [...bypasses, { activity: bpAct, from, to, for: "not_sampled" }]; markDirty(); render();
+  };
+  document.querySelectorAll("[data-bpdel]").forEach((b) => { b.onclick = () => { c.truck_bypasses.splice(+b.dataset.bpdel, 1); markDirty(); render(); }; });
+  $("#dl").onchange = (ev) => { c.deadlock_prevention = ev.target.value; markDirty(); };
+};
+
 screens.check = () => {
   if (needSite()) return;
   const r = S.report;
@@ -408,7 +574,7 @@ async function poll(id) {
 
 screens.advanced = () => {
   if (needSite()) return;
-  $("#main").innerHTML = `<h1>Advanced</h1><p class="lead">The whole configuration as the engine reads it. Truck processes, waiting areas, labour, operating rules and demand have their own screens in the next slices; until then they are kept exactly as loaded.</p>
+  $("#main").innerHTML = `<h1>Advanced</h1><p class="lead">The whole configuration as the engine reads it. Labour, operating rules and demand get their own screens in the next slice; until then they are kept exactly as loaded.</p>
     <div class="card"><pre class="json">${esc(JSON.stringify(S.config, null, 1))}</pre></div>`;
 };
 
@@ -416,7 +582,7 @@ screens.advanced = () => {
 function focusKey(el) {  // a selector that finds the same input after a redraw
   if (!el || el === document.body) return null;
   if (el.id) return "#" + el.id;
-  for (const k of ["field", "multi", "sysId", "sysName", "comId", "comName"]) {
+  for (const k of ["field", "multi", "sysId", "sysName", "comId", "comName", "slot", "ar", "rule"]) {
     if (el.dataset[k] !== undefined) return `[data-${k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase())}="${el.dataset[k]}"]` + (el.value && k === "multi" ? `[value="${el.value}"]` : "");
   }
   if (el.dataset.tri !== undefined) return `[data-tri="${el.dataset.tri}"][data-i="${el.dataset.i}"]`;

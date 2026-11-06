@@ -6,6 +6,10 @@ user interface reading this never carries its own copy of engine rules.
 Field kinds: number, integer, triangular ([min, most likely, max]), commodities (list of commodity ids), choice
 (`options`), activities (list of truck activities).
 """
+import typing
+
+from .rules_validation import CONDITIONS, PLACE_STEPS
+from .schema import SiteConfig, TruckStep
 from .validation import ACTIVITY_LABEL, ALLOWED_CONNECTIONS, EQUIPMENT_LABEL
 
 
@@ -60,9 +64,39 @@ FIELDS = {
 }
 
 
+# Truck process vocabulary (slice 9b). Ids are the engine's TruckStep values; labels are presentation only.
+STEP_INFO = {
+    "sample": ("Sampling", "sampler", "A sample is taken; it is graded off the truck."),
+    "grade": ("Wait for grading result", "grader", "The truck waits where it is until its sample has been graded."),
+    "weigh_in": ("Weigh in", "weighbridge", None),
+    "tip": ("Unload at a hopper", "hopper", None),
+    "load": ("Load at a load point", "loadpoint", None),
+    "weigh_out": ("Weigh out", "weighbridge", None),
+}
+CONDITION_LABEL = {"graded": "its sample has been graded"}
+DEADLOCK_LABEL = {
+    "reserve_next_space": "A truck starts a service only when a place in the next waiting area is reserved (prevents gridlock)",
+    "detect_only": "No reservation of the next place; a gridlock stops the run and is reported",
+}
+
+
+def _activity_steps(activity: str) -> list[str]:
+    """Steps a truck of this activity can have (the validator refuses tipping for non-receiving trucks and loading
+    for non-loading trucks)."""
+    steps = list(typing.get_args(TruckStep))
+    return [s for s in steps if not (s == "tip" and activity != "unload") and not (s == "load" and activity != "load")]
+
+
 def catalogue() -> dict:
     return {
         "equipment_types": {t: {"label": EQUIPMENT_LABEL[t], "connects_to": list(ALLOWED_CONNECTIONS[t]),
                                 "fields": FIELDS[t]} for t in EQUIPMENT_LABEL},
         "activities": [{"id": a, "label": label} for a, label in ACTIVITY_LABEL.items()],
+        "truck_steps": [{"id": s, "label": STEP_INFO[s][0], "station": STEP_INFO[s][1], "help": STEP_INFO[s][2]}
+                        for s in typing.get_args(TruckStep)],
+        "activity_steps": {a: _activity_steps(a) for a in ACTIVITY_LABEL},
+        "release_conditions": [{"id": c, "label": CONDITION_LABEL.get(c, c)} for c in CONDITIONS if c != "service_done"],
+        "place_steps": list(PLACE_STEPS),
+        "deadlock_prevention": [{"id": d, "label": DEADLOCK_LABEL[d]}
+                                for d in typing.get_args(SiteConfig.model_fields["deadlock_prevention"].annotation)],
     }

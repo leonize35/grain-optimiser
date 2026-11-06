@@ -209,4 +209,10 @@ screen and primitive can be exercised with it.
   - Tests: `tests/test_app_endpoints.py`.
   - Verified end to end in the browser: open Site A → add hopper H3 (3 errors shown) → fill its fields and connect it to C1 (can run) → save v1 → run 3 replications (results shown). Narrow layout checked.
   - Not yet: truck processes, waiting areas, labour, rules and demand screens (slices 9b and 9c); a graphical network view; automated browser tests (no Node.js).
-- **Next:** slice 9b (truck movement and processes), or steps 4–6.
+- **UI slice 9b (done):**
+  - **Truck processes:** step order per activity (add, remove, reorder), the stations serving each step, and release rules ("only when its sample has been graded").
+  - **Truck movement:** waiting areas (capacity, single file); per activity, what lies before each step (unlimited waiting, no waiting space, or a named area); bypasses; gridlock prevention.
+  - The path editor writes `truck_paths`, generating automatic unlimited areas `open_<activity>_<n>` only when a path is needed. The grading step always waits in place.
+  - Vocabulary from `GET /meta`: steps, steps allowed per activity, release conditions, steps holding a place, deadlock options (tested against the engine's own literals).
+  - Verified in the browser: Site A example → grading moved after weigh-in (hold warning appears) → "only when graded" on weigh-in (warning gone) → one-place weighbridge queue → save → run 3 replications.
+- **Next:** slice 9c (labour, operating rules, demand, scenarios and comparison), or steps 4–6.
