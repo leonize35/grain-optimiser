@@ -11,6 +11,9 @@ Endpoints:
     GET  /sites/{id}/scenarios ; POST {name, base_version, ops, note} ; GET /sites/{id}/scenarios/{name}
     POST /runs {site_id, version | scenario, replications, base_seed, days, demand_factor, policy} -> 202 run_id
     GET  /runs/{id} ; GET /runs/{id}/results
+    GET  /meta                                       equipment catalogue (types, fields, allowed connections)
+    GET  /examples ; GET /examples/{file}            synthetic example sites (evidence/configs; labelled synthetic)
+    GET  /app/                                       the silo builder (static files in api/static; no build step)
 
 A run uses an immutable snapshot of the configuration it was started with; its results carry the engine version,
 configuration hash, seeds, replications and assumptions (experiments.runner metadata). A configuration whose pre-run
@@ -26,15 +29,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import json
+
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .. import VERSION
 from ..config import ConfigSchemaError, load_site_config
+from ..config.catalogue import catalogue
 from ..config.report import prerun_report
 from ..config.schema import config_hash
 from ..experiments.runner import run_experiment
 from ..store import ConfigStore, StoreError, StoreNotFound, diff_configs
+
+
+STATIC = Path(__file__).parent / "static"
+EXAMPLES = Path(__file__).resolve().parents[3] / "evidence" / "configs"  # synthetic sites in the repository
 
 
 class SaveRequest(BaseModel):
@@ -81,6 +93,32 @@ def create_app(store_root: Path | str | None = None) -> FastAPI:
     runs: dict[str, dict] = {}
     lock = threading.Lock()
     pool = ThreadPoolExecutor(max_workers=1)
+
+    @app.get("/", include_in_schema=False)
+    def root():
+        return RedirectResponse("/app/")
+
+    @app.get("/meta")
+    def meta():
+        return catalogue()
+
+    def _examples() -> list[dict]:
+        index = EXAMPLES / "index.json"
+        if not index.exists():
+            return []
+        data = json.loads(index.read_text(encoding="utf-8"))
+        return [{"file": c["file"], "label": c["label"], "note": f"Synthetic: {c['origin']}"}
+                for c in data["configurations"] if c.get("synthetic")]
+
+    @app.get("/examples")
+    def examples():
+        return _examples()
+
+    @app.get("/examples/{file}")
+    def example(file: str):
+        if file not in {e["file"] for e in _examples()}:
+            raise HTTPException(404, f"No example {file}.")
+        return json.loads((EXAMPLES / file).read_text(encoding="utf-8"))
 
     @app.get("/health")
     def health():
@@ -176,4 +214,5 @@ def create_app(store_root: Path | str | None = None) -> FastAPI:
             raise HTTPException(409, f"Run {run_id} is {r['record']['state']}; no results yet.")
         return r["results"]
 
+    app.mount("/app", StaticFiles(directory=STATIC, html=True), name="app")
     return app

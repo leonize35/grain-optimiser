@@ -24,6 +24,25 @@ C:\Users\LeonizeMeiring\AppData\Local\Python\pythoncore-3.14-64\python.exe -m ve
 .venv\Scripts\python.exe -m pip install "pydantic>=2.7" "pytest>=8"
 ```
 
+For the app and its API (optional; the engine needs only pydantic):
+
+```bash
+.venv\Scripts\python.exe -m pip install "fastapi>=0.162" "uvicorn>=0.54" "httpx>=0.28"
+```
+
+## Running the app (local only)
+
+```bash
+.venv\Scripts\python.exe tools\run_app.py
+```
+
+Then open http://127.0.0.1:8000/ in a browser. API documentation is at http://127.0.0.1:8000/docs.
+
+- **Where silos are saved:** in `%USERPROFILE%\.silo-optimiser\store`, outside this repository. Pass `--store PATH` or set `SILO_STORE` to use another folder.
+- **What the screens cover:** site and silo systems, commodities, equipment, grain connections, the pre-run check, saving and comparing versions, and running simulations.
+- **What they don't cover yet:** truck processes, waiting areas, labour, rules and demand. Those are kept as loaded and can be inspected under Advanced.
+- **Results:** they are simulation outputs for the configuration as entered, not validated observations.
+
 ## Running the tests
 
 Python suite:

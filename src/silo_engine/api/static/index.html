@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Silo Optimiser</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='3' y='3' width='10' height='12' rx='2' fill='%2311293F'/%3E%3Cpath d='M3 6h10' stroke='%23FFF'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="shell">
+  <nav class="rail" aria-label="Main">
+    <div class="brand">Silo Optimiser</div>
+    <a href="#silo" data-nav="silo">My silo</a>
+    <a href="#equipment" data-nav="equipment">Equipment</a>
+    <a href="#connections" data-nav="connections">Grain connections</a>
+    <a href="#check" data-nav="check">Check</a>
+    <a href="#versions" data-nav="versions">Save &amp; versions</a>
+    <a href="#run" data-nav="run">Run</a>
+    <a href="#advanced" data-nav="advanced">Advanced</a>
+    <p class="rail-note">Local only. Results are simulated, not observed performance.</p>
+  </nav>
+  <div class="column">
+    <header class="top">
+      <div>
+        <div class="site-name" id="site-name">No silo open</div>
+        <div class="site-sub" id="site-sub">Open a saved silo, start from an example, or create a new one.</div>
+      </div>
+      <div class="badges" aria-live="polite">
+        <span class="badge" id="badge-save">Not saved</span>
+        <span class="badge" id="badge-check">Not checked</span>
+      </div>
+    </header>
+    <main id="main" tabindex="-1"></main>
+  </div>
+</div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

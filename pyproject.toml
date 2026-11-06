@@ -16,6 +16,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+silo_engine = ["api/static/*"]  # the silo-builder app (no build step)
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]

@@ -202,4 +202,11 @@ screen and primitive can be exercised with it.
   - Endpoints: validate, sites (save, load, history, diff), scenarios, and runs (202 + run id, immutable snapshot, results with reproducibility metadata). A configuration with report errors is refused (409).
   - Tests: `tests/test_api.py`, in-process client.
   - Known limitations: runs are kept in memory while the server runs; local only (no accounts or hosting); Starlette's test client warns that it prefers `httpx2`.
-- **Next:** UI slice 9a (site, systems, equipment, connections, validate, run). It needs approval of the front-end stack.
+- **UI slice 9a (done):**
+  - A no-build web app (approved: HTML, CSS, JavaScript modules) served by the API at `/app/`; started with `python tools/run_app.py`.
+  - Screens: my silo (open saved or synthetic example, new; site, hours, systems, commodities), equipment (palette, typed property forms, issues per item), grain connections (only connections the engine allows; route problems), check (errors, warnings and notes with fixes and locations), save and versions (history, compare), and run (saved versions only, KPIs with 95% intervals, labelled simulated, with reproducibility metadata).
+  - Supporting endpoints, with the engine rules kept in the backend: `GET /meta` (`config/catalogue.py`), and `GET /examples` (synthetic sites).
+  - Tests: `tests/test_app_endpoints.py`.
+  - Verified end to end in the browser: open Site A → add hopper H3 (3 errors shown) → fill its fields and connect it to C1 (can run) → save v1 → run 3 replications (results shown). Narrow layout checked.
+  - Not yet: truck processes, waiting areas, labour, rules and demand screens (slices 9b and 9c); a graphical network view; automated browser tests (no Node.js).
+- **Next:** slice 9b (truck movement and processes), or steps 4–6.
