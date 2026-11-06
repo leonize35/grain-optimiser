@@ -183,3 +183,19 @@ def test_audit_detects_labour_violations(corrupt, words):
     corrupt(bad)
     problems = audit_flow(s, script, bad).problems
     assert any(words in p for p in problems), problems
+
+
+def test_waiting_for_workers_after_the_last_shift_is_unfinished_work_not_a_stall():
+    """One sampling operator 07:00-07:06 only. T1 samples 07:00-07:04 and T2 07:04-07:08 (started within the shift);
+    T3 waits for an operator, and no shift comes back today. Like a truck waiting for a closed plant, T3 is unfinished
+    work at the end of the day (hard stop 18:00), not a failed (stalled) run."""
+    raw = site(operator_pools=[pool("samplers", ["sample"], [("07:00", "07:06", 1)])],
+               labour=[{"step": "sample", "pool": "samplers"}])
+    s = load_site_config(raw)
+    script = load_arrival_script({"trucks": [
+        {"id": t, "activity": "unload", "arrive": at, "commodity": "YM", "tonnes": 30} for t, at in TRUCKS]})
+    r = TruckFlowModel(s, script, TIMES, policy="feasible_first").run()
+    assert r.stall is None and r.violations == [] and r.material_balance_kg == 0
+    assert times(r, "sample")["T2"] == (hm("07:04"), hm("07:08"))
+    assert r.outcomes["trucks"]["T3"]["status"] == "unfinished_on_site"
+    assert audit_flow(s, script, r).ok

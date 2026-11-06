@@ -710,8 +710,10 @@ class TruckFlowModel:
         waiting = self.dispatcher.waiting_reasons()
         if self.stall is None and not self._ended and waiting and not any(
                 e.priority != ARRIVAL and e not in self._day_events for e in self.cal.pending_events()):
-            # A wait for a closed plant ends at the next opening, or becomes unfinished work when the run ends.
-            closed = any(r.code == "PLANT_CLOSED" for rs in waiting.values() for r in rs)
+            # A wait for a closed plant, or for workers whose shifts are over for the day, ends at the next opening
+            # (shift) or becomes unfinished work when the run ends. While a later shift today is scheduled, its
+            # staffing event is pending and this check is not reached.
+            closed = any(r.code in ("PLANT_CLOSED", "LABOUR_UNAVAILABLE") for rs in waiting.values() for r in rs)
             day_event_ahead = any(not e.cancelled and not e.done for e in self._day_events)
             # A loading truck short of stock may still be supplied by an unloading truck that has yet to arrive.
             short = any(r.code == "STOCK_SHORT" for rs in waiting.values() for r in rs)
