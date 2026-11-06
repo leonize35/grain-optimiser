@@ -28,6 +28,10 @@ class StoreError(ValueError):
     pass
 
 
+class StoreNotFound(StoreError):
+    """A site, version or scenario that is not in the store."""
+
+
 def default_store_root() -> Path:
     """`SILO_STORE` if set, else a folder in the user's home: never inside the (public) repository."""
     return Path(os.environ.get("SILO_STORE") or Path.home() / ".silo-optimiser" / "store")
@@ -80,13 +84,13 @@ class ConfigStore:
         n = version if version is not None else history[-1]["version"]
         path = self.root / site_id / "versions" / f"{n:04d}.json"
         if not path.exists():
-            raise StoreError(f"{site_id} has no version {n}.")
+            raise StoreNotFound(f"{site_id} has no version {n}.")
         return json.loads(path.read_text(encoding="utf-8"))
 
     def history(self, site_id: str) -> list[dict]:
         path = self.root / _safe(site_id, "site id") / "history.json"
         if not path.exists():
-            raise StoreError(f"No saved configuration for {site_id}.")
+            raise StoreNotFound(f"No saved configuration for {site_id}.")
         return json.loads(path.read_text(encoding="utf-8"))
 
     def list_sites(self) -> list[str]:
@@ -105,7 +109,7 @@ class ConfigStore:
     def load_scenario(self, site_id: str, name: str) -> dict:
         path = self.root / _safe(site_id, "site id") / "scenarios" / f"{_safe(name, 'scenario name')}.json"
         if not path.exists():
-            raise StoreError(f"{site_id} has no scenario {name}.")
+            raise StoreNotFound(f"{site_id} has no scenario {name}.")
         record = json.loads(path.read_text(encoding="utf-8"))
         return {**record, "config": apply_overlay(self.load(site_id, record["base_version"]), record["ops"])}
 

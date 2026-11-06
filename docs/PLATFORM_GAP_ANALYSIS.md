@@ -192,4 +192,14 @@ screen and primitive can be exercised with it.
   - Validation refuses unknown conditions, steps outside the sequence or not holding a place, duplicate rules, `graded` without grading in the sequence, and a hold on a step before sampling (it would wait for ever).
   - The receiving rule now needs no explicit truck path. The new form gives identical step times to the old one (`tests/test_release_rules.py`); the old form still works.
   - The report no longer warns about a hold that a rule states.
-- **Next:** step 4 (background tasks: user-defined off-truck tasks producing their own conditions).
+- **Order changed by the user (2026-11-06):** to reach a usable app sooner, steps 7, 8 and UI slice 9a come before steps 4–6.
+- **Step 7 (done):**
+  - `silo_engine.store`: immutable numbered versions, history (note, hash, parent, report summary), diff, and scenario overlays against a base version (the base is never edited).
+  - The default root is outside the repository (`SILO_STORE` or `~/.silo-optimiser/store`).
+  - Tests: `tests/test_store.py`.
+- **Step 8 (done):**
+  - `silo_engine.api` (FastAPI, approved; optional `api` extra; the engine still needs only pydantic). `python -m silo_engine.api` serves on 127.0.0.1:8000, with interactive docs at `/docs`.
+  - Endpoints: validate, sites (save, load, history, diff), scenarios, and runs (202 + run id, immutable snapshot, results with reproducibility metadata). A configuration with report errors is refused (409).
+  - Tests: `tests/test_api.py`, in-process client.
+  - Known limitations: runs are kept in memory while the server runs; local only (no accounts or hosting); Starlette's test client warns that it prefers `httpx2`.
+- **Next:** UI slice 9a (site, systems, equipment, connections, validate, run). It needs approval of the front-end stack.
