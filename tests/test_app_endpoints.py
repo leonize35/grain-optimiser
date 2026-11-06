@@ -70,3 +70,20 @@ def test_catalogue_describes_truck_processes_from_the_engine_vocabulary(client):
     assert "load" not in steps["unload"] and "tip" not in steps["weigh"] and "load" not in steps["weigh"]
     deadlock = typing.get_args(SiteConfig.model_fields["deadlock_prevention"].annotation)
     assert [d["id"] for d in meta["deadlock_prevention"]] == list(deadlock)
+
+
+def test_catalogue_describes_labour_rules_and_demand_from_the_engine(client):
+    """Slice 9c: the vocabulary of the labour, operating-rules and demand screens comes from the engine's literals."""
+    import typing
+
+    from silo_engine.config.schema import EndOfDay, LabourRequirement, QueueGroupName, QueuePolicyName, UnloadingLabour
+    meta = client.get("/meta").json()
+    lit = lambda model, name: list(typing.get_args(model.model_fields[name].annotation))  # noqa: E731
+    assert [g["id"] for g in meta["queue_groups"]] == list(typing.get_args(QueueGroupName))
+    assert [p["id"] for p in meta["queue_policies"]] == list(typing.get_args(QueuePolicyName))
+    assert [o["id"] for o in meta["end_of_day"]["unfinished_trucks"]] == lit(EndOfDay, "unfinished_trucks")
+    assert [o["id"] for o in meta["end_of_day"]["late_arrivals"]] == lit(EndOfDay, "late_arrivals")
+    assert meta["labour"]["steps"] == lit(LabourRequirement, "step")
+    assert [o["id"] for o in meta["labour"]["held"]] == lit(LabourRequirement, "held")
+    assert [o["id"] for o in meta["labour"]["allocation"]] == lit(UnloadingLabour, "allocation")
+    assert all(o["label"] for group in (meta["queue_policies"], meta["labour"]["held"]) for o in group)

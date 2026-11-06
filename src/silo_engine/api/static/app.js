@@ -456,6 +456,234 @@ screens.movement = () => {
   $("#dl").onchange = (ev) => { c.deadlock_prevention = ev.target.value; markDirty(); };
 };
 
+// ---------- labour, operating rules, demand (slice 9c) ----------
+const hhmm = (v) => (/^\d{2}:\d{2}$/.test(v) ? v : null);
+
+function bindAll(sel, fn) { document.querySelectorAll(sel).forEach((el) => { el[el.tagName === "BUTTON" ? "onclick" : "onchange"] = () => fn(el); }); }
+
+screens.labour = () => {
+  if (needSite()) return;
+  const c = S.config, L = S.meta.labour;
+  c.operator_pools = c.operator_pools || []; c.labour = c.labour || [];
+  const pools = c.operator_pools.map((p, i) => `<div class="card"><h2>Pool ${esc(p.id)}</h2>
+    <div class="tri"><label style="margin:0">Id</label><input data-pool="${i}|id" value="${esc(p.id)}" size="10">
+    <label style="margin:0">Name</label><input data-pool="${i}|name" value="${esc(p.name || "")}">
+    <label style="margin:0;display:inline-flex;gap:4px;color:var(--text)"><input type="checkbox" data-pool="${i}|verified" ${p.verified ? "checked" : ""}> confirmed by the silo manager</label></div>
+    <label>Skills (tasks these workers can do)</label><div>${L.steps.map((s) => `<label style="display:inline-flex;gap:4px;margin-right:12px;color:var(--text)"><input type="checkbox" data-skill="${i}|${s}" ${p.skills.includes(s) ? "checked" : ""}>${esc(stepLabel(s) || s)}</label>`).join("")}</div>
+    <label>Shifts (every day)</label><table><thead><tr><th>From</th><th>To</th><th>Workers</th><th></th></tr></thead><tbody>
+    ${p.schedule.map((w, j) => `<tr><td><input data-shift="${i}|${j}|from" value="${esc(w.from)}" size="5" placeholder="07:00"></td><td><input data-shift="${i}|${j}|to" value="${esc(w.to)}" size="5"></td><td><input type="number" min="0" data-shift="${i}|${j}|count" value="${esc(w.count)}" style="width:80px"></td><td><button class="danger" data-shdel="${i}|${j}">Remove</button></td></tr>`).join("")}
+    </tbody></table><div class="actions"><button data-shadd="${i}">Add shift</button><button class="danger" data-pooldel="${i}">Remove pool</button></div>
+    ${p.verified ? "" : `<p class="muted small">Unconfirmed: every result lists this pool as an unverified input.</p>`}</div>`).join("");
+  const poolOpts = (cur) => c.operator_pools.map((p) => `<option value="${esc(p.id)}" ${cur === p.id ? "selected" : ""}>${esc(p.name || p.id)}</option>`).join("");
+  const reqRows = c.labour.map((r, i) => `<tr><td><select data-lab="${i}|step">${L.steps.map((s) => `<option value="${s}" ${r.step === s ? "selected" : ""}>${esc(stepLabel(s) || s)}</option>`).join("")}</select></td>
+    <td><select data-lab="${i}|pool">${poolOpts(r.pool)}</select></td><td><input type="number" min="1" data-lab="${i}|operators" value="${esc(r.operators ?? 1)}" style="width:70px"></td>
+    <td><select data-lab="${i}|held">${L.held.map((h) => `<option value="${h.id}" ${(r.held || "whole_task") === h.id ? "selected" : ""}>${esc(h.label)}</option>`).join("")}</select></td><td><button class="danger" data-labdel="${i}">Remove</button></td></tr>`).join("");
+  const ul = c.unloading_labour;
+  const ulHtml = ul ? `<div class="tri"><label style="margin:0">Pool</label><select data-ul="pool">${poolOpts(ul.pool)}</select>
+      <label style="margin:0">Free workers go to</label><select data-ul="allocation">${L.allocation.map((a) => `<option value="${a.id}" ${ul.allocation === a.id ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select></div>
+    <table><thead><tr><th>Task</th><th>Workers</th><th>Time</th><th>Truck present</th><th></th></tr></thead><tbody>
+    ${ul.tasks.map((t, j) => `<tr><td><input data-ut="${j}|id" value="${esc(t.id)}" size="10"></td><td><input type="number" min="0" data-ut="${j}|operators" value="${esc(t.operators)}" style="width:70px"></td>
+      <td>${t.time === "tip" ? `<span class="muted small">the hopper's tipping time (grain discharge)</span>` : `<div class="tri">${[0, 1, 2].map((k) => `<input type="number" step="any" data-utt="${j}|${k}" value="${esc(t.time[k])}" aria-label="${["minimum", "most likely", "maximum"][k]}">`).join("")}<span class="unit">min</span></div>`}</td>
+      <td><input type="checkbox" data-ut="${j}|truck_present" ${t.truck_present !== false ? "checked" : ""}></td><td>${t.time === "tip" ? "" : `<button class="danger" data-utdel="${j}">Remove</button>`}</td></tr>`).join("")}
+    </tbody></table><div class="actions"><button id="ut-add">Add task</button><button class="danger" id="ul-off">Stop using unloading tasks</button></div>`
+    : `<p class="muted">Not used: unloading needs no workers unless a task requirement above says so.</p><div class="actions"><button id="ul-on" ${c.operator_pools.length ? "" : "disabled"}>Use shared unloading workers by task</button></div>`;
+  $("#main").innerHTML = `<h1>Labour</h1><p class="lead">Workers are separate from equipment. A pool is a group of interchangeable workers with the same skills and shifts; one pool can serve both silos. A task needing workers starts only when they are free, and a worker does one task at a time.</p>
+    ${pools}<div class="actions" style="margin-bottom:16px"><button id="pool-add">Add operator pool</button></div>
+    <div class="card"><h2>Workers needed per task</h2><table><thead><tr><th>Task</th><th>From pool</th><th>Workers</th><th>Needed</th><th></th></tr></thead><tbody>${reqRows || `<tr><td colspan="5" class="muted">No task needs workers: labour does not limit the site.</td></tr>`}</tbody></table>
+      <div class="actions"><button id="lab-add" ${c.operator_pools.length ? "" : "disabled"}>Add requirement</button></div></div>
+    <div class="card"><h2>Unloading tasks with a shared pool</h2><p class="muted small">Unloading as a sequence of manual tasks (for example positioning, discharge, scraping, sweeping), each with its own number of workers. Tasks after the truck has unloaded occupy workers but not the hopper.</p>${ulHtml}</div>
+    <p class="muted small">To compare staffing levels (e.g. normal, busy, peak), save the configuration and create scenarios that change a pool's workers on the Scenarios &amp; compare screen.</p>`;
+  const P = c.operator_pools;
+  $("#pool-add").onclick = () => { let n = 1; while (P.some((p) => p.id === `pool${n}`)) n++; P.push({ id: `pool${n}`, name: `Pool ${n}`, skills: [], schedule: [{ from: "07:00", to: "18:00", count: 1 }], verified: false }); markDirty(); render(); };
+  bindAll("[data-pool]", (el) => { const [i, k] = el.dataset.pool.split("|"); const p = P[+i];
+    if (k === "verified") p.verified = el.checked;
+    else if (k === "id") { const old = p.id, nid = el.value.trim(); if (!nid || P.some((x) => x.id === nid)) return toast("That id is empty or already used.");
+      p.id = nid; c.labour.forEach((r) => { if (r.pool === old) r.pool = nid; }); if (ul && ul.pool === old) ul.pool = nid; }
+    else p[k] = el.value;
+    markDirty(); render(); });
+  bindAll("[data-skill]", (el) => { const [i, s] = el.dataset.skill.split("|"); const p = P[+i]; p.skills = el.checked ? [...new Set([...p.skills, s])] : p.skills.filter((x) => x !== s); markDirty(); });
+  bindAll("[data-shift]", (el) => { const [i, j, k] = el.dataset.shift.split("|"); const w = P[+i].schedule[+j];
+    if (k === "count") w.count = Math.max(0, Math.round(+el.value || 0)); else if (hhmm(el.value)) w[k] = el.value; else return toast("Use a clock time like 07:00.");
+    markDirty(); });
+  bindAll("[data-shadd]", (el) => { P[+el.dataset.shadd].schedule.push({ from: "07:00", to: "18:00", count: 1 }); markDirty(); render(); });
+  bindAll("[data-shdel]", (el) => { const [i, j] = el.dataset.shdel.split("|"); P[+i].schedule.splice(+j, 1); markDirty(); render(); });
+  bindAll("[data-pooldel]", (el) => { const p = P[+el.dataset.pooldel];
+    if (!confirm(`Remove pool ${p.id}? Task requirements using it are removed too.`)) return;
+    c.operator_pools = P.filter((x) => x !== p); c.labour = c.labour.filter((r) => r.pool !== p.id); if (ul && ul.pool === p.id) delete c.unloading_labour; markDirty(); render(); });
+  $("#lab-add").onclick = () => { c.labour.push({ step: "sample", pool: P[0].id, operators: 1, held: "whole_task" }); markDirty(); render(); };
+  bindAll("[data-lab]", (el) => { const [i, k] = el.dataset.lab.split("|"); c.labour[+i][k] = k === "operators" ? Math.max(1, Math.round(+el.value || 1)) : el.value; markDirty(); });
+  bindAll("[data-labdel]", (el) => { c.labour.splice(+el.dataset.labdel, 1); markDirty(); render(); });
+  if ($("#ul-on")) $("#ul-on").onclick = () => { c.unloading_labour = { pool: P[0].id, allocation: "oldest_task_first", tasks: [
+    { id: "position", operators: 1, time: [1, 2, 4], truck_present: true }, { id: "discharge", operators: 0, time: "tip", truck_present: true }] };
+    c.labour = c.labour.filter((r) => r.step !== "tip"); markDirty(); render(); toast("Placeholder tasks added: replace their workers and times with confirmed values."); };
+  if (ul) {
+    $("#ul-off").onclick = () => { delete c.unloading_labour; markDirty(); render(); };
+    $("#ut-add").onclick = () => { ul.tasks.push({ id: `task${ul.tasks.length + 1}`, operators: 1, time: [1, 2, 3], truck_present: false }); markDirty(); render(); };
+    bindAll("[data-ul]", (el) => { ul[el.dataset.ul] = el.value; markDirty(); });
+    bindAll("[data-ut]", (el) => { const [j, k] = el.dataset.ut.split("|"); const t = ul.tasks[+j];
+      if (k === "truck_present") t.truck_present = el.checked; else if (k === "operators") t.operators = Math.max(0, Math.round(+el.value || 0)); else t.id = el.value.trim();
+      markDirty(); });
+    bindAll("[data-utt]", (el) => { const [j, k] = el.dataset.utt.split("|"); ul.tasks[+j].time[+k] = +el.value; markDirty(); });
+    bindAll("[data-utdel]", (el) => { ul.tasks.splice(+el.dataset.utdel, 1); markDirty(); render(); });
+  }
+};
+
+screens.rules = () => {
+  if (needSite()) return;
+  const c = S.config, M = S.meta;
+  c.end_of_day = c.end_of_day || {}; c.fairness = c.fairness || {};
+  const qp = c.queue_policies || { default: "feasible_first", groups: {} };
+  const co = c.changeovers;
+  const grainOpts = (cur) => ["*", ...c.commodities.map((m) => m.id)].map((v) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${v === "*" ? "any" : esc(v)}</option>`).join("");
+  $("#main").innerHTML = `<h1>Operating rules</h1><p class="lead">How the site is run. Order-of-service rules decide who goes first among trucks that physically can go; they can never allow a movement the layout does not.</p>
+    <div class="grid2"><div class="card"><h2>End of the day</h2><p class="muted small">Opening hours, admission cut-off and overtime are on <a href="#silo">My silo</a>.</p>
+      <label for="eod-u">Trucks still on site when service stops</label><select id="eod-u" class="wide">${M.end_of_day.unfinished_trucks.map((o) => `<option value="${o.id}" ${(c.end_of_day.unfinished_trucks || "carry_over") === o.id ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>
+      <label for="eod-l">Trucks arriving after the admission cut-off</label><select id="eod-l" class="wide">${M.end_of_day.late_arrivals.map((o) => `<option value="${o.id}" ${(c.end_of_day.late_arrivals || "queue_for_next_day") === o.id ? "selected" : ""}>${esc(o.label)}</option>`).join("")}</select>
+      <label style="display:flex;gap:6px;color:var(--text)"><input type="checkbox" id="eod-t" ${c.end_of_day.transfers_after_close !== false ? "checked" : ""}> Grain transfers (pit to bin) continue after closing</label></div>
+    <div class="card"><h2>Order of service</h2><label for="qp-d">All queues</label><select id="qp-d" class="wide">${M.queue_policies.map((p) => `<option value="${p.id}" ${qp.default === p.id ? "selected" : ""}>${esc(p.label)}</option>`).join("")}</select>
+      <table style="margin-top:10px"><tbody>${M.queue_groups.map((g) => `<tr><td>${esc(g.label)}</td><td><select data-qg="${g.id}"><option value="">same as all queues</option>${M.queue_policies.map((p) => `<option value="${p.id}" ${qp.groups && qp.groups[g.id] === p.id ? "selected" : ""}>${esc(p.id === "strict_fifo" ? "strict first come, first served" : "first come, first served among those that can go")}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table>
+      <p class="muted small">${c.queue_policies ? "" : "Not set: the engine default applies (first come, first served among those that can go)."}</p></div></div>
+    <div class="grid2"><div class="card"><h2>Commodity changeovers</h2>
+      ${co ? `<label for="co-d">Default minutes for any change of commodity</label><input id="co-d" type="number" min="0" step="any" value="${esc(co.default_minutes ?? "")}" placeholder="none"> <span class="unit">min</span>
+      <table style="margin-top:10px"><thead><tr><th>From</th><th>To</th><th>Minutes</th><th>Equipment</th><th></th></tr></thead><tbody>
+      ${(co.rules || []).map((r, i) => `<tr><td><select data-cr="${i}|from">${grainOpts(r.from)}</select></td><td><select data-cr="${i}|to">${grainOpts(r.to)}</select></td><td><input type="number" min="0" step="any" data-cr="${i}|minutes" value="${esc(r.minutes)}" style="width:80px"></td><td><input data-cr="${i}|equipment" value="${esc(Array.isArray(r.equipment) ? r.equipment.join(", ") : r.equipment || "*")}" size="12" title="* for all, or ids/types separated by commas"></td><td><button class="danger" data-crdel="${i}">Remove</button></td></tr>`).join("")}
+      </tbody></table><div class="actions"><button id="cr-add">Add rule</button></div>`
+      : `<p class="muted">This configuration uses each conveyor's and elevator's own changeover time (prototype format), for any change of commodity.</p><div class="actions"><button id="co-on">Use commodity-pair rules instead</button></div>`}</div>
+    <div class="card"><h2>Reporting</h2><label for="fair-w">A truck counts as having waited too long after</label><input id="fair-w" type="number" min="0" step="any" value="${esc(c.fairness.starvation_wait_minutes ?? 120)}"> <span class="unit">min of waiting in total</span>
+      <p class="muted small">A reporting threshold only: it changes no decision.</p></div></div>`;
+  const bind = (id, fn) => { const el = $(id); if (el) el.onchange = () => { fn(el); markDirty(); }; };
+  bind("#eod-u", (el) => { c.end_of_day.unfinished_trucks = el.value; });
+  bind("#eod-l", (el) => { c.end_of_day.late_arrivals = el.value; });
+  bind("#eod-t", (el) => { c.end_of_day.transfers_after_close = el.checked; });
+  bind("#qp-d", (el) => { c.queue_policies = { ...qp, default: el.value, groups: qp.groups || {} }; render(); });
+  bindAll("[data-qg]", (el) => { const g = { ...(qp.groups || {}) }; if (el.value) g[el.dataset.qg] = el.value; else delete g[el.dataset.qg]; c.queue_policies = { default: qp.default, groups: g }; markDirty(); });
+  bind("#fair-w", (el) => { c.fairness.starvation_wait_minutes = Math.max(0, +el.value || 0); });
+  if ($("#co-on")) $("#co-on").onclick = () => { c.changeovers = { default_minutes: 0, rules: [] }; markDirty(); render(); };
+  bind("#co-d", (el) => { co.default_minutes = el.value === "" ? null : +el.value; });
+  if ($("#cr-add")) $("#cr-add").onclick = () => { co.rules = [...(co.rules || []), { from: "*", to: "*", minutes: 0, equipment: "*" }]; markDirty(); render(); };
+  bindAll("[data-cr]", (el) => { const [i, k] = el.dataset.cr.split("|"); const r = co.rules[+i];
+    if (k === "minutes") r.minutes = Math.max(0, +el.value || 0);
+    else if (k === "equipment") { const v = el.value.split(",").map((x) => x.trim()).filter(Boolean); r.equipment = !v.length || v.includes("*") ? "*" : v; }
+    else r[k] = el.value;
+    markDirty(); });
+  bindAll("[data-crdel]", (el) => { co.rules.splice(+el.dataset.crdel, 1); markDirty(); render(); });
+};
+
+screens.demand = () => {
+  if (needSite()) return;
+  const c = S.config;
+  c.demand = c.demand || {};
+  const cards = S.meta.activities.map(({ id: act, label }) => {
+    const d = c.demand[act];
+    if (!d) return `<div class="card"><h2>${esc(label)} trucks</h2><p class="muted">No ${esc(label.toLowerCase())} demand.</p><div class="actions"><button data-dem-on="${act}">Add ${esc(label.toLowerCase())} demand</button></div></div>`;
+    const total = Object.values(d.mix || {}).reduce((a, b) => a + b, 0);
+    const profile = d.profile;
+    return `<div class="card"><h2>${esc(label)} trucks</h2>
+      <div class="tri"><label style="margin:0">Trucks per day</label><input type="number" min="0" step="any" data-dem="${act}|daily" value="${esc(d.daily ?? 0)}">
+      <label style="margin:0">Payload</label>${[0, 1, 2].map((k) => `<input type="number" min="0" step="any" data-pay="${act}|${k}" value="${esc((d.payload || [])[k] ?? "")}" aria-label="payload ${["minimum", "most likely", "maximum"][k]}">`).join("")}<span class="unit">t (min, most likely, max)</span></div>
+      <label>Commodity mix</label><div class="tri" style="flex-wrap:wrap">${c.commodities.map((m) => `<span class="unit">${esc(m.name)}</span><input type="number" min="0" step="any" data-mix="${act}|${esc(m.id)}" value="${esc(d.mix && d.mix[m.id] !== undefined ? +(d.mix[m.id] * 100 / (total || 1)).toFixed(2) : "")}" style="width:70px"><span class="unit">%</span>`).join("")}</div>
+      ${act === "unload" ? `<label for="ss-${act}">Share of trucks that need sampling</label><input id="ss-${act}" type="number" min="0" max="100" step="any" data-ss="${act}" value="${esc(d.sampling_share === null || d.sampling_share === undefined ? "" : d.sampling_share * 100)}" placeholder="all"> <span class="unit">%</span>` : ""}
+      <label>Arrivals across the day</label>
+      ${profile ? `<div class="tri" style="flex-wrap:wrap">${profile.map((v, h) => `<span class="unit">${String(h).padStart(2, "0")}h</span><input type="number" min="0" step="any" data-prof="${act}|${h}" value="${esc(v)}" style="width:56px">`).join("")}</div><div class="actions"><button data-prof-off="${act}">Spread evenly over opening hours</button></div>`
+        : `<p class="muted small">Spread evenly over the admission hours.</p><div class="actions"><button data-prof-on="${act}">Set an hourly profile</button></div>`}
+      <div class="actions"><button class="danger" data-dem-off="${act}">Remove ${esc(label.toLowerCase())} demand</button></div></div>`;
+  }).join("");
+  $("#main").innerHTML = `<h1>Demand</h1><p class="lead">Arrivals are generated from these figures for each simulated day; each replication draws its own trucks (the same ones for every scenario with the same seed). Payloads and the hourly profile should come from your weighbridge records.</p>${cards}`;
+  bindAll("[data-dem-on]", (el) => { c.demand[el.dataset.demOn] = { daily: 0, payload: [25, 30, 34], mix: c.commodities.length ? { [c.commodities[0].id]: 1 } : {} }; markDirty(); render(); });
+  bindAll("[data-dem-off]", (el) => { delete c.demand[el.dataset.demOff]; markDirty(); render(); });
+  bindAll("[data-dem]", (el) => { const [a, k] = el.dataset.dem.split("|"); c.demand[a][k] = Math.max(0, +el.value || 0); markDirty(); });
+  bindAll("[data-pay]", (el) => { const [a, k] = el.dataset.pay.split("|"); const d = c.demand[a]; d.payload = d.payload || [0, 0, 0]; d.payload[+k] = +el.value || 0; markDirty(); });
+  bindAll("[data-mix]", (el) => { const [a, m] = el.dataset.mix.split("|"); const d = c.demand[a]; d.mix = { ...(d.mix || {}) };
+    if (el.value === "" || +el.value === 0) delete d.mix[m]; else d.mix[m] = +el.value / 100; markDirty(); });
+  bindAll("[data-ss]", (el) => { const d = c.demand[el.dataset.ss]; if (el.value === "") delete d.sampling_share; else d.sampling_share = Math.min(1, Math.max(0, +el.value / 100)); markDirty(); });
+  bindAll("[data-prof-on]", (el) => { c.demand[el.dataset.profOn].profile = Array.from({ length: 24 }, (_, h) => (h >= c.hours.open && h < c.hours.close ? 1 : 0)); markDirty(); render(); });
+  bindAll("[data-prof-off]", (el) => { delete c.demand[el.dataset.profOff].profile; markDirty(); render(); });
+  bindAll("[data-prof]", (el) => { const [a, h] = el.dataset.prof.split("|"); c.demand[a].profile[+h] = Math.max(0, +el.value || 0); markDirty(); });
+};
+
+// ---------- scenarios and comparison (slice 9c) ----------
+S.draftOps = [];
+
+screens.scenarios = async () => {
+  if (needSite()) return;
+  const c = S.config;
+  if (!S.saved) { $("#main").innerHTML = `<h1>Scenarios &amp; compare</h1><div class="banner warn">Scenarios are changes to a saved version. <a href="#versions">Save this configuration first.</a></div>`; return; }
+  const site = S.saved.site_id;
+  const [names, history] = await Promise.all([api("GET", `/sites/${encodeURIComponent(site)}/scenarios`), api("GET", `/sites/${encodeURIComponent(site)}/history`)]);
+  const scs = await Promise.all(names.map((n) => api("GET", `/sites/${encodeURIComponent(site)}/scenarios/${encodeURIComponent(n)}`)));
+  const done = S.runs.filter((r) => r.results);
+  const kind = $("#ch-kind") ? $("#ch-kind").value : "daily";
+  const eqSel = $("#ch-eq") ? $("#ch-eq").value : (c.equipment[0] || {}).id;
+  const eq = eqById(eqSel);
+  const numFields = eq && S.meta.equipment_types[eq.type] ? S.meta.equipment_types[eq.type].fields.filter((f) => f.kind === "number" || f.kind === "integer") : [];
+  const changeForm = {
+    daily: `<select id="ch-act">${S.meta.activities.map((a) => `<option value="${a.id}">${esc(a.label)}</option>`).join("")}</select><span class="unit">trucks per day</span><input id="ch-val" type="number" min="0" step="any">`,
+    equipment: `<select id="ch-eq">${c.equipment.map((e) => `<option value="${esc(e.id)}" ${e.id === eqSel ? "selected" : ""}>${esc(e.name || e.id)}</option>`).join("")}</select><select id="ch-field">${numFields.map((f) => `<option value="${f.name}">${esc(f.label)}${f.unit ? " (" + esc(f.unit) + ")" : ""}</option>`).join("")}</select><input id="ch-val" type="number" step="any">`,
+    workers: `<select id="ch-pool">${(c.operator_pools || []).map((p) => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join("") || `<option value="">no pools</option>`}</select><span class="unit">workers in every shift</span><input id="ch-val" type="number" min="0" step="1">`,
+    hours: `<select id="ch-hour"><option value="close">closing (decimal h)</option><option value="overtime">overtime (h)</option><option value="admission_cutoff">admission cut-off (decimal h)</option></select><input id="ch-val" type="number" min="0" step="0.1">`,
+    raw: `<input id="ch-raw" class="wide" placeholder='{"op": "set", "path": "equipment[H1].rate", "value": 500}'>`,
+  }[kind];
+  const runOpts = (sel) => done.map((r) => `<option value="${r.id}" ${sel === r.id ? "selected" : ""}>${esc(r.id)}: ${r.body.scenario ? "scenario " + esc(r.body.scenario) : "version " + r.body.version} · ${r.body.replications} rep., seed ${r.body.base_seed}</option>`).join("");
+  $("#main").innerHTML = `<h1>Scenarios &amp; compare</h1><p class="lead">A scenario is a set of changes to a saved version; the version itself is never edited. Run the baseline and a scenario with the same replications and seed, then compare them: each replication is paired with its twin, so the difference shows the effect of the change.</p>
+    <div class="grid2"><div class="card"><h2>New scenario of ${esc(site)}</h2>
+      <label for="sc-name">Name</label><input id="sc-name" placeholder="e.g. busy_four_workers">
+      <label for="sc-base">Based on version</label><select id="sc-base">${history.map((h) => `<option ${h.version === S.saved.version ? "selected" : ""}>${h.version}</option>`).join("")}</select>
+      <label for="ch-kind">Add a change</label><select id="ch-kind">${[["daily", "Trucks per day"], ["equipment", "An equipment value"], ["workers", "Workers in a pool"], ["hours", "Hours"], ["raw", "Advanced: a change in JSON"]].map(([v, l]) => `<option value="${v}" ${kind === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <div class="tri" style="margin-top:8px;flex-wrap:wrap">${changeForm}<button id="ch-add">Add change</button></div>
+      <ul class="small">${S.draftOps.map((o, i) => `<li><code>${esc(o.path || o.op)}</code> = ${esc(JSON.stringify(o.value ?? o))} <button class="danger" data-opdel="${i}">×</button></li>`).join("") || `<li class="muted">No changes yet.</li>`}</ul>
+      <div class="actions"><button class="primary" id="sc-save" ${S.draftOps.length ? "" : "disabled"}>Save scenario</button></div></div>
+    <div class="card"><h2>Scenarios</h2>
+      <div class="tri"><label style="margin:0">Replications</label><input id="sr-reps" type="number" min="1" value="10"><label style="margin:0">Seed</label><input id="sr-seed" type="number" value="20261019"></div>
+      <table style="margin-top:8px"><thead><tr><th>Name</th><th>Base</th><th>Changes</th><th></th></tr></thead><tbody>
+      <tr><td><strong>Baseline</strong></td><td>v${S.saved.version}</td><td class="muted small">none</td><td><button data-runbase="1">Run</button></td></tr>
+      ${scs.map((s) => `<tr><td>${esc(s.name)}</td><td>v${s.base_version}</td><td class="small">${s.ops.map((o) => esc(o.path ? `${o.path} = ${JSON.stringify(o.value)}` : o.op)).join("<br>")}</td><td><button data-runsc="${esc(s.name)}|${s.base_version}">Run</button></td></tr>`).join("")}
+      </tbody></table></div></div>
+    <div class="card"><h2>Compare two runs</h2>${done.length >= 2 ? `<div class="tri" style="flex-wrap:wrap"><label style="margin:0">Baseline</label><select id="cmp-a">${runOpts(done[done.length - 1].id)}</select><label style="margin:0">Alternative</label><select id="cmp-b">${runOpts(done[0].id)}</select><button class="primary" id="cmp-go">Compare</button></div><div id="cmp-out"></div>` : `<p class="muted">Finish at least two runs with the same replications and seed to compare them.</p>`}</div>
+    <div id="r-list">${S.runs.map(runCard).join("")}</div>`;
+  $("#ch-kind").onchange = () => screens.scenarios();
+  if ($("#ch-eq")) $("#ch-eq").onchange = () => screens.scenarios();
+  $("#ch-add").onclick = () => {
+    let op;
+    try {
+      if (kind === "raw") op = JSON.parse($("#ch-raw").value);
+      else {
+        const v = +$("#ch-val").value;
+        if ($("#ch-val").value === "") return toast("Enter a value.");
+        if (kind === "daily") op = { op: "set", path: `demand.${$("#ch-act").value}.daily`, value: v };
+        if (kind === "equipment") op = { op: "set", path: `equipment[${$("#ch-eq").value}].${$("#ch-field").value}`, value: v };
+        if (kind === "hours") op = { op: "set", path: `hours.${$("#ch-hour").value}`, value: v };
+        if (kind === "workers") { const p = (c.operator_pools || []).find((x) => x.id === $("#ch-pool").value); if (!p) return toast("No pool.");
+          op = { op: "set", path: `operator_pools[${p.id}].schedule`, value: p.schedule.map((w) => ({ ...w, count: w.count > 0 ? Math.round(v) : 0 })) }; }
+      }
+    } catch (e) { return toast("Not valid JSON: " + e.message); }
+    S.draftOps.push(op); screens.scenarios();
+  };
+  bindAll("[data-opdel]", (el) => { S.draftOps.splice(+el.dataset.opdel, 1); screens.scenarios(); });
+  $("#sc-save").onclick = async () => {
+    try { await api("POST", `/sites/${encodeURIComponent(site)}/scenarios`, { name: $("#sc-name").value.trim(), base_version: +$("#sc-base").value, ops: S.draftOps });
+      S.draftOps = []; toast("Scenario saved."); screens.scenarios(); }
+    catch (e) { toast("Not saved: " + e.message); }
+  };
+  const start = async (body) => {
+    try { const st = await api("POST", "/runs", { site_id: site, replications: +$("#sr-reps").value, base_seed: +$("#sr-seed").value, ...body });
+      S.runs.unshift({ id: st.run_id, state: st.state, body: { version: body.version, replications: +$("#sr-reps").value, base_seed: +$("#sr-seed").value, demand_factor: 1, scenario: body.scenario }, results: null, record: null });
+      screens.scenarios(); await poll(st.run_id); if (current() === "scenarios") screens.scenarios(); }
+    catch (e) { toast("Not started: " + e.message); }
+  };
+  bindAll("[data-runbase]", () => start({ version: S.saved.version }));
+  bindAll("[data-runsc]", (el) => { const [name, v] = el.dataset.runsc.split("|"); start({ scenario: name, version: +v }); });
+  if ($("#cmp-go")) $("#cmp-go").onclick = async () => {
+    try {
+      const r = await api("POST", "/compare", { run_a: $("#cmp-a").value, run_b: $("#cmp-b").value, kpis: KPIS.map(([k]) => k) });
+      const rows = KPIS.filter(([k]) => r.kpis[k]).map(([k, name, unit]) => { const x = r.kpis[k], d = x.difference;
+        return `<tr><td>${esc(name)}</td><td>${fmt(x.a_mean, unit)}</td><td>${fmt(x.b_mean, unit)}</td><td><strong>${d.mean === null ? "–" : (d.mean > 0 ? "+" : "") + fmt(d.mean, unit)}</strong>${d.half_width !== null ? `<div class="muted small">95% interval ${fmt(d.low)} to ${fmt(d.high)}</div>` : ""}</td><td>${x.clear ? "clear difference" : `<span class="muted">not clear</span>`}</td><td class="small muted">${esc(x.note)}${x.excluded.length ? "; left out: " + esc(x.excluded.map((e) => `replication ${e[0]} (${e[1]})`).join(", ")) : ""}</td></tr>`; }).join("");
+      $("#cmp-out").innerHTML = `<p class="small"><span class="label-sim">SIMULATED</span> ${esc(r.note)}${!r.rankable.a || !r.rankable.b ? ` <strong>A run with failed replications cannot be ranked best.</strong>` : ""}</p>
+        <table><thead><tr><th>Measure</th><th>Baseline</th><th>Alternative</th><th>Difference (alternative − baseline)</th><th></th><th>Notes</th></tr></thead><tbody>${rows}</tbody></table>
+        <p class="muted small">"Clear" means the 95% interval of the paired difference excludes zero. No single measure decides which is better; turnaround of completed trucks is shown with the trucks left unfinished. No revenue or lost-demand effect is inferred.</p>`;
+    } catch (e) { toast("Cannot compare: " + e.message); }
+  };
+};
+
 screens.check = () => {
   if (needSite()) return;
   const r = S.report;
@@ -544,7 +772,7 @@ screens.run = () => {
 function fmt(v, unit) { return v === null || v === undefined ? "–" : (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1)) + (unit ? ` ${unit}` : ""); }
 
 function runCard(run) {
-  const head = `<h2>Run ${esc(run.id)} · version ${run.body.version} · ${run.body.replications} replication(s), seed ${run.body.base_seed}${run.body.demand_factor !== 1 ? `, demand ×${run.body.demand_factor}` : ""} <span class="label-sim">SIMULATED</span></h2>`;
+  const head = `<h2>Run ${esc(run.id)} · ${run.body.scenario ? "scenario " + esc(run.body.scenario) + " on " : ""}version ${run.body.version} · ${run.body.replications} replication(s), seed ${run.body.base_seed}${run.body.demand_factor !== 1 ? `, demand ×${run.body.demand_factor}` : ""} <span class="label-sim">SIMULATED</span></h2>`;
   if (run.state === "failed") return `<div class="card">${head}<div class="banner error">Failed: ${esc(run.record && run.record.error)}</div></div>`;
   if (!run.results) return `<div class="card">${head}<p class="muted">State: ${esc(run.state)}…</p></div>`;
   const s = run.results.summary, m = run.results.metadata;

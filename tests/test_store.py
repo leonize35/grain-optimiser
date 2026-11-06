@@ -129,3 +129,21 @@ def test_a_synthetic_site_survives_the_store_with_its_published_hash(tmp_path):
     loaded["version"] = raw_v  # the store renumbers versions; with the original number the hash is the published one
     assert config_hash(load_site_config(loaded)) == published["configurations"]["A"]["config_hash"]
     assert v.version == 1
+
+
+def test_overlay_paths_can_address_list_items_by_id():
+    """A scenario can change one item of a list section, e.g. the shifts of an operator pool or one equipment field."""
+    from test_unloading_labour import site as two_silo_site
+    b = two_silo_site(workers=2)
+    s = apply_overlay(b, [
+        {"op": "set", "path": "operator_pools[unloaders].schedule", "value": [{"from": "07:00", "to": "18:00", "count": 4}]},
+        {"op": "set", "path": "equipment[HA].rate", "value": 600},
+        {"op": "set", "path": "unloading_labour.tasks[scrape].operators", "value": 2}])
+    assert s["operator_pools"][0]["schedule"][0]["count"] == 4 and b["operator_pools"][0]["schedule"][0]["count"] == 2
+    assert next(e for e in s["equipment"] if e["id"] == "HA")["rate"] == 600
+    assert next(t for t in s["unloading_labour"]["tasks"] if t["id"] == "scrape")["operators"] == 2
+    load_site_config(s)
+    with pytest.raises(StoreError, match="no item nobody in operator_pools"):
+        apply_overlay(b, [{"op": "set", "path": "operator_pools[nobody].schedule", "value": []}])
+    with pytest.raises(StoreError, match="not a list"):
+        apply_overlay(b, [{"op": "set", "path": "hours[x].open", "value": 1}])

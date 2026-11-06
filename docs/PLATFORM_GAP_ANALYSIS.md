@@ -215,4 +215,12 @@ screen and primitive can be exercised with it.
   - The path editor writes `truck_paths`, generating automatic unlimited areas `open_<activity>_<n>` only when a path is needed. The grading step always waits in place.
   - Vocabulary from `GET /meta`: steps, steps allowed per activity, release conditions, steps holding a place, deadlock options (tested against the engine's own literals).
   - Verified in the browser: Site A example → grading moved after weigh-in (hold warning appears) → "only when graded" on weigh-in (warning gone) → one-place weighbridge queue → save → run 3 replications.
-- **Next:** slice 9c (labour, operating rules, demand, scenarios and comparison), or steps 4–6.
+- **UI slice 9c (done):**
+  - **Labour:** operator pools (skills, daily shifts, confirmed or not), workers needed per task (throughout or only to start), and unloading tasks with a shared pool (task workers, times, truck present, allocation rule).
+  - **Operating rules:** end of day, order of service (all queues and per queue), commodity changeovers (default and pair rules), and the starvation reporting threshold.
+  - **Demand:** per activity: trucks per day, payload, commodity mix, share needing sampling, and an optional hourly profile.
+  - **Scenarios & compare:** scenarios built from manager-level changes (trucks per day, an equipment value, workers in a pool, hours, or raw JSON). Baseline and scenarios are run with the same replications and seed, and `POST /compare` pairs them by seed through `experiments.runner.compare`. The comparison states whether arrivals were identical, lists left-out replications, marks runs with failures as not rankable, and infers no revenue.
+  - **Store:** overlay paths can address list items by id (`operator_pools[unloaders].schedule`, `equipment[H1].rate`).
+  - **Engine fix found by the end-to-end test:** a truck waiting for workers after the pool's last shift of the day was classed as a stall (a failed run). It is now treated like a wait for a closed plant: unfinished work at the end of the day. Test: `test_waiting_for_workers_after_the_last_shift_is_unfinished_work_not_a_stall`. The pre-run warning `labour.no_workers_in_overtime` still flags such configurations.
+  - Verified in the browser on Site A: add a pool with one unloading worker → tasks → save → scenario "three_workers" → run both → compare (identical arrivals, all pairs used, no clear difference with 3 replications).
+- **Next:** steps 4–6 (background tasks, worker phases for any step, user-defined step types), then the Ventersdorp demonstration once its data is available.

@@ -125,3 +125,27 @@ def test_a_configuration_that_cannot_run_is_refused_with_its_report(client):
 
 def test_unknown_run_is_404(client):
     assert client.get("/runs/nope").status_code == 404
+
+
+def test_compare_two_runs_of_the_same_arrivals(client):
+    """Same version and seeds: identical arrivals, every paired difference zero. A scenario changing only overtime keeps
+    the arrivals (paired comparison); one doubling demand changes them, which the comparison states."""
+    client.post("/sites", json={"config": runnable(), "note": "baseline"})
+    client.post("/sites/two-silo/scenarios", json={"name": "overtime", "base_version": 1,
+                                                    "ops": [{"op": "set", "path": "hours.overtime", "value": 2}]})
+    client.post("/sites/two-silo/scenarios", json={"name": "double", "base_version": 1,
+                                                    "ops": [{"op": "set", "path": "demand.unload.daily", "value": 40}]})
+    start = lambda **kw: wait(client, client.post("/runs", json={"site_id": "two-silo", "replications": 3, "base_seed": 5, **kw}).json()["run_id"])  # noqa: E731
+    a, a2, ot, dbl = start(), start(), start(scenario="overtime"), start(scenario="double")
+    same = client.post("/compare", json={"run_a": a["run_id"], "run_b": a2["run_id"]}).json()
+    k = same["kpis"]["received_t"]
+    assert same["arrivals"] == "identical" and (k["used"], k["planned"], k["difference"]["mean"]) == (3, 3, 0)
+    assert same["rankable"] == {"a": True, "b": True}
+    assert client.post("/compare", json={"run_a": a["run_id"], "run_b": ot["run_id"]}).json()["arrivals"] == "identical"
+    diff = client.post("/compare", json={"run_a": a["run_id"], "run_b": dbl["run_id"], "kpis": ["received_t"]}).json()
+    assert diff["arrivals"] == "different" and "demand" in diff["note"] and list(diff["kpis"]) == ["received_t"]
+    assert diff["kpis"]["received_t"]["b_mean"] > diff["kpis"]["received_t"]["a_mean"]
+
+
+def test_compare_needs_two_finished_runs(client):
+    assert client.post("/compare", json={"run_a": "x", "run_b": "y"}).status_code == 404

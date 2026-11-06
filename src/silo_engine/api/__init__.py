@@ -11,6 +11,7 @@ Endpoints:
     GET  /sites/{id}/scenarios ; POST {name, base_version, ops, note} ; GET /sites/{id}/scenarios/{name}
     POST /runs {site_id, version | scenario, replications, base_seed, days, demand_factor, policy} -> 202 run_id
     GET  /runs/{id} ; GET /runs/{id}/results
+    POST /compare {run_a, run_b, kpis?}             paired comparison b - a (experiments.runner.compare)
     GET  /meta                                       equipment catalogue (types, fields, allowed connections)
     GET  /examples ; GET /examples/{file}            synthetic example sites (evidence/configs; labelled synthetic)
     GET  /app/                                       the silo builder (static files in api/static; no build step)
@@ -32,7 +33,7 @@ from typing import Any
 import json
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -41,7 +42,7 @@ from ..config import ConfigSchemaError, load_site_config
 from ..config.catalogue import catalogue
 from ..config.report import prerun_report
 from ..config.schema import config_hash
-from ..experiments.runner import run_experiment
+from ..experiments.runner import ExperimentResult, Replication, compare, run_experiment
 from ..store import ConfigStore, StoreError, StoreNotFound, diff_configs
 
 
@@ -59,6 +60,12 @@ class ScenarioRequest(BaseModel):
     base_version: int
     ops: list[dict[str, Any]]
     note: str = ""
+
+
+class CompareRequest(BaseModel):
+    run_a: str  # baseline
+    run_b: str  # alternative
+    kpis: list[str] | None = None  # default: every KPI both runs have
 
 
 class RunRequest(BaseModel):
@@ -97,6 +104,10 @@ def create_app(store_root: Path | str | None = None) -> FastAPI:
     @app.get("/", include_in_schema=False)
     def root():
         return RedirectResponse("/app/")
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon():
+        return Response(status_code=204)  # the app's icon is inline in its page
 
     @app.get("/meta")
     def meta():
@@ -206,6 +217,35 @@ def create_app(store_root: Path | str | None = None) -> FastAPI:
     @app.get("/runs/{run_id}")
     def run_state(run_id: str):
         return dict(_run(run_id)["record"])
+
+    @app.post("/compare")
+    def compare_runs(req: CompareRequest):
+        """Paired by replication (same seeds). Identical arrivals: a common-random-numbers comparison. Different
+        arrivals (e.g. a demand change): still paired by seed, and the note says the difference includes the
+        change in demand. Failed replications are listed, never silently dropped."""
+        ra, rb = _run(req.run_a), _run(req.run_b)
+        for r in (ra, rb):
+            if r["results"] is None:
+                raise HTTPException(409, f"Run {r['record']['run_id']} is {r['record']['state']}; no results yet.")
+        exps = [ExperimentResult([Replication(**x) for x in r["results"]["replications"]], {}, r["results"]["failed"])
+                for r in (ra, rb)]
+        if len(exps[0].replications) != len(exps[1].replications):
+            raise HTTPException(400, "The runs have different numbers of replications; run both with the same settings.")
+        same = all(x.arrival_hash == y.arrival_hash for x, y in zip(exps[0].replications, exps[1].replications))
+        sa, sb = ra["results"]["summary"], rb["results"]["summary"]
+        kpis = req.kpis or [k for k in sa if k in sb]
+        out = {}
+        for k in kpis:
+            c = compare(exps[0], exps[1], k, same_arrivals=same)
+            d = c.difference
+            out[k] = {"planned": c.planned, "used": c.used, "a_mean": sa.get(k, {}).get("mean"),
+                      "b_mean": sb.get(k, {}).get("mean"), "difference": _interval(d), "clear": d.significant,
+                      "excluded": c.excluded, "note": c.note}
+        note = ("Same arrivals in both runs (common random numbers): differences come from the change itself." if same
+                else "The runs had different arrivals (e.g. a demand change): replications are paired by seed, and the "
+                     "differences include the change in demand itself.")
+        return {"run_a": req.run_a, "run_b": req.run_b, "arrivals": "identical" if same else "different", "note": note,
+                "rankable": {"a": exps[0].failed == 0, "b": exps[1].failed == 0}, "kpis": out}
 
     @app.get("/runs/{run_id}/results")
     def run_results(run_id: str):

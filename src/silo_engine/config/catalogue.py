@@ -9,7 +9,8 @@ Field kinds: number, integer, triangular ([min, most likely, max]), commodities 
 import typing
 
 from .rules_validation import CONDITIONS, PLACE_STEPS
-from .schema import SiteConfig, TruckStep
+from .schema import (EndOfDay, LabourRequirement, QueueGroupName, QueuePolicyName, SiteConfig, TruckStep,
+                     UnloadingLabour)
 from .validation import ACTIVITY_LABEL, ALLOWED_CONNECTIONS, EQUIPMENT_LABEL
 
 
@@ -80,6 +81,24 @@ DEADLOCK_LABEL = {
 }
 
 
+# Labour, operating rules and demand vocabulary (slice 9c): ids are the engine's literals.
+QUEUE_GROUP_LABEL = {"sample": "Sampling queue", "grade": "Grading queue", "weigh": "Weighbridge queue",
+                     "tip": "Hopper queue", "intake": "Grain intake (pit to bin)", "move": "Moving between areas",
+                     "load": "Loading queue"}
+POLICY_LABEL = {"strict_fifo": "Strict first come, first served: nobody may pass a waiting earlier truck",
+                "feasible_first": "First come, first served among those that can go: a truck may pass an earlier one that cannot"}
+EOD_LABEL = {"carry_over": "stay and continue the next day", "turned_away": "are sent away",
+             "queue_for_next_day": "wait at the gate for the next day"}
+HELD_LABEL = {"whole_task": "throughout the task", "start_only": "only to start it"}
+ALLOCATION_LABEL = {"oldest_task_first": "Oldest waiting task first (any task that fits)",
+                    "strict_order": "Strict order: no task starts while an older one waits",
+                    "started_trucks_first": "Trucks already at a hopper first"}
+
+
+def _lit(model, name) -> list[str]:
+    return list(typing.get_args(model.model_fields[name].annotation))
+
+
 def _activity_steps(activity: str) -> list[str]:
     """Steps a truck of this activity can have (the validator refuses tipping for non-receiving trucks and loading
     for non-loading trucks)."""
@@ -99,4 +118,11 @@ def catalogue() -> dict:
         "place_steps": list(PLACE_STEPS),
         "deadlock_prevention": [{"id": d, "label": DEADLOCK_LABEL[d]}
                                 for d in typing.get_args(SiteConfig.model_fields["deadlock_prevention"].annotation)],
+        "queue_groups": [{"id": g, "label": QUEUE_GROUP_LABEL[g]} for g in typing.get_args(QueueGroupName)],
+        "queue_policies": [{"id": p, "label": POLICY_LABEL[p]} for p in typing.get_args(QueuePolicyName)],
+        "end_of_day": {k: [{"id": o, "label": EOD_LABEL[o]} for o in _lit(EndOfDay, k)]
+                       for k in ("unfinished_trucks", "late_arrivals")},
+        "labour": {"steps": _lit(LabourRequirement, "step"),
+                   "held": [{"id": h, "label": HELD_LABEL[h]} for h in _lit(LabourRequirement, "held")],
+                   "allocation": [{"id": a, "label": ALLOCATION_LABEL[a]} for a in _lit(UnloadingLabour, "allocation")]},
     }

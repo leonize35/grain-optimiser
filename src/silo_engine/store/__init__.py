@@ -139,13 +139,7 @@ def apply_overlay(base: dict, ops: list[dict]) -> dict:
     for op in ops:
         kind = op.get("op")
         if kind == "set":
-            keys = op["path"].split(".")
-            node = cfg
-            for i, k in enumerate(keys[:-1]):
-                if not isinstance(node, dict) or k not in node or not isinstance(node[k], dict):
-                    raise StoreError(f"The configuration has no field {'.'.join(keys[:i + 1])}.")
-                node = node[k]
-            node[keys[-1]] = copy.deepcopy(op["value"])
+            _set_path(cfg, op["path"], op["value"])
         elif kind == "add_equipment":
             if any(e.get("id") == op["item"]["id"] for e in eq):
                 raise StoreError(f"The configuration already has equipment {op['item']['id']}.")
@@ -170,6 +164,38 @@ def apply_overlay(base: dict, ops: list[dict]) -> dict:
         else:
             raise StoreError(f"unknown overlay operation {kind}")
     return cfg
+
+
+_ITEM = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\[([^\]]+)\]$")
+
+
+def _set_path(cfg: dict, path: str, value) -> None:
+    """Set a value by a dotted path; `name[id]` selects the item of list `name` whose id is `id`,
+    e.g. operator_pools[unloaders].schedule or equipment[H1].rate."""
+    keys = path.split(".")
+    node = cfg
+    for i, k in enumerate(keys):
+        last = i == len(keys) - 1
+        m = _ITEM.match(k)
+        if m:
+            name, item_id = m.groups()
+            items = node.get(name) if isinstance(node, dict) else None
+            if not isinstance(items, list):
+                raise StoreError(f"The configuration field {'.'.join(keys[:i] + [name])} is not a list.")
+            found = next((x for x in items if isinstance(x, dict) and x.get("id") == item_id), None)
+            if found is None:
+                raise StoreError(f"The configuration has no item {item_id} in {name}.")
+            if last:
+                raise StoreError("A path must end with a field name, not a list item.")
+            node = found
+        elif last:
+            if not isinstance(node, dict):
+                raise StoreError(f"The configuration has no field {'.'.join(keys[:i])}.")
+            node[k] = copy.deepcopy(value)
+        else:
+            if not isinstance(node, dict) or k not in node or not isinstance(node[k], dict):
+                raise StoreError(f"The configuration has no field {'.'.join(keys[:i + 1])}.")
+            node = node[k]
 
 
 # ---- diff ----
