@@ -1,7 +1,10 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><title>Validation golden generator</title>
 <style>body{font:13px/1.45 ui-monospace,Consolas,monospace;margin:16px}</style></head>
-<body><pre id="out">running…</pre>
+<body><p>Golden files are a preserved baseline. Saving overwrites tests/golden/validation_cases.json and needs the
+server started with <code>-AllowSave</code>.</p>
+<button id="save" disabled>Save golden file</button>
+<pre id="out">running…</pre>
 <!-- Reference oracle: the unmodified prototype engine v0.2.0 -->
 <script src="silo_engine_v0.2.0.js"></script>
 <script>
@@ -56,8 +59,16 @@ const results = CASES.map(([name, description, build]) => {
 });
 const doc = { generator: 'tools/golden/generate_validation_golden.html', oracle_engine_version: E.VERSION,
   user_agent: navigator.userAgent, generated_at: new Date().toISOString(), cases: results };
-fetch('/save/validation_cases.json', { method: 'POST', body: JSON.stringify(doc, null, 1) })
-  .then((r) => { document.getElementById('out').textContent = (r.ok ? 'SAVED ' : 'SAVE FAILED ') + results.length + ' cases\n\n' +
-    results.map((r) => r.name + ': ok=' + r.expected.ok + ' errors=' + r.expected.errors.length + ' warnings=' + r.expected.warnings.length + ' info=' + r.expected.info.length).join('\n'); })
-  .catch((e) => { document.getElementById('out').textContent = 'SAVE FAILED ' + e; });
+const summary = results.map((r) => r.name + ': ok=' + r.expected.ok + ' errors=' + r.expected.errors.length + ' warnings=' + r.expected.warnings.length + ' info=' + r.expected.info.length).join('\n');
+document.getElementById('out').textContent = 'COMPUTED ' + results.length + ' cases (not saved)\n\n' + summary;
+const button = document.getElementById('save');
+button.disabled = false;
+// Saving happens only on an explicit click and confirmation: opening or reloading this page never writes.
+button.addEventListener('click', () => {
+  if (!confirm('Overwrite tests/golden/validation_cases.json with these ' + results.length + ' cases?')) return;
+  fetch('/save/validation_cases.json', { method: 'POST', body: JSON.stringify(doc, null, 1) })
+    .then((r) => { document.getElementById('out').textContent = (r.ok ? 'SAVED ' : r.status === 403
+      ? 'NOT SAVED (the server is read-only; restart serve.ps1 with -AllowSave) ' : 'SAVE FAILED ') + results.length + ' cases\n\n' + summary; })
+    .catch((e) => { document.getElementById('out').textContent = 'SAVE FAILED ' + e; });
+});
 </script></body></html>

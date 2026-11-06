@@ -40,4 +40,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\run_prototype_selftest
 
 ## Regenerating golden files
 
-`tools/golden/generate_validation_golden.html` runs the prototype `validate()` on each case and posts the result to `tools/golden/serve.ps1`, which writes `tests/golden/validation_cases.json`. Start `serve.ps1`, open `http://localhost:8765/`, and the page saves the file. Regenerate only when the cases change; the oracle engine itself must not be edited.
+`tools/golden/generate_validation_golden.html` runs the prototype `validate()` on each case and posts the result to `tools/golden/serve.ps1`, which writes `tests/golden/validation_cases.json`. Start `serve.ps1 -AllowSave`, open `http://localhost:8765/`, check the computed cases and click **Save golden file**. Without `-AllowSave` the server is read-only (it refuses saves), and the page never saves on its own. Regenerate only when the cases change; the oracle engine itself must not be edited.
