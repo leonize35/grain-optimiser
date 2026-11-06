@@ -439,6 +439,37 @@ def _validate_station_activities(site: SiteConfig, result: RulesResult) -> None:
                 result.errors.append(Issue(f"No {kind} serves {ACTIVITY_NAME[act]} trucks for {step}."))
 
 
+CONDITIONS = ("service_done", "graded")  # P2: conditions a release rule may wait for
+PLACE_STEPS = ("sample", "weigh_in", "weigh_out", "tip", "load")  # steps where the truck holds a place
+
+
+def _validate_release_rules(site: SiteConfig, result: RulesResult) -> None:
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    seen = set()
+    for r in site.release_rules:
+        label = ACTIVITY_NAME[r.activity]
+        seq = list(getattr(site.sequences, r.activity))
+        if (r.activity, r.step) in seen:
+            err(f"There is more than one release rule for {r.step} of {label} trucks.")
+        seen.add((r.activity, r.step))
+        for c in r.when:
+            if c not in CONDITIONS:
+                err(f"The release rule for {r.step} of {label} trucks uses unknown condition {c}; "
+                    f"known conditions: {', '.join(CONDITIONS)}.")
+        if r.step not in PLACE_STEPS:
+            err(f"A release rule needs a step where the truck holds a place ({', '.join(PLACE_STEPS)}), not {r.step}.")
+        if r.step not in seq:
+            err(f"The release rule for {r.step} applies to a step that is not in the {label} sequence.")
+            continue
+        if "graded" in r.when:
+            if "grade" not in seq:
+                err(f"The release rule for {r.step} of {label} trucks waits for grading, but the {label} sequence "
+                    "has no grading.")
+            elif "sample" not in seq or seq.index(r.step) < seq.index("sample"):
+                err(f"The release rule for {r.step} of {label} trucks waits for grading, which starts only after "
+                    f"sampling, but {r.step} comes before sampling: the truck would wait for ever.")
+
+
 def _validate_systems(site: SiteConfig, result: RulesResult) -> None:
     ids = [s.id for s in site.systems]
     if len(set(ids)) != len(ids):
@@ -481,6 +512,7 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_distributions(site, result)
     _validate_station_activities(site, result)
     _validate_systems(site, result)
+    _validate_release_rules(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

@@ -525,6 +525,9 @@ class TruckFlowModel:
         self._area_count = 0
         self.stall: Stall | None = None
         self._awaiting_result: dict[str, str] = {}
+        # P3 release rules: (activity, step) -> conditions besides the service; trucks held on their place for them
+        self._release = {(r.activity, r.step): [c for c in r.when if c != "service_done"] for r in site.release_rules}
+        self._release_wait: dict[str, ScriptedTruck] = {}
         self._results: dict[str, tuple[str, int]] = {}
         self._intake_active: set[str] = set()  # pits with an intake request waiting or a transfer running
         self._transfer_count = 0
@@ -767,6 +770,7 @@ class TruckFlowModel:
         truck = next(t for t in self.trucks if t.id == truck_id)
         self._leave_location(truck)
         self._awaiting_result.pop(truck_id, None)
+        self._release_wait.pop(truck_id, None)
         self._send_away.discard(truck_id)
         self.records[truck_id].turned_away = "still on site when service stopped"
         self.records[truck_id].turned_away_at = self.cal.now
@@ -775,9 +779,22 @@ class TruckFlowModel:
         """After a service: continue, unless the truck must leave and still has steps to do."""
         if truck.id in self._send_away and self._position[truck.id] + 1 < len(self.paths[truck.activity]):
             self._send_away_now(truck.id)
+        elif self._unmet_release(truck):
+            self._release_wait[truck.id] = truck  # keeps its place until the conditions hold (P3)
         else:
             self._send_away.discard(truck.id)
             self._advance(truck)
+
+    def _unmet_release(self, truck: ScriptedTruck) -> list[str]:
+        """Conditions of the release rule for the step just served that do not hold yet for this truck."""
+        rec = self.records[truck.id]
+        conds = self._release.get((truck.activity, rec.steps[-1].step)) if rec.steps else None
+        return [c for c in conds or [] if not self._condition(truck, c)]
+
+    def _condition(self, truck: ScriptedTruck, name: str) -> bool:
+        if name == "graded":  # P2; applies to sampled trucks only
+            return not self._needs_sampling(truck) or f"S-{truck.id}" in self._results
+        raise ModelError(f"Unknown condition {name}")
 
     # ---- trucks: movement along the truck path (R5) ----
     # A truck holds exactly one place at a time: a place in a waiting area, or a station/hopper lane. It gives a
@@ -1118,6 +1135,9 @@ class TruckFlowModel:
                 raise RuntimeError(f"Sample {sample_id} offered to {truck.id}, which waits for {waiting_for}")
             del self._awaiting_result[truck.id]
             self._result_reached_truck(truck, self.records[truck.id].steps[-1])
+        if truck.id in self._release_wait and not self._unmet_release(truck):
+            del self._release_wait[truck.id]
+            self._leave_or_send_away(truck)
         self._after_event()
 
     # ---- tipping ----

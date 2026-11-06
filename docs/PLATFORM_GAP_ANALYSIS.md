@@ -186,4 +186,10 @@ screen and primitive can be exercised with it.
   - Report findings carry the `systems` of their located items.
   - The grouping changes no simulation decision (identical traces).
   - Tests: `tests/test_systems.py`.
-- **Next:** step 3 (conditions and release rules).
+- **Step 3 (done):**
+  - `release_rules: [{activity, step, when: ["service_done", "graded"]}]`: a truck leaves the place of `step` only when the service is done, every listed condition holds and it has its next place. Service time is unaffected.
+  - Condition `graded` (P2): the truck's sample has been graded. It applies to sampled trucks only.
+  - Validation refuses unknown conditions, steps outside the sequence or not holding a place, duplicate rules, `graded` without grading in the sequence, and a hold on a step before sampling (it would wait for ever).
+  - The receiving rule now needs no explicit truck path. The new form gives identical step times to the old one (`tests/test_release_rules.py`); the old form still works.
+  - The report no longer warns about a hold that a rule states.
+- **Next:** step 4 (background tasks: user-defined off-truck tasks producing their own conditions).

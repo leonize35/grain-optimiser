@@ -36,6 +36,11 @@ question **Q-1** for receiving trucks.
 - **Hopper:** a truck asks for a hopper only after its result (the `tip` request is made after `grade`).
 - **Without an explicit path** the engine places an unlimited implicit area before every step, including `grade`, so the truck would leave the weighbridge. The default is unchanged (synthetic configurations and evidence depend on it). The Ventersdorp configuration must therefore give the receiving path explicitly. This is a configuration requirement, checked by the tests below.
 
+**Update (platform step 3):** the same rule can now be stated directly, without depending on the truck path:
+`release_rules: [{"activity": "unload", "step": "weigh_in", "when": ["service_done", "graded"]}]`. It gives
+identical step times to the explicit-path form (`tests/test_release_rules.py`). This is the form the builder will
+write.
+
 ## Verification (hand-traced, deterministic)
 
 | Test | Shows |

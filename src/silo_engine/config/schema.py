@@ -296,6 +296,15 @@ class System(_Model):
     equipment: list[str]
 
 
+class ReleaseRule(_Model):
+    """P3 (docs/PLATFORM_GAP_ANALYSIS.md): when a truck may leave the place where `step` was done. Always after the
+    service ("service_done", implied) and once it has its next place; in addition every listed condition must hold
+    for that truck. Conditions (P2): "graded" (its sample has been graded; applies to sampled trucks only)."""
+    activity: Activity
+    step: TruckStep
+    when: list[str]
+
+
 class TruckBypass(_Model):
     """A physical bypass: a truck that needs no sampling may go from area `from` straight to path element `to`,
     leaving `from` from any position. Only declared bypasses exist."""
@@ -343,6 +352,7 @@ class SiteConfig(_Model):
     queue_policies: QueuePolicies | None = None  # None: the run's argument, else feasible_first
     outages: list[Outage] = []  # scheduled equipment unavailability (step 17)
     truck_bypasses: list[TruckBypass] = []  # sampler access (declared physical bypasses)
+    release_rules: list[ReleaseRule] = []  # P3: conditions for leaving a step's place (none: leave after service)
     # Staffing (docs/OPERATOR_STAFFING_DESIGN.md); empty = no labour constraint (unchanged behaviour).
     operator_pools: list[OperatorPool] = []
     labour: list[LabourRequirement] = []
@@ -387,7 +397,7 @@ def config_hash(cfg: SiteConfig) -> str:
         if isinstance(d, dict) and d.get("sampling_share") is None:
             d.pop("sampling_share", None)
     for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {}),
-                         ("unloading_labour", None), ("systems", [])):
+                         ("unloading_labour", None), ("systems", []), ("release_rules", [])):
         if data.get(added) == unset:
             data.pop(added, None)
     for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),

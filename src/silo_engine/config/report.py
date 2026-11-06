@@ -75,15 +75,17 @@ def _hold_without_path(site: SiteConfig) -> list[Finding]:
         seq = list(getattr(site.sequences, act))
         if getattr(site.truck_paths, act):
             continue
+        ruled = {r.step for r in site.release_rules if r.activity == act and "graded" in r.when}
         for i, step in enumerate(seq):
-            if step == "grade" and i > 0 and seq[i - 1] != "sample":
+            if step == "grade" and i > 0 and seq[i - 1] != "sample" and seq[i - 1] not in ruled:
                 out.append(Finding(
                     "process.hold_without_path", "warning", "platform",
                     f"Trucks wait for their grading result after {seq[i - 1]}, but without a truck path they move off "
                     f"the {STATION_OF_STEP.get(seq[i - 1], seq[i - 1])} while waiting.",
                     [act, seq[i - 1]],
-                    f"Give the {act} truck path explicitly with no waiting area between {seq[i - 1]} and grade, so "
-                    f"the truck holds its place until the result is available."))
+                    f"Add a release rule for {seq[i - 1]} that waits for graded (or give the {act} truck path "
+                    f"explicitly with no waiting area between {seq[i - 1]} and grade), so the truck holds its place "
+                    "until the result is available."))
     return out
 
 
