@@ -42,7 +42,7 @@ def test_report_is_machine_readable():
     d = report(CLEARANCE).as_dict()
     json.dumps(d)
     assert set(d) == {"ok", "errors", "warnings", "notes", "findings"}
-    assert all(set(f) == {"code", "severity", "source", "message", "location", "fix"} for f in d["findings"])
+    assert all(set(f) == {"code", "severity", "source", "message", "location", "fix", "systems"} for f in d["findings"])
 
 
 # (a) a hold after a station without an explicit truck path

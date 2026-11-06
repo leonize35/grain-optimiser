@@ -288,6 +288,14 @@ class UnloadingLabour(_Model):
     allocation: Literal["oldest_task_first", "strict_order", "started_trucks_first"] = "oldest_task_first"
 
 
+class System(_Model):
+    """A silo system: a named group of equipment (e.g. "Silo A"). A grouping for reporting, validation messages and
+    the builder only; it changes no simulation decision. Equipment in no system is shared or site-level."""
+    id: str
+    name: str
+    equipment: list[str]
+
+
 class TruckBypass(_Model):
     """A physical bypass: a truck that needs no sampling may go from area `from` straight to path element `to`,
     leaving `from` from any position. Only declared bypasses exist."""
@@ -315,6 +323,7 @@ class SiteConfig(_Model):
     commodities: list[Commodity]
     equipment: list[Equipment]
     edges: list[tuple[str, str]]
+    systems: list[System] = []  # optional grouping of equipment into silo systems (docs/PLATFORM_GAP_ANALYSIS.md G1)
     sequences: Sequences
     demand: Demand
     policies: Policies = Policies()
@@ -378,7 +387,7 @@ def config_hash(cfg: SiteConfig) -> str:
         if isinstance(d, dict) and d.get("sampling_share") is None:
             d.pop("sampling_share", None)
     for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {}),
-                         ("unloading_labour", None)):
+                         ("unloading_labour", None), ("systems", [])):
         if data.get(added) == unset:
             data.pop(added, None)
     for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),

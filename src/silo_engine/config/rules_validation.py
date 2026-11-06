@@ -439,6 +439,22 @@ def _validate_station_activities(site: SiteConfig, result: RulesResult) -> None:
                 result.errors.append(Issue(f"No {kind} serves {ACTIVITY_NAME[act]} trucks for {step}."))
 
 
+def _validate_systems(site: SiteConfig, result: RulesResult) -> None:
+    ids = [s.id for s in site.systems]
+    if len(set(ids)) != len(ids):
+        result.errors.append(Issue("Two systems share the id " + next(i for i in ids if ids.count(i) > 1) + "."))
+    known = {e.id for e in site.equipment}
+    owner: dict[str, str] = {}
+    for s in site.systems:
+        for eq in s.equipment:
+            if eq not in known:
+                result.errors.append(Issue(f"System {s.name} lists unknown equipment {eq}."))
+            elif eq in owner and owner[eq] != s.id:
+                result.errors.append(Issue(f"{eq} is in two systems ({owner[eq]} and {s.id}); equipment shared by "
+                                           "systems belongs to none of them."))
+            owner.setdefault(eq, s.id)
+
+
 def _validate_distributions(site: SiteConfig, result: RulesResult) -> None:
     from ..sim.distributions import problems
     for e in site.equipment:
@@ -464,6 +480,7 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_staffing(site, result)
     _validate_distributions(site, result)
     _validate_station_activities(site, result)
+    _validate_systems(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

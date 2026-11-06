@@ -69,7 +69,7 @@ from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
 from .calendar import ARRIVAL, CONTROL, RELEASE, Calendar, Event
 from .dispatcher import Dispatcher, DispatcherError, WaitReason
-from .outcomes import clearance, commodity_fairness, outcome_summary, truck_outcomes
+from .outcomes import by_system, clearance, commodity_fairness, outcome_summary, truck_outcomes
 from .ledger import (LabourClaim, AreaClaim, BinIncomingClaim, BinOutgoingClaim, LaneClaim, PitSpaceClaim, ReservationLedger,
                      SegmentClaim)
 from .pit import Lot, Pit
@@ -1705,8 +1705,12 @@ class TruckFlowModel:
     def _outcomes(self) -> dict:
         end = min(self.cal.now, self._horizon_end)
         tipped = {v[0] for v in self._lots_seen.values() if v[0] is not None}
-        trucks = truck_outcomes(list(self.records.values()), end, {t.id: t.kg for t in self.trucks}, tipped)
-        return {"trucks": trucks, "summary": outcome_summary(trucks), "horizon_end": end}
+        system_of = {eq: s.id for s in self.site.systems for eq in s.equipment}
+        trucks = truck_outcomes(list(self.records.values()), end, {t.id: t.kg for t in self.trucks}, tipped, system_of)
+        out = {"trucks": trucks, "summary": outcome_summary(trucks), "horizon_end": end}
+        if self.site.systems:
+            out["by_system"] = by_system(trucks, self.site.systems)
+        return out
 
     def _access_report(self) -> dict[str, dict]:
         now = min(self.cal.now, self._horizon_end)

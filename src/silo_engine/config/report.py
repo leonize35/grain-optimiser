@@ -8,6 +8,7 @@ message, the location (ids of equipment, areas, pools, commodities or fields) an
 Codes: messages of the two existing validators carry `structure.legacy` / `rules.legacy` (and `structure.note`) until
 they are given individual codes; platform checks carry their own codes. The engine's own refusal to run is unchanged.
 """
+import dataclasses
 from dataclasses import asdict, dataclass, field
 from decimal import Decimal
 
@@ -27,6 +28,7 @@ class Finding:
     message: str
     location: list[str] = field(default_factory=list)
     fix: str | None = None
+    systems: list[str] = field(default_factory=list)  # systems containing a located item (for grouping in a UI)
 
 
 @dataclass
@@ -55,7 +57,9 @@ def prerun_report(site: SiteConfig) -> PrerunReport:
     for check in (_hold_without_path, _hours_representable, _storage_for_a_day, _workers_in_overtime,
                   _unused_places_and_stations):
         out += check(site)
-    return PrerunReport(out)
+    system_of = {eq: s.id for s in site.systems for eq in s.equipment}
+    return PrerunReport([dataclasses.replace(f, systems=sorted({system_of[i] for i in f.location if i in system_of}))
+                         for f in out])
 
 
 def _clock(hours: float) -> str:

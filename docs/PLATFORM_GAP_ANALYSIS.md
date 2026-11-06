@@ -180,4 +180,10 @@ screen and primitive can be exercised with it.
   - Tests: `tests/test_prerun_report.py`.
   - None of the synthetic sites (A, B, C, trap, S) triggers a platform check.
   - Not yet done: individual codes for the legacy messages; the engine still refuses runs through the two validators, not through the report.
-- **Next:** step 2 (systems), then step 3 (conditions and release rules).
+- **Step 2 (done):**
+  - Optional `systems` (id, name, equipment). Validation refuses: unknown equipment, equipment in two systems (shared equipment belongs to none), duplicate ids.
+  - Trucks are attributed to the system of the hopper or load point they reach; `outcomes.by_system` holds summaries per system plus "unassigned", which partition the site totals.
+  - Report findings carry the `systems` of their located items.
+  - The grouping changes no simulation decision (identical traces).
+  - Tests: `tests/test_systems.py`.
+- **Next:** step 3 (conditions and release rules).

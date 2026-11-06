@@ -20,9 +20,11 @@ def _minutes(ms: int) -> float:
 
 
 def truck_outcomes(records, end: int, kg: dict[str, int | None] | None = None,
-                   tipped: set[str] | None = None) -> dict[str, dict]:
-    """kg: each truck's payload; tipped: trucks whose grain entered a pit (K4 tonnes)."""
-    kg, tipped = kg or {}, tipped or set()
+                   tipped: set[str] | None = None, system_of: dict[str, str] | None = None) -> dict[str, dict]:
+    """kg: each truck's payload; tipped: trucks whose grain entered a pit (K4 tonnes); system_of: equipment id ->
+    system id. A truck belongs to the system of the hopper it unloaded at or the load point it loaded at, once it
+    reaches one; otherwise its system is None (unassigned)."""
+    kg, tipped, system_of = kg or {}, tipped or set(), system_of or {}
     out = {}
     for r in records:
         if r.departed is not None:
@@ -35,6 +37,8 @@ def truck_outcomes(records, end: int, kg: dict[str, int | None] | None = None,
         gate_stop = min(r.admitted if r.admitted is not None else stop, stop)
         steps = {s.step: s for s in r.steps}
         wi, wo = steps.get("weigh_in"), steps.get("weigh_out")
+        place = steps.get("tip") or steps.get("load")
+        unit = place.unit if place is not None and place.started is not None else None
         out[r.truck_id] = {
             "activity": r.activity, "status": status, "reason": r.turned_away, "arrived": r.arrived,
             "admitted": r.admitted, "exit": leave,
@@ -42,6 +46,7 @@ def truck_outcomes(records, end: int, kg: dict[str, int | None] | None = None,
             "gate_min": _minutes(max(0, gate_stop - r.arrived)),
             "censored": leave is None or leave > end,
             "tonnes": (kg.get(r.truck_id) or 0) / 1000, "tipped": r.truck_id in tipped,
+            "system": system_of.get(unit) if unit is not None else None,
             "weighbridge": {"weigh_in_start": wi.started if wi else None, "weigh_in_end": wi.finished if wi else None,
                             "weigh_out_start": wo.started if wo else None, "weigh_out_end": wo.finished if wo else None},
         }
@@ -135,4 +140,15 @@ def commodity_fairness(metrics) -> dict:
         rates = [v["completion_rate"] for v in out[act].values()]
         out["disparity"][act] = {"completion_rate": {"spread": max(rates) - min(rates),
                                                      "ratio": min(rates) / max(rates) if max(rates) else None}}
+    return out
+
+
+def by_system(trucks: dict[str, dict], systems) -> dict[str, dict]:
+    """Outcome summaries per system, plus "unassigned" (trucks not yet at a system's hopper or load point, and
+    weigh-only trucks). The groups partition the trucks, so their counts and truck-minutes add up to the site."""
+    out = {}
+    for s in list(systems) + [None]:
+        key = "unassigned" if s is None else s.id
+        part = {t: x for t, x in trucks.items() if x["system"] == (None if s is None else s.id)}
+        out[key] = {"name": "Unassigned" if s is None else s.name, **outcome_summary(part)}
     return out
