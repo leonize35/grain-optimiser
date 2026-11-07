@@ -409,6 +409,8 @@ class TruckFlowResult:
     # summaries per activity, and per-day clearance (admission cut-off, closing, final clearance).
     outcomes: dict = field(default_factory=dict)
     clearance: list[dict] = field(default_factory=list)
+    # Every reservation and release, in order (ledger.LedgerEntry); read by analysis (e.g. TLS resource use).
+    ledger_log: list = field(default_factory=list)
 
 
 def _hours_ms(hours: float) -> int:
@@ -1964,6 +1966,7 @@ class TruckFlowModel:
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(),
             outcomes=self._outcomes(), clearance=clearance(list(self.records.values()), self.windows, self._closes),
+            ledger_log=list(self.ledger.log),
             **self._fairness())
         result.outcomes["fairness"] = commodity_fairness(result.truck_metrics.values())
         return result
