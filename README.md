@@ -40,7 +40,7 @@ Then open http://127.0.0.1:8000/ in a browser. API documentation is at http://12
 
 - **Where silos are saved:** in `%USERPROFILE%\.silo-optimiser\store`, outside this repository. Pass `--store PATH` or set `SILO_STORE` to use another folder.
 - **What the screens cover:** site and silo systems, commodities, equipment, grain connections, truck processes (with release rules), truck movement (waiting areas, paths, bypasses), the pre-run check, saving and comparing versions, and running simulations.
-- **Also covered:** labour (pools, shifts, task workers, shared unloading tasks), operating rules, demand, and scenarios with paired comparison of runs. The full configuration can be inspected under Advanced.
+- **Also covered:** your own truck steps and off-truck work (with release rules waiting for it); labour (pools, shifts, task workers, worker phases, shared unloading tasks); operating rules; demand; and scenarios with paired comparison of runs. The full configuration can be inspected under Advanced.
 - **Results:** they are simulation outputs for the configuration as entered, not validated observations.
 
 ## Running the tests

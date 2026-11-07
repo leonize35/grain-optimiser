@@ -87,3 +87,12 @@ def test_catalogue_describes_labour_rules_and_demand_from_the_engine(client):
     assert [o["id"] for o in meta["labour"]["held"]] == lit(LabourRequirement, "held")
     assert [o["id"] for o in meta["labour"]["allocation"]] == lit(UnloadingLabour, "allocation")
     assert all(o["label"] for group in (meta["queue_policies"], meta["labour"]["held"]) for o in group)
+
+
+def test_catalogue_describes_steps_tasks_and_phases_from_the_engine(client):
+    """Screens for custom steps, background tasks and worker phases read the engine's own constants."""
+    from silo_engine.config.rules_validation import BACKGROUND_STATION_TYPES, PHASE_STEPS
+    meta = client.get("/meta").json()
+    assert meta["background_task_station_types"] == list(BACKGROUND_STATION_TYPES)
+    assert meta["phase_steps"] == list(PHASE_STEPS)
+    assert "station" in meta["equipment_types"] and meta["equipment_types"]["station"]["connects_to"] == []

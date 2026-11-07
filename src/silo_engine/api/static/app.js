@@ -78,7 +78,7 @@ function nameOf(id) { const e = eqById(id); return e ? (e.name || e.id) : id; }
 function newId(prefix) {
   let n = 1; while (S.config.equipment.some((e) => e.id === `${prefix}${n}`)) n++; return `${prefix}${n}`;
 }
-const PREFIX = { sampler: "S", grader: "G", weighbridge: "WB", hopper: "H", conveyor: "C", elevator: "E", bin: "B", loadpoint: "L" };
+const PREFIX = { sampler: "S", grader: "G", weighbridge: "WB", hopper: "H", conveyor: "C", elevator: "E", bin: "B", loadpoint: "L", station: "ST" };
 
 function blankSite() {
   return { id: "my-silo", name: "My silo", version: 1, hours: { open: 7, close: 18 },
@@ -297,7 +297,12 @@ screens.connections = () => {
 //   area:X a configured waiting area
 // When every slot is "open" the activity has no explicit path. Otherwise "open" slots become automatic unlimited
 // areas (ids open_<activity>_<n>), kept only while a path uses them.
-const stepLabel = (s) => (S.meta.truck_steps.find((x) => x.id === s) || { label: s }).label;
+const customSteps = () => (S.config && S.config.custom_steps) || [];
+const stepLabel = (s) => { const c = customSteps().find((x) => x.id === s); return c ? c.label : (S.meta.truck_steps.find((x) => x.id === s) || { label: s }).label; };
+const placeSteps = () => [...S.meta.place_steps, ...customSteps().map((c) => c.id)];
+// Conditions a release rule can wait for: the engine's (graded) and those produced by this site's background tasks.
+const releaseConditions = () => [...S.meta.release_conditions,
+  ...((S.config && S.config.background_tasks) || []).map((t) => ({ id: t.produces, label: `"${t.produces}" is done (${t.id})` }))];
 const actLabel = (a) => (S.meta.activities.find((x) => x.id === a) || { label: a }).label;
 const isAuto = (id) => /^open_/.test(id);
 
@@ -345,6 +350,8 @@ function setSequence(act, seq) {
 }
 
 function stationsFor(step, act) {
+  const custom = customSteps().find((x) => x.id === step);
+  if (custom) return S.config.equipment.filter((e) => custom.equipment.includes(e.id));
   const info = S.meta.truck_steps.find((x) => x.id === step);
   if (!info) return [];
   return S.config.equipment.filter((e) => e.type === info.station && (!e.activities || e.activities.includes(act))
@@ -357,11 +364,11 @@ screens.processes = () => {
   c.release_rules = c.release_rules || [];
   const cards = S.meta.activities.map(({ id: act, label }) => {
     const seq = c.sequences[act] || [];
-    const unused = S.meta.activity_steps[act].filter((s) => !seq.includes(s));
+    const unused = [...S.meta.activity_steps[act], ...customSteps().map((x) => x.id)].filter((s) => !seq.includes(s));
     const rows = seq.map((step, i) => {
       const st = stationsFor(step, act);
       const rule = c.release_rules.find((r) => r.activity === act && r.step === step);
-      const conds = S.meta.place_steps.includes(step) ? S.meta.release_conditions.map((cd) =>
+      const conds = placeSteps().includes(step) ? releaseConditions().map((cd) =>
         `<label style="display:inline-flex;gap:4px;margin:0;color:var(--text)"><input type="checkbox" data-rule="${act}|${step}|${cd.id}" ${rule && rule.when.includes(cd.id) ? "checked" : ""}> only when ${esc(cd.label)}</label>`).join("") : `<span class="muted small">–</span>`;
       return `<tr><td>${i + 1}</td><td><strong>${esc(stepLabel(step))}</strong><div class="muted small">${st.length ? "at " + st.map((e) => esc(e.name || e.id)).join(", ") : step === "grade" ? "graded off the truck" : `<span class="req">no equipment serves this step yet</span>`}</div></td>
         <td>${conds}</td>
@@ -371,7 +378,56 @@ screens.processes = () => {
       <table><thead><tr><th>#</th><th>Step</th><th>The truck leaves this place after the service, and…</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="4" class="muted">No steps: no ${esc(label.toLowerCase())} trucks will be simulated.</td></tr>`}</tbody></table>
       <div class="actions">${unused.length ? `<select id="add-${act}">${unused.map((s) => `<option value="${s}">${esc(stepLabel(s))}</option>`).join("")}</select><button data-addstep="${act}">Add step</button>` : ""}</div></div>`;
   }).join("");
-  $("#main").innerHTML = `<h1>Truck processes</h1><p class="lead">The steps each kind of truck goes through, in order. A sample is graded off the truck while it moves on; tick "only when its sample has been graded" on a step where the truck must wait for the result (for example on the incoming weighbridge).</p>${cards}`;
+  c.custom_steps = c.custom_steps || []; c.background_tasks = c.background_tasks || [];
+  const stationEq = c.equipment.filter((e) => e.type === "station");
+  const taskEq = c.equipment.filter((e) => S.meta.background_task_station_types.includes(e.type));
+  const allSteps = [...new Set(S.meta.activities.flatMap((a) => c.sequences[a.id] || []))];
+  const customRows = c.custom_steps.map((cs, i) => `<tr><td><input data-cs="${i}|id" value="${esc(cs.id)}" size="10"></td><td><input data-cs="${i}|label" value="${esc(cs.label)}"></td>
+    <td>${stationEq.map((e) => `<label style="display:inline-flex;gap:4px;margin-right:10px;color:var(--text)"><input type="checkbox" data-cseq="${i}|${esc(e.id)}" ${cs.equipment.includes(e.id) ? "checked" : ""}>${esc(e.name || e.id)}</label>`).join("") || `<span class="req small">add equipment of type "Truck station" first</span>`}</td>
+    <td><button class="danger" data-csdel="${i}">Remove</button></td></tr>`).join("");
+  const poolOpt = (cur) => `<option value="">no workers</option>` + (c.operator_pools || []).map((p) => `<option value="${esc(p.id)}" ${cur === p.id ? "selected" : ""}>${esc(p.name || p.id)}</option>`).join("");
+  const taskRows = c.background_tasks.map((t, i) => `<tr><td><input data-bt="${i}|id" value="${esc(t.id)}" size="9"></td>
+    <td><select data-bt="${i}|started_by">${allSteps.map((st) => `<option value="${esc(st)}" ${t.started_by === st ? "selected" : ""}>${esc(stepLabel(st))}</option>`).join("")}</select></td>
+    <td><div class="tri">${[0, 1, 2].map((k) => `<input type="number" step="any" min="0" data-btt="${i}|${k}" value="${esc(t.time[k])}" aria-label="${["minimum", "most likely", "maximum"][k]}">`).join("")}<span class="unit">min</span></div></td>
+    <td><select data-bt="${i}|equipment"><option value="">no station</option>${taskEq.map((e) => `<option value="${esc(e.id)}" ${(t.equipment || [])[0] === e.id ? "selected" : ""}>${esc(e.name || e.id)}</option>`).join("")}</select></td>
+    <td><select data-bt="${i}|pool">${poolOpt(t.pool)}</select> <input type="number" min="1" data-bt="${i}|workers" value="${esc(t.workers || 1)}" style="width:56px" aria-label="workers"></td>
+    <td><input data-bt="${i}|produces" value="${esc(t.produces)}" size="10"></td><td><button class="danger" data-btdel="${i}">Remove</button></td></tr>`).join("");
+  $("#main").innerHTML = `<h1>Truck processes</h1><p class="lead">The steps each kind of truck goes through, in order. A sample is graded off the truck while it moves on; tick "only when its sample has been graded" on a step where the truck must wait for the result (for example on the incoming weighbridge).</p>${cards}
+    <div class="card"><h2>Your own steps</h2><p class="muted small">A step this site has that the built-in list does not (for example a document check), done at equipment of type "Truck station". Once added here it can be placed in any process above.</p>
+      <table><thead><tr><th>Id</th><th>Name</th><th>Done at</th><th></th></tr></thead><tbody>${customRows || `<tr><td colspan="4" class="muted">None.</td></tr>`}</tbody></table>
+      <div class="actions"><button id="cs-add">Add a step</button></div></div>
+    <div class="card"><h2>Work done off the truck</h2><p class="muted small">Work that starts when a truck finishes a step and runs while the truck moves on or waits (for example documents prepared at the office after weighing in). When it is done, the truck may leave any step whose rule above waits for it.</p>
+      <table><thead><tr><th>Id</th><th>Starts after</th><th>Time</th><th>At station</th><th>Workers</th><th>When done</th><th></th></tr></thead><tbody>${taskRows || `<tr><td colspan="7" class="muted">None.</td></tr>`}</tbody></table>
+      <div class="actions"><button id="bt-add" ${allSteps.length ? "" : "disabled"}>Add off-truck work</button></div></div>`;
+  $("#cs-add").onclick = () => { let n = 1; while (c.custom_steps.some((x) => x.id === `step${n}`)) n++; c.custom_steps.push({ id: `step${n}`, label: `Own step ${n}`, equipment: stationEq.length ? [stationEq[0].id] : [] }); markDirty(); render(); };
+  bindAll("[data-cs]", (el) => { const [i, k] = el.dataset.cs.split("|"); const cs = c.custom_steps[+i];
+    if (k === "id") { const nid = el.value.trim(), old = cs.id;
+      if (!nid || c.custom_steps.some((x) => x.id === nid)) return toast("That id is empty or already used.");
+      cs.id = nid; S.meta.activities.forEach((a) => { if (c.sequences[a.id]) setSequence(a.id, c.sequences[a.id].map((x) => (x === old ? nid : x))); });
+      c.release_rules.forEach((r) => { if (r.step === old) r.step = nid; }); c.background_tasks.forEach((t) => { if (t.started_by === old) t.started_by = nid; });
+      (c.task_phases || []).forEach((sp) => { if (sp.step === old) sp.step = nid; });
+    } else cs.label = el.value;
+    markDirty(); render(); });
+  bindAll("[data-cseq]", (el) => { const [i, id] = el.dataset.cseq.split("|"); const cs = c.custom_steps[+i];
+    cs.equipment = el.checked ? [...new Set([...cs.equipment, id])] : cs.equipment.filter((x) => x !== id); markDirty(); });
+  bindAll("[data-csdel]", (el) => { const cs = c.custom_steps[+el.dataset.csdel];
+    S.meta.activities.forEach((a) => { if ((c.sequences[a.id] || []).includes(cs.id)) setSequence(a.id, c.sequences[a.id].filter((x) => x !== cs.id)); });
+    c.background_tasks = c.background_tasks.filter((t) => t.started_by !== cs.id); c.task_phases = (c.task_phases || []).filter((sp) => sp.step !== cs.id);
+    c.custom_steps = c.custom_steps.filter((x) => x !== cs); markDirty(); render(); });
+  $("#bt-add").onclick = () => { let n = 1; while (c.background_tasks.some((x) => x.id === `work${n}`)) n++;
+    c.background_tasks.push({ id: `work${n}`, started_by: allSteps[0], time: [5, 5, 5], produces: `work${n}_done` }); markDirty(); render(); };
+  bindAll("[data-bt]", (el) => { const [i, k] = el.dataset.bt.split("|"); const t = c.background_tasks[+i];
+    if (k === "equipment") { if (el.value) t.equipment = [el.value]; else delete t.equipment; }
+    else if (k === "pool") { if (el.value) t.pool = el.value; else { delete t.pool; delete t.workers; } }
+    else if (k === "workers") t.workers = Math.max(1, Math.round(+el.value || 1));
+    else if (k === "produces") { const old = t.produces; t.produces = el.value.trim();
+      c.release_rules.forEach((r) => { r.when = r.when.map((x) => (x === old ? t.produces : x)); }); }
+    else t[k] = el.value.trim();
+    markDirty(); render(); });
+  bindAll("[data-btt]", (el) => { const [i, k] = el.dataset.btt.split("|"); c.background_tasks[+i].time[+k] = Math.max(0, +el.value || 0); markDirty(); });
+  bindAll("[data-btdel]", (el) => { const t = c.background_tasks[+el.dataset.btdel];
+    c.release_rules = c.release_rules.map((r) => ({ ...r, when: r.when.filter((x) => x !== t.produces) })).filter((r) => r.when.some((x) => x !== "service_done"));
+    c.background_tasks = c.background_tasks.filter((x) => x !== t); markDirty(); render(); });
   document.querySelectorAll("[data-addstep]").forEach((b) => { b.onclick = () => { const act = b.dataset.addstep; setSequence(act, [...(c.sequences[act] || []), $(`#add-${act}`).value]); markDirty(); render(); }; });
   document.querySelectorAll("[data-rm]").forEach((b) => { b.onclick = () => { const [act, i] = b.dataset.rm.split("|"); const seq = [...c.sequences[act]]; seq.splice(+i, 1); setSequence(act, seq); markDirty(); render(); }; });
   document.querySelectorAll("[data-mv]").forEach((b) => { b.onclick = () => {
@@ -469,7 +525,7 @@ screens.labour = () => {
     <div class="tri"><label style="margin:0">Id</label><input data-pool="${i}|id" value="${esc(p.id)}" size="10">
     <label style="margin:0">Name</label><input data-pool="${i}|name" value="${esc(p.name || "")}">
     <label style="margin:0;display:inline-flex;gap:4px;color:var(--text)"><input type="checkbox" data-pool="${i}|verified" ${p.verified ? "checked" : ""}> confirmed by the silo manager</label></div>
-    <label>Skills (tasks these workers can do)</label><div>${L.steps.map((s) => `<label style="display:inline-flex;gap:4px;margin-right:12px;color:var(--text)"><input type="checkbox" data-skill="${i}|${s}" ${p.skills.includes(s) ? "checked" : ""}>${esc(stepLabel(s) || s)}</label>`).join("")}</div>
+    <label>Skills (tasks these workers can do)</label><div>${[...L.steps, ...customSteps().map((x) => x.id), ...(c.background_tasks || []).map((t) => t.id)].map((s) => `<label style="display:inline-flex;gap:4px;margin-right:12px;color:var(--text)"><input type="checkbox" data-skill="${i}|${s}" ${p.skills.includes(s) ? "checked" : ""}>${esc(stepLabel(s) || s)}</label>`).join("")}</div>
     <label>Shifts (every day)</label><table><thead><tr><th>From</th><th>To</th><th>Workers</th><th></th></tr></thead><tbody>
     ${p.schedule.map((w, j) => `<tr><td><input data-shift="${i}|${j}|from" value="${esc(w.from)}" size="5" placeholder="07:00"></td><td><input data-shift="${i}|${j}|to" value="${esc(w.to)}" size="5"></td><td><input type="number" min="0" data-shift="${i}|${j}|count" value="${esc(w.count)}" style="width:80px"></td><td><button class="danger" data-shdel="${i}|${j}">Remove</button></td></tr>`).join("")}
     </tbody></table><div class="actions"><button data-shadd="${i}">Add shift</button><button class="danger" data-pooldel="${i}">Remove pool</button></div>
@@ -478,6 +534,16 @@ screens.labour = () => {
   const reqRows = c.labour.map((r, i) => `<tr><td><select data-lab="${i}|step">${L.steps.map((s) => `<option value="${s}" ${r.step === s ? "selected" : ""}>${esc(stepLabel(s) || s)}</option>`).join("")}</select></td>
     <td><select data-lab="${i}|pool">${poolOpts(r.pool)}</select></td><td><input type="number" min="1" data-lab="${i}|operators" value="${esc(r.operators ?? 1)}" style="width:70px"></td>
     <td><select data-lab="${i}|held">${L.held.map((h) => `<option value="${h.id}" ${(r.held || "whole_task") === h.id ? "selected" : ""}>${esc(h.label)}</option>`).join("")}</select></td><td><button class="danger" data-labdel="${i}">Remove</button></td></tr>`).join("");
+  c.task_phases = c.task_phases || [];
+  const phaseSteps = [...S.meta.phase_steps, ...customSteps().map((x) => x.id)];
+  const phaseFree = phaseSteps.filter((st) => !c.task_phases.some((sp) => sp.step === st) && !c.labour.some((r) => r.step === st));
+  const phaseCards = c.task_phases.map((sp, i) => `<div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px"><strong>${esc(stepLabel(sp.step))}</strong>
+    <div class="tri"><label style="margin:0">Pool</label><select data-sp="${i}|pool">${(c.operator_pools || []).map((p) => `<option value="${esc(p.id)}" ${sp.pool === p.id ? "selected" : ""}>${esc(p.name || p.id)}</option>`).join("")}</select>
+    <label style="margin:0">Free workers go to</label><select data-sp="${i}|allocation">${L.allocation.map((a) => `<option value="${a.id}" ${(sp.allocation || "oldest_task_first") === a.id ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select></div>
+    <table><thead><tr><th>Phase</th><th>Workers</th><th>Time</th><th></th></tr></thead><tbody>${sp.phases.map((ph, j) => `<tr><td><input data-ph="${i}|${j}|id" value="${esc(ph.id)}" size="10"></td><td><input type="number" min="0" data-ph="${i}|${j}|workers" value="${esc(ph.workers)}" style="width:60px"></td>
+      <td>${ph.time === "service" ? `<span class="muted small">the station's own time</span>` : `<div class="tri">${[0, 1, 2].map((k) => `<input type="number" step="any" min="0" data-pht="${i}|${j}|${k}" value="${esc(ph.time[k])}" aria-label="${["minimum", "most likely", "maximum"][k]}">`).join("")}<span class="unit">min</span></div>`}</td>
+      <td>${ph.time === "service" ? "" : `<button data-phup="${i}|${j}" ${j ? "" : "disabled"} aria-label="Move up">↑</button> <button class="danger" data-phdel="${i}|${j}">Remove</button>`}</td></tr>`).join("")}</tbody></table>
+    <div class="actions"><button data-phadd="${i}">Add phase</button><button class="danger" data-spdel="${i}">Remove phases for ${esc(stepLabel(sp.step))}</button></div></div>`).join("");
   const ul = c.unloading_labour;
   const ulHtml = ul ? `<div class="tri"><label style="margin:0">Pool</label><select data-ul="pool">${poolOpts(ul.pool)}</select>
       <label style="margin:0">Free workers go to</label><select data-ul="allocation">${L.allocation.map((a) => `<option value="${a.id}" ${ul.allocation === a.id ? "selected" : ""}>${esc(a.label)}</option>`).join("")}</select></div>
@@ -492,6 +558,8 @@ screens.labour = () => {
     <div class="card"><h2>Workers needed per task</h2><table><thead><tr><th>Task</th><th>From pool</th><th>Workers</th><th>Needed</th><th></th></tr></thead><tbody>${reqRows || `<tr><td colspan="5" class="muted">No task needs workers: labour does not limit the site.</td></tr>`}</tbody></table>
       <div class="actions"><button id="lab-add" ${c.operator_pools.length ? "" : "disabled"}>Add requirement</button></div></div>
     <div class="card"><h2>Unloading tasks with a shared pool</h2><p class="muted small">Unloading as a sequence of manual tasks (for example positioning, discharge, scraping, sweeping), each with its own number of workers. Tasks after the truck has unloaded occupy workers but not the hopper.</p>${ulHtml}</div>
+    <div class="card"><h2>Workers by phase at stations</h2><p class="muted small">Split a station step into phases with their own number of workers, for example a clerk needed only to check a truck in before weighing. The phase "service" takes the station's own time; workers are free between phases. (For unloading use the section above.)</p>
+      ${phaseCards}<div class="actions">${phaseFree.length && c.operator_pools.length ? `<select id="ph-step">${phaseFree.map((s) => `<option value="${esc(s)}">${esc(stepLabel(s))}</option>`).join("")}</select><button id="ph-add">Add phases for this step</button>` : `<span class="muted small">${c.operator_pools.length ? "Every station step already has phases." : "Add an operator pool first."}</span>`}</div></div>
     <p class="muted small">To compare staffing levels (e.g. normal, busy, peak), save the configuration and create scenarios that change a pool's workers on the Scenarios &amp; compare screen.</p>`;
   const P = c.operator_pools;
   $("#pool-add").onclick = () => { let n = 1; while (P.some((p) => p.id === `pool${n}`)) n++; P.push({ id: `pool${n}`, name: `Pool ${n}`, skills: [], schedule: [{ from: "07:00", to: "18:00", count: 1 }], verified: false }); markDirty(); render(); };
@@ -513,6 +581,19 @@ screens.labour = () => {
   $("#lab-add").onclick = () => { c.labour.push({ step: "sample", pool: P[0].id, operators: 1, held: "whole_task" }); markDirty(); render(); };
   bindAll("[data-lab]", (el) => { const [i, k] = el.dataset.lab.split("|"); c.labour[+i][k] = k === "operators" ? Math.max(1, Math.round(+el.value || 1)) : el.value; markDirty(); });
   bindAll("[data-labdel]", (el) => { c.labour.splice(+el.dataset.labdel, 1); markDirty(); render(); });
+  if ($("#ph-add")) $("#ph-add").onclick = () => { const st = $("#ph-step").value;
+    if (!P.some((p) => p.skills.includes(st))) toast(`Give a pool the skill ${st} so it can do these phases.`);
+    c.task_phases.push({ step: st, pool: (P.find((p) => p.skills.includes(st)) || P[0]).id, allocation: "oldest_task_first",
+      phases: [{ id: "check_in", workers: 1, time: [0.5, 0.5, 1] }, { id: "service", workers: 0, time: "service" }] });
+    markDirty(); render(); toast("Placeholder phases added: replace workers and times with confirmed values."); };
+  bindAll("[data-sp]", (el) => { const [i, k] = el.dataset.sp.split("|"); c.task_phases[+i][k] = el.value; markDirty(); });
+  bindAll("[data-ph]", (el) => { const [i, j, k] = el.dataset.ph.split("|"); const ph = c.task_phases[+i].phases[+j];
+    if (k === "workers") ph.workers = Math.max(0, Math.round(+el.value || 0)); else ph.id = el.value.trim(); markDirty(); });
+  bindAll("[data-pht]", (el) => { const [i, j, k] = el.dataset.pht.split("|"); c.task_phases[+i].phases[+j].time[+k] = Math.max(0, +el.value || 0); markDirty(); });
+  bindAll("[data-phadd]", (el) => { const sp = c.task_phases[+el.dataset.phadd]; sp.phases.push({ id: `phase${sp.phases.length + 1}`, workers: 1, time: [1, 1, 1] }); markDirty(); render(); });
+  bindAll("[data-phup]", (el) => { const [i, j] = el.dataset.phup.split("|"); const ph = c.task_phases[+i].phases; [ph[+j - 1], ph[+j]] = [ph[+j], ph[+j - 1]]; markDirty(); render(); });
+  bindAll("[data-phdel]", (el) => { const [i, j] = el.dataset.phdel.split("|"); c.task_phases[+i].phases.splice(+j, 1); markDirty(); render(); });
+  bindAll("[data-spdel]", (el) => { c.task_phases.splice(+el.dataset.spdel, 1); markDirty(); render(); });
   if ($("#ul-on")) $("#ul-on").onclick = () => { c.unloading_labour = { pool: P[0].id, allocation: "oldest_task_first", tasks: [
     { id: "position", operators: 1, time: [1, 2, 4], truck_present: true }, { id: "discharge", operators: 0, time: "tip", truck_present: true }] };
     c.labour = c.labour.filter((r) => r.step !== "tip"); markDirty(); render(); toast("Placeholder tasks added: replace their workers and times with confirmed values."); };
@@ -810,7 +891,7 @@ screens.advanced = () => {
 function focusKey(el) {  // a selector that finds the same input after a redraw
   if (!el || el === document.body) return null;
   if (el.id) return "#" + el.id;
-  for (const k of ["field", "multi", "sysId", "sysName", "comId", "comName", "slot", "ar", "rule"]) {
+  for (const k of ["field", "multi", "sysId", "sysName", "comId", "comName", "slot", "ar", "rule", "cs", "bt", "sp", "ph"]) {
     if (el.dataset[k] !== undefined) return `[data-${k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase())}="${el.dataset[k]}"]` + (el.value && k === "multi" ? `[value="${el.value}"]` : "");
   }
   if (el.dataset.tri !== undefined) return `[data-tri="${el.dataset.tri}"][data-i="${el.dataset.i}"]`;

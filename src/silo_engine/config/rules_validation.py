@@ -471,6 +471,8 @@ def _validate_station_activities(site: SiteConfig, result: RulesResult) -> None:
                 result.errors.append(Issue(f"No {kind} serves {ACTIVITY_NAME[act]} trucks for {step}."))
 
 
+BACKGROUND_STATION_TYPES = ("sampler", "grader", "weighbridge", "station")  # stations a background task may occupy
+PHASE_STEPS = ("sample", "weigh_in", "weigh_out")  # built-in station steps that may have worker phases
 CONDITIONS = ("service_done", "graded")  # P2: conditions a release rule may wait for
 PLACE_STEPS = ("sample", "weigh_in", "weigh_out", "tip", "load")  # steps where the truck holds a place
 
@@ -520,7 +522,7 @@ def _validate_task_phases(site: SiteConfig, result: RulesResult) -> None:
     located = any(e.type == "sampler" and e.located_at for e in site.equipment)
     for sp in site.task_phases:
         label = f"Worker phases for {sp.step}"
-        if sp.step not in ("sample", "weigh_in", "weigh_out", "load") and sp.step not in {c.id for c in site.custom_steps}:
+        if sp.step not in PHASE_STEPS + ("load",) and sp.step not in {c.id for c in site.custom_steps}:
             err(f"{label}: {sp.step} is not a station step (sample, weigh_in, weigh_out, tip or a custom step).")
             continue
         if sp.step == "load":
@@ -576,8 +578,8 @@ def _validate_background_tasks(site: SiteConfig, result: RulesResult) -> None:
             e = by_id.get(eq)
             if e is None:
                 err(f"{label} uses unknown equipment {eq}.")
-            elif e.type not in ("sampler", "grader", "weighbridge") or not (e.cap or 0) >= 1:
-                err(f"{label} can only use a station with lanes (sampler, grader or weighbridge), not {eq}.")
+            elif e.type not in BACKGROUND_STATION_TYPES or not (e.cap or 0) >= 1:
+                err(f"{label} can only use a station with lanes ({', '.join(BACKGROUND_STATION_TYPES)}), not {eq}.")
         if len(t.time) != 3 or not 0 <= t.time[0] <= t.time[1] <= t.time[2]:
             err(f"{label}: give its time as [min, most likely, max] minutes, in that order.")
         if t.pool is not None:

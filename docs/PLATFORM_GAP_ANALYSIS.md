@@ -239,5 +239,9 @@ screen and primitive can be exercised with it.
   - `custom_steps: [{id, label, equipment}]` at equipment of the new generic type `station` (lanes, time). Custom steps can be used in sequences, paths, release rules, worker phases and as starts of background tasks; each has its own queue.
   - Undeclared steps are still refused when a configuration is read (existing behaviour kept).
   - Tests: `tests/test_custom_steps.py`.
-- **Not yet in the app:** screens for background tasks, worker phases and custom steps. They can be edited in the configuration JSON, and the app shows them under Advanced.
-- **Next:** those builder screens, then the Ventersdorp demonstration once its data is available.
+- **App screens for steps 4–6 (done):**
+  - **Truck processes:** "Your own steps" (at "Truck station" equipment; placed in any process) and "Work done off the truck" (starts after, time, station, workers, condition when done). Release rules can wait for any of these conditions.
+  - **Labour:** "Workers by phase at stations". Pool skills include custom steps and off-truck tasks.
+  - `GET /meta` serves the engine's `BACKGROUND_STATION_TYPES` (now including `station`) and `PHASE_STEPS`.
+  - Verified in the browser on Site A: document station and own step after weighing in, held until off-truck paperwork is done; a clerk needed only for check-in; check, save, and a 2-replication run. The saved version holds exactly those settings.
+- **Next:** the Ventersdorp demonstration, once its data is available.

@@ -8,7 +8,7 @@ Field kinds: number, integer, triangular ([min, most likely, max]), commodities 
 """
 import typing
 
-from .rules_validation import CONDITIONS, PLACE_STEPS
+from .rules_validation import BACKGROUND_STATION_TYPES, CONDITIONS, PHASE_STEPS, PLACE_STEPS
 from .schema import (EndOfDay, LabourRequirement, QueueGroupName, QueuePolicyName, SiteConfig, TruckStep,
                      UnloadingLabour)
 from .validation import ACTIVITY_LABEL, ALLOWED_CONNECTIONS, EQUIPMENT_LABEL
@@ -119,6 +119,8 @@ def catalogue() -> dict:
         "place_steps": list(PLACE_STEPS),
         "deadlock_prevention": [{"id": d, "label": DEADLOCK_LABEL[d]}
                                 for d in typing.get_args(SiteConfig.model_fields["deadlock_prevention"].annotation)],
+        "background_task_station_types": list(BACKGROUND_STATION_TYPES),
+        "phase_steps": list(PHASE_STEPS),
         "queue_groups": [{"id": g, "label": QUEUE_GROUP_LABEL[g]} for g in typing.get_args(QueueGroupName)],
         "queue_policies": [{"id": p, "label": POLICY_LABEL[p]} for p in typing.get_args(QueuePolicyName)],
         "end_of_day": {k: [{"id": o, "label": EOD_LABEL[o]} for o in _lit(EndOfDay, k)]
