@@ -85,3 +85,40 @@ def test_a_distribution_for_a_step_the_equipment_does_not_do_is_refused():
                                               "tonnes": 30} for t, a in TRUCKS[:1]]})
     with pytest.raises(ModelError, match="does not do tip"):
         TruckFlowModel(s, script, StochasticServiceTimes(s, 1)).run()
+
+
+# ---- a fitted distribution counts as a station's processing time (structural check) ----
+def _station_errors(raw):
+    from silo_engine.config import validate
+    return [i.msg for i in validate(load_site_config(raw)).errors if "processing time" in i.msg]
+
+
+def _stations(**changes):
+    raw = {**RAW, "equipment": [dict(e) for e in RAW["equipment"]]}
+    for e in raw["equipment"]:
+        if e["id"] in changes:
+            e.update(changes[e["id"]])
+            if e.get("time") is None:
+                e.pop("time", None)
+    return raw
+
+
+LOGN = {"family": "lognormal", "params": {"mu": 0.7, "sigma": 0.3}}
+
+
+def test_a_station_with_fitted_distributions_needs_no_triangular_time():
+    raw = _stations(WB_IN={"time": None, "distributions": {"weigh_in": LOGN}},
+                    WB_OUT={"time": None, "distributions": {"weigh_out": LOGN}})
+    assert _station_errors(raw) == []
+    s = load_site_config(raw)  # and the engine runs it with the fitted times
+    script = load_arrival_script({"trucks": [{"id": "T1", "activity": "unload", "arrive": "07:00", "commodity": "YM", "tonnes": 30}]})
+    r = TruckFlowModel(s, script, StochasticServiceTimes(s, 3)).run()
+    assert r.stall is None and r.violations == [] and r.summary["unload"].completed == 1
+
+
+def test_a_station_still_needs_a_time_for_every_step_it_serves():
+    """A weighbridge that weighs in and out with only a weigh-in distribution, or no time at all, still needs one."""
+    both = _stations(WB_IN={"time": None, "moves": "both", "distributions": {"weigh_in": LOGN}})
+    assert _station_errors(both) == ["Incoming needs a processing time."]
+    none = _stations(WB_OUT={"time": None})
+    assert _station_errors(none) == ["Outgoing needs a processing time."]

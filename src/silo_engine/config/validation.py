@@ -78,6 +78,22 @@ def _active(d: ActivityDemand | None) -> bool:
     return d is not None and d.daily > 0
 
 
+# Steps each station serves; a fitted distribution for every one of them stands in for the triangular `time`
+# (not a prototype feature: prototype configurations have no distributions, so their checks are unchanged).
+STATION_STEPS = {"sampler": ("sample",), "grader": ("grade",), "station": ()}
+
+
+def _fitted_for_all_steps(e: Equipment) -> bool:
+    if not e.distributions:
+        return False
+    if e.type == "weighbridge":
+        moves = e.moves or "both"
+        steps = (("weigh_in",) if moves in ("in", "both") else ()) + (("weigh_out",) if moves in ("out", "both") else ())
+    else:
+        steps = STATION_STEPS.get(e.type, ())
+    return bool(steps) and all(s in e.distributions for s in steps)
+
+
 def validate(cfg: SiteConfig) -> ValidationResult:
     errors: list[Issue] = []
     warnings: list[Issue] = []
@@ -130,7 +146,7 @@ def validate(cfg: SiteConfig) -> ValidationResult:
         if e.type in TRUCK_STATIONS:
             if e.cap is None or not e.cap >= 1:
                 err(name(e) + " needs a capacity of at least 1 truck at a time.", [e.id])
-            if not e.time or not _gt(_third(e.time), 0):
+            if (not e.time or not _gt(_third(e.time), 0)) and not _fitted_for_all_steps(e):
                 err(name(e) + " needs a processing time.", [e.id])
         if e.type == "hopper":
             if not _gt(e.cap_t, 0):
