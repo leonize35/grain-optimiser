@@ -412,7 +412,7 @@ class TruckFlowResult:
     # Every reservation and release, in order (ledger.LedgerEntry); read by analysis (e.g. TLS resource use).
     ledger_log: list = field(default_factory=list)
     # TLS T2: minutes of waiting per clock hour (absolute, day * 24 + hour), per kind (truck, in_service, task, sample,
-    # grain) and cause.
+    # grain) and cause; kind in_service_by_truck is keyed "truck|step" instead (each such truck counts 1).
     # A cause is "CODE:resource", followed by "<" and the wait it explains when traced (e.g. a full pit waiting for a
     # belt: "EQUIPMENT_BUSY:C1<PIT_SPACE:H1"). One waiting request counts 1 per minute, split equally over its causes.
     wait_causes: dict = field(default_factory=dict)
@@ -1885,6 +1885,7 @@ class TruckFlowModel:
             return {f"FLOW:{next(i for r, i in rates if r == slowest)}": 1.0}  # ties: the first along the route
 
         snap: dict[tuple[str, str], float] = {}
+        in_service: set[str] = set()
         for rid, group, reasons, tid in waiting:
             # truck: a truck waiting to start a step; in_service: a truck already in service waiting for pit space
             # (partial tipping) or workers (phases); task: a background task; sample; grain (intake transfers).
@@ -1892,9 +1893,16 @@ class TruckFlowModel:
                     else "task" if group == "background" else "in_service")
             for k, v in (resolve(reasons, group, 0) or {"UNKNOWN": 1.0}).items():
                 snap[(kind, k)] = snap.get((kind, k), 0.0) + v
+            if kind == "in_service":  # which truck and step (once per truck, however many requests it has)
+                owner = rid.split("/")[0]
+                loc = self._location.get(owner)
+                if owner in self._truck_by_id and loc is not None and loc[1] is not None:
+                    in_service.add(f"{owner}|{loc[1].step}")
         for tid in held:
             for k, v in hold(tid, 0).items():
                 snap[("truck", k)] = snap.get(("truck", k), 0.0) + v
+        for k in in_service:  # "truck|step": minutes a truck in service waited (e.g. for pit space while tipping)
+            snap[("in_service_by_truck", k)] = 1.0
         return snap
 
     def _attribution_report(self) -> dict[str, float]:
