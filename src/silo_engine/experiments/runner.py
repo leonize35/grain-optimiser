@@ -157,6 +157,13 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
     return out
 
 
+def summarise(reps: list[Replication]) -> dict[str, Interval]:
+    """Each measure over the replications that report it. A rare commodity may be absent from a replication, so its
+    per-commodity measures exist in some replications only; `n` says how many contributed."""
+    keys = list(dict.fromkeys(k for r in reps for k in r.kpis))
+    return {k: ci([r.kpis.get(k) for r in reps]) for k in keys}
+
+
 def run_experiment(site: SiteConfig, replications: int = 10, base_seed: int = 20261019, days: int = 1,
                    demand_factor: float = 1.0, policy: str | dict[str, str] | None = None) -> ExperimentResult:
     reps: list[Replication] = []
@@ -181,7 +188,7 @@ def run_experiment(site: SiteConfig, replications: int = 10, base_seed: int = 20
         reps.append(Replication(i, seed, status, kpis_of(result), detail, arrival_hash(trucks), len(trucks),
                                 len(result.records), failure_time))
     good = [r for r in reps if r.status == "ok"]
-    summary = {k: ci([r.kpis[k] for r in good]) for k in (good[0].kpis if good else {})}
+    summary = summarise(good)
     metadata = {"engine_version": VERSION, "config_hash": config_hash(site), "base_seed": base_seed,
                 "seeds": [r.seed for r in reps], "replications": replications, "days": days,
                 "demand_factor": demand_factor,

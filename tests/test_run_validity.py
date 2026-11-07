@@ -76,3 +76,13 @@ def test_compare_with_no_failures_is_unconditional():
     c = compare(a, b, "k")
     assert (c.used, c.excluded, c.rankable_a, c.rankable_b, c.note) == (2, [], True, True, "all 2 pairs used")
     assert copy.deepcopy(c.difference.mean) == 3
+
+
+def test_summary_covers_measures_some_replications_lack():
+    """A rare commodity can be absent from a replication, so its per-commodity measures exist in some replications
+    only. The summary must cover every measure, each over the replications that have it (n says how many)."""
+    from silo_engine.experiments.runner import summarise
+    reps = [Replication(0, 0, "ok", {"k": 1.0, "rare": 4.0}), Replication(1, 1, "ok", {"k": 3.0})]
+    s = summarise(reps)
+    assert (s["k"].n, s["k"].mean) == (2, 2.0)
+    assert (s["rare"].n, s["rare"].mean) == (1, 4.0)
