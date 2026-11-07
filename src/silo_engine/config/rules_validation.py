@@ -600,6 +600,12 @@ def _validate_background_tasks(site: SiteConfig, result: RulesResult) -> None:
                         f"{' in scenario ' + scenario if scenario else ''}, which never has that many; it could never start.")
 
 
+def _validate_partial_tipping(site: SiteConfig, result: RulesResult) -> None:
+    for e in site.equipment:
+        if e.type == "hopper" and e.tip_portion_min_t is not None and not e.tip_portion_min_t > 0:
+            result.errors.append(Issue(f"{e.name or e.id}: the minimum tipping portion must be positive."))
+
+
 def _validate_systems(site: SiteConfig, result: RulesResult) -> None:
     ids = [s.id for s in site.systems]
     if len(set(ids)) != len(ids):
@@ -642,6 +648,7 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_distributions(site, result)
     _validate_station_activities(site, result)
     _validate_systems(site, result)
+    _validate_partial_tipping(site, result)
     _validate_release_rules(site, result)
     _validate_background_tasks(site, result)
     _validate_task_phases(site, result)

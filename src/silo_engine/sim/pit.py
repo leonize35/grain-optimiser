@@ -6,7 +6,8 @@
   `free_space_at(t)` give the continuous view used for admission.
 - A pit holds one commodity and grade at a time (A4), unless the site's grade mixing rules (R4) let two grades
   of the same commodity share it.
-- Admission rules (site input): ``full_load_space`` (free space ≥ load) or ``empty_pit`` (nothing in the pit).
+- Admission rules (site input): ``full_load_space`` (free space ≥ load), ``empty_pit`` (nothing in the pit) or
+  ``partial`` (tip what fits, then wait for space for the remainder; each portion is claimed like a small load).
 - Space for a truck that is tipping is held by a *claim* until tipping ends, when the claim becomes a lot.
 """
 import math
@@ -17,7 +18,7 @@ from fractions import Fraction
 from ..domain.storage import GradedCommodity, MixingRules
 from .dispatcher import WaitReason
 
-ADMISSION_RULES = ("full_load_space", "empty_pit")
+ADMISSION_RULES = ("full_load_space", "empty_pit", "partial")
 
 
 @dataclass
@@ -121,7 +122,7 @@ class Pit:
 
     def time_space_available(self, now: int, kg: int) -> int | None:
         """Earliest time ≥ now at which `kg` will fit under the current drain, or None if not before it ends."""
-        if self.admission != "full_load_space":
+        if self.admission not in ("full_load_space", "partial"):
             return None
         shortfall = kg - self.free_space_at(now)
         if shortfall <= 0:

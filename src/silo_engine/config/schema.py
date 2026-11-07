@@ -86,8 +86,10 @@ class Equipment(_Model):
     level0: float | None = None  # opening hopper level, tonnes
     level_commodity: str | None = Field(default=None, alias="levelCommodity")
     level_grade: str | None = Field(default=None, alias="levelGrade")
-    # R2: when a truck may start tipping (site input). 'partial' is specified but not built until confirmed.
-    tip_admission: Literal["full_load_space", "empty_pit"] = "full_load_space"
+    # R2: when a truck may start tipping (site input). 'partial' (confirmed 2026-11-07): tip what fits, then wait for
+    # space for the remainder; a portion starts when at least min(remaining, tip_portion_min_t) is free.
+    tip_admission: Literal["full_load_space", "empty_pit", "partial"] = "full_load_space"
+    tip_portion_min_t: float | None = None  # partial tipping: smallest portion worth tipping, t (default 1 t)
     # R1: streams that may feed this conveyor/elevator at once; 1 = exclusive (default, as in the prototype).
     max_concurrent_feeds: int = Field(default=1, ge=1)
     # R1: minutes the route stays reserved after the last grain is fed (equipment emptying). Site input.
@@ -464,7 +466,7 @@ def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
     data = cfg.model_dump(mode="json", by_alias=True)
     for e in data.get("equipment", []):  # sampler-access fields: hash as before when unset
-        for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities"):
+        for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities", "tip_portion_min_t"):
             if e.get(k) is None:
                 e.pop(k, None)
     for a in data.get("truck_areas", []):

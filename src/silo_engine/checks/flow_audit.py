@@ -66,7 +66,8 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
             lot_kg[lot], lot_pit[lot], lot_commodity[lot], lot_tipped[lot] = tonnes_to_kg(e.level0), e.id, e.level_commodity, -1
             pit_in[e.id] += lot_kg[lot]
     received = 0
-    for rec in result.records:
+    partial = any(e.type == "hopper" and e.tip_admission == "partial" for e in site.equipment)
+    for rec in ([] if partial else result.records):
         for s in rec.steps:
             if s.step != "tip" or s.started is None:
                 continue
@@ -82,6 +83,26 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
                 lot_kg[lot], lot_pit[lot], lot_commodity[lot], lot_tipped[lot] = t.kg, s.unit, t.commodity, when
                 pit_in[s.unit] += t.kg
                 received += t.kg
+
+    if partial:  # a truck may tip several lots: each lot from the result, checked against its truck's unloading
+        per_truck: dict[str, int] = defaultdict(int)
+        tips = {r.truck_id: next((s for s in r.steps if s.step == "tip" and s.started is not None), None) for r in result.records}
+        for lot, flow in (getattr(result, "lots", None) or {}).items():
+            if flow.truck_id is None or flow.tipped_at is None:
+                continue
+            s = tips.get(flow.truck_id)
+            if s is None or not (s.started <= flow.tipped_at and (s.finished is None or flow.tipped_at <= s.finished)):
+                a.problems.append(f"lot {lot} entered the pit outside its truck's unloading")
+            lot_kg[lot], lot_pit[lot], lot_commodity[lot], lot_tipped[lot] = flow.kg, flow.pit, flow.commodity, flow.tipped_at
+            pit_in[flow.pit] += flow.kg
+            received += flow.kg
+            per_truck[flow.truck_id] += flow.kg
+        for tid, s in tips.items():
+            load = truck[tid].kg if tid in truck else None
+            if s is not None and s.finished is not None and load is not None and per_truck.get(tid, 0) != load:
+                a.problems.append(f"{tid} finished unloading but delivered {per_truck.get(tid, 0)} of {load} kg")
+            elif load is not None and per_truck.get(tid, 0) > load:
+                a.problems.append(f"{tid} delivered {per_truck.get(tid, 0)} kg, more than its {load} kg load")
 
     transfers, loads = list(result.transfers), list(result.loads)
     done_t = [x for x in transfers if x.finished is not None]

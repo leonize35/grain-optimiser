@@ -20,11 +20,13 @@ def _minutes(ms: int) -> float:
 
 
 def truck_outcomes(records, end: int, kg: dict[str, int | None] | None = None,
-                   tipped: set[str] | None = None, system_of: dict[str, str] | None = None) -> dict[str, dict]:
+                   tipped: dict[str, int] | set[str] | None = None, system_of: dict[str, str] | None = None) -> dict[str, dict]:
     """kg: each truck's payload; tipped: trucks whose grain entered a pit (K4 tonnes); system_of: equipment id ->
     system id. A truck belongs to the system of the hopper it unloaded at or the load point it loaded at, once it
     reaches one; otherwise its system is None (unassigned)."""
-    kg, tipped, system_of = kg or {}, tipped or set(), system_of or {}
+    kg, system_of = kg or {}, system_of or {}
+    if not isinstance(tipped, dict):  # a set of trucks that tipped their whole load
+        tipped = {t: kg.get(t) or 0 for t in (tipped or set())}
     out = {}
     for r in records:
         if r.departed is not None:
@@ -46,6 +48,7 @@ def truck_outcomes(records, end: int, kg: dict[str, int | None] | None = None,
             "gate_min": _minutes(max(0, gate_stop - r.arrived)),
             "censored": leave is None or leave > end,
             "tonnes": (kg.get(r.truck_id) or 0) / 1000, "tipped": r.truck_id in tipped,
+            "tipped_t": tipped.get(r.truck_id, 0) / 1000,  # less than the load while partial tipping is under way
             "system": system_of.get(unit) if unit is not None else None,
             "weighbridge": {"weigh_in_start": wi.started if wi else None, "weigh_in_end": wi.finished if wi else None,
                             "weigh_out_start": wo.started if wo else None, "weigh_out_end": wo.finished if wo else None},
@@ -68,8 +71,8 @@ def outcome_summary(trucks: dict[str, dict]) -> dict[str, dict]:
         done_t = sum(x["tonnes"] for x in xs if x["status"] == "completed")
         tonnes = {"completed_trucks_t": done_t}
         if act == "unload":  # K4: received into pits by the end, and grain of trucks not (yet) departed
-            received = sum(x["tonnes"] for x in xs if x["tipped"])
-            tonnes.update(received_t=received, in_progress_t=received - done_t)
+            received = sum(x["tipped_t"] for x in xs)
+            tonnes.update(received_t=received, in_progress_t=received - sum(x["tipped_t"] for x in xs if x["status"] == "completed"))
         out[act] = {"counts": counts, "turned_away": away, "tonnes": tonnes,
                     "occupancy": {"truck_minutes": total, "gate_minutes": gate, "site_minutes": total - gate,
                                   "mean_observed_time_on_site_min": total / len(xs) if xs else None}}

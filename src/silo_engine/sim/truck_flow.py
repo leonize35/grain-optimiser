@@ -1292,12 +1292,24 @@ class TruckFlowModel:
             lab = self._labour_item(res_id, "tip")
             if self._unload and self._unload[0][1]:
                 lab = (f"{res_id}#0/labour", [LabourClaim(self.site.unloading_labour.pool, self._unload[0][1])])
-            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, kg)],
+            claim_kg = self._portion(pit, kg) if pit.admission == "partial" else kg
+            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, claim_kg)],
                                         extra=[lab] if lab else None)
             if not got and self._unload:
                 self._occupy_station(truck, res_id, step_rec)
                 step_rec.unit, step_rec.started = pit.id, self.cal.now
                 self._unload_task_start(truck, step_rec, pit, res_id, 0)
+                return []
+            if not got and pit.admission == "partial":
+                self._labour_started(res_id, "tip")
+                self._occupy_station(truck, res_id, step_rec)
+                step_rec.unit, step_rec.started = pit.id, self.cal.now
+
+                def finished() -> None:
+                    self._labour_finished(res_id)
+                    step_rec.finished = self.cal.now
+                    self._leave_or_send_away(truck)
+                self._discharge(truck, pit, res_id, self._dur(truck.id, "tip", pit.id), finished)
                 return []
             if not got:
                 self._labour_started(res_id, "tip")
@@ -1309,8 +1321,63 @@ class TruckFlowModel:
                 return []
             reasons.extend(r for r in got if r not in reasons)
             if any(r.code == "PIT_SPACE" for r in got):  # re-evaluate when space appears, even if other reasons remain
-                self._schedule_space_recheck(pit, kg)
+                self._schedule_space_recheck(pit, claim_kg)
         return reasons
+
+    # ---- partial tipping (R2 `partial`, docs/DOMAIN_DECISIONS.md) ----
+    def _portion_min(self, pit: Pit, remaining: int) -> int:
+        t = self.equipment[pit.id].tip_portion_min_t
+        return min(remaining, tonnes_to_kg(t if t is not None else 1))
+
+    def _portion(self, pit: Pit, remaining: int) -> int:
+        """kg to claim now: what fits (whole kg), or the minimum portion when less fits (the claim then waits)."""
+        fits = min(remaining, max(0, math.floor(pit.free_space_at(self.cal.now))))
+        need = self._portion_min(pit, remaining)
+        return fits if fits >= need else need
+
+    def _discharge(self, truck: ScriptedTruck, pit: Pit, res_id: str, total_ms: int, on_done) -> None:
+        """Tip the truck's load in portions. The first portion's pit space is already claimed under `res_id`; each
+        portion takes its share of `total_ms` (cumulative rounding) and becomes a lot; between portions the truck keeps
+        the hopper and asks for space for the remainder (ahead of trucks waiting for the hopper)."""
+        grain, kg = self._grain(truck), truck.kg
+        state = {"done": 0, "k": 0}
+
+        def tip_portion(claim_id: str, amount: int) -> None:
+            before, after = state["done"], state["done"] + amount
+            ms = round(total_ms * after / kg) - round(total_ms * before / kg)
+            self.cal.schedule(self.cal.now + ms, RELEASE, lambda c: portion_done(claim_id, amount),
+                              f"{truck.id} tips {amount} kg into {pit.id}")
+
+        def portion_done(claim_id: str, amount: int) -> None:
+            state["k"] += 1
+            lot_id = f"L-{truck.id}" if state["k"] == 1 else f"L-{truck.id}#{state['k']}"
+            pit.claim_to_lot(claim_id, Lot(lot_id, truck.id, grain, amount, self.cal.now))
+            self._lots_seen[lot_id] = (truck.id, pit.id, grain, amount, self.cal.now)
+            self._tipped_kg += amount
+            if claim_id != res_id:
+                self.ledger.release(claim_id, self.cal.now, "completed")
+            state["done"] += amount
+            if pit.id not in self._intake_active:
+                self._submit_intake(pit.id)
+            if state["done"] >= kg:
+                on_done()
+            else:
+                req = f"{truck.id}/tip#portion{state['k'] + 1}"
+
+                def attempt(now: int) -> list[WaitReason]:
+                    remaining = kg - state["done"]
+                    amount_ = self._portion(pit, remaining)
+                    reasons = self.ledger.try_reserve(f"{req}/space", [PitSpaceClaim(pit.id, grain, amount_)], now)
+                    if reasons:
+                        if any(r.code == "PIT_SPACE" for r in reasons):
+                            self._schedule_space_recheck(pit, amount_)
+                        return reasons
+                    tip_portion(f"{req}/space", amount_)
+                    return []
+                self.dispatcher.submit(req, "tip", self.cal.now, attempt, order=lambda: -1)
+            self._after_event()
+
+        tip_portion(res_id, pit.claims[res_id][1])
 
     def _schedule_space_recheck(self, pit: Pit, kg: int) -> None:
         when = pit.time_space_available(self.cal.now, kg)
@@ -1336,13 +1403,16 @@ class TruckFlowModel:
         owner = f"{res_id}#{k}"
         self._task_labour_started(owner, f"tip:{task.id}", workers)
         ms = self._dur(truck.id, "tip", pit.id) if task.time == "tip" else self.times.duration_ms(truck.id, f"tip:{task.id}", pit.id)
+        if task.time == "tip" and pit.admission == "partial":
+            self._discharge(truck, pit, res_id, ms, lambda: self._unload_task_done(truck, step_rec, pit, res_id, k))
+            return
         self.cal.schedule(self.cal.now + ms, RELEASE, lambda c: self._unload_task_done(truck, step_rec, pit, res_id, k),
                           f"{truck.id} finishes {task.id} at {pit.id}")
 
     def _unload_task_done(self, truck: ScriptedTruck, step_rec: StepRecord, pit: Pit, res_id: str, k: int) -> None:
         task, _ = self._unload[k]
         self._labour_finished(f"{res_id}#{k}")
-        if task.time == "tip":  # the grain is in the pit
+        if task.time == "tip" and pit.admission != "partial":  # the grain is in the pit (partial: lots already made)
             pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
             self._lots_seen[f"L-{truck.id}"] = (truck.id, pit.id, self._grain(truck), truck.kg, self.cal.now)
             self._tipped_kg += truck.kg
@@ -1860,7 +1930,10 @@ class TruckFlowModel:
 
     def _outcomes(self) -> dict:
         end = min(self.cal.now, self._horizon_end)
-        tipped = {v[0] for v in self._lots_seen.values() if v[0] is not None}
+        tipped: dict[str, int] = {}
+        for truck_id, _, _, kg, _ in self._lots_seen.values():
+            if truck_id is not None:
+                tipped[truck_id] = tipped.get(truck_id, 0) + kg
         system_of = {eq: s.id for s in self.site.systems for eq in s.equipment}
         trucks = truck_outcomes(list(self.records.values()), end, {t.id: t.kg for t in self.trucks}, tipped, system_of)
         out = {"trucks": trucks, "summary": outcome_summary(trucks), "horizon_end": end}
