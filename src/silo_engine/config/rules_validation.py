@@ -131,11 +131,43 @@ TRUCK_STEPS = ("sample", "grade", "weigh_in", "tip", "load", "weigh_out")
 PATH_LABEL = {"unload": "unloading", "load": "loading", "weigh": "weighbridge-only"}
 
 
+def step_names(site: SiteConfig) -> tuple[str, ...]:
+    """Built-in truck steps and the site's custom steps."""
+    return TRUCK_STEPS + tuple(c.id for c in site.custom_steps)
+
+
+def _validate_custom_steps(site: SiteConfig, result: RulesResult) -> None:
+    """G2: site-defined steps, and every sequence step known."""
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    by_id = {e.id: e for e in site.equipment}
+    ids = [c.id for c in site.custom_steps]
+    for dup in sorted({i for i in ids if ids.count(i) > 1}):
+        err(f"The step {dup} is defined more than once.")
+    for c in site.custom_steps:
+        if c.id in TRUCK_STEPS or c.id == "pass":
+            err(f"The step {c.id} is a built-in step; give the site's own step another id.")
+        if not c.equipment:
+            err(f"The step {c.label} needs at least one station where it is done.")
+        for eq in c.equipment:
+            e = by_id.get(eq)
+            if e is None:
+                err(f"The step {c.label} uses unknown equipment {eq}.")
+            elif e.type != "station":
+                err(f"The step {c.label} must be done at equipment of type station, not {eq} ({e.type}).")
+    known = step_names(site)
+    for act, label in PATH_LABEL.items():
+        for s in getattr(site.sequences, act):
+            if s not in known:
+                err(f"The {label} sequence has unknown step {s}; add it as a custom step or remove it.")
+
+
 def _validate_truck_paths(site: SiteConfig, result: RulesResult) -> None:
     """R5: waiting areas and truck paths."""
+    _validate_custom_steps(site, result)
+    steps_known = step_names(site)
     area_ids = [a.id for a in site.truck_areas]
     for a in site.truck_areas:
-        if a.id in TRUCK_STEPS:
+        if a.id in steps_known:
             result.errors.append(Issue(f"Waiting area id {a.id} is also the name of a truck step; choose another id."))
     for dup in sorted({x for x in area_ids if area_ids.count(x) > 1}):
         result.errors.append(Issue(f"Two waiting areas share the id {dup}."))
@@ -144,9 +176,9 @@ def _validate_truck_paths(site: SiteConfig, result: RulesResult) -> None:
         if not path:
             continue
         for x in path:
-            if x not in TRUCK_STEPS and x not in area_ids:
+            if x not in steps_known and x not in area_ids:
                 result.errors.append(Issue(f"The {label} truck path refers to unknown waiting area {x}."))
-        steps = [x for x in path if x in TRUCK_STEPS]
+        steps = [x for x in path if x in steps_known]
         sequence = getattr(site.sequences, act)
         if steps != list(sequence):
             result.errors.append(Issue(f"The {label} truck path's steps ({', '.join(steps)}) do not match the "
@@ -452,11 +484,18 @@ def _validate_release_rules(site: SiteConfig, result: RulesResult) -> None:
         if (r.activity, r.step) in seen:
             err(f"There is more than one release rule for {r.step} of {label} trucks.")
         seen.add((r.activity, r.step))
+        produced = {t.produces: t for t in site.background_tasks}
         for c in r.when:
-            if c not in CONDITIONS:
+            if c in produced:
+                t = produced[c]
+                applies = t.activities is None or r.activity in t.activities
+                if not applies or t.started_by not in seq or (r.step in seq and seq.index(t.started_by) > seq.index(r.step)):
+                    err(f"The release rule for {r.step} of {label} trucks waits for {c}, which background task {t.id} "
+                        f"produces only after {t.started_by}: the truck would wait for ever.")
+            elif c not in CONDITIONS:
                 err(f"The release rule for {r.step} of {label} trucks uses unknown condition {c}; "
                     f"known conditions: {', '.join(CONDITIONS)}.")
-        if r.step not in PLACE_STEPS:
+        if r.step not in PLACE_STEPS + tuple(c.id for c in site.custom_steps):
             err(f"A release rule needs a step where the truck holds a place ({', '.join(PLACE_STEPS)}), not {r.step}.")
         if r.step not in seq:
             err(f"The release rule for {r.step} applies to a step that is not in the {label} sequence.")
@@ -468,6 +507,95 @@ def _validate_release_rules(site: SiteConfig, result: RulesResult) -> None:
             elif "sample" not in seq or seq.index(r.step) < seq.index("sample"):
                 err(f"The release rule for {r.step} of {label} trucks waits for grading, which starts only after "
                     f"sampling, but {r.step} comes before sampling: the truck would wait for ever.")
+
+
+def _validate_task_phases(site: SiteConfig, result: RulesResult) -> None:
+    """P4 for station steps (tip phases are read as unloading_labour by the schema and validated there)."""
+    from ..sim.time import TimeFormatError, hm
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    pools = {p.id: p for p in site.operator_pools}
+    steps = [p.step for p in site.task_phases]
+    for s in sorted({s for s in steps if steps.count(s) > 1}):
+        err(f"Worker phases for {s} are given more than once.")
+    located = any(e.type == "sampler" and e.located_at for e in site.equipment)
+    for sp in site.task_phases:
+        label = f"Worker phases for {sp.step}"
+        if sp.step not in ("sample", "weigh_in", "weigh_out", "load") and sp.step not in {c.id for c in site.custom_steps}:
+            err(f"{label}: {sp.step} is not a station step (sample, weigh_in, weigh_out, tip or a custom step).")
+            continue
+        if sp.step == "load":
+            err(f"{label}: worker phases are not supported for load yet; use a labour requirement.")
+            continue
+        if any(r.step == sp.step for r in site.labour):
+            err(f"{label}: give the workers for {sp.step} either as phases or as a labour requirement, not both.")
+        if located and sp.step in ("sample", "weigh_in"):
+            err(f"{label} are not supported with samplers located at the weighbridge.")
+        if sum(1 for p in sp.phases if p.time == "service") != 1:
+            err(f'{label}: exactly one phase takes the station\'s own time (time "service").')
+        for p in sp.phases:
+            if not p.truck_present:
+                err(f"{label}: every phase of a station step has the truck present ({p.id}).")
+            if p.time != "service" and (len(p.time) != 3 or not 0 <= p.time[0] <= p.time[1] <= p.time[2]):
+                err(f"{label}, phase {p.id}: give its time as [min, most likely, max] minutes, in that order.")
+        pool = pools.get(sp.pool)
+        if pool is None:
+            err(f"{label} refer to unknown operator pool {sp.pool}.")
+            continue
+        if sp.step not in pool.skills:
+            err(f"Operator pool {sp.pool} does not have the skill {sp.step}.")
+        try:
+            most = max((w.count for w in pool.schedule if hm(w.to) > hm(w.from_)), default=0)
+        except TimeFormatError:
+            continue
+        for p in sp.phases:
+            if p.workers > most:
+                err(f"{label}, phase {p.id} needs {p.workers} worker(s) from {sp.pool}, which never has that many.")
+
+
+def _validate_background_tasks(site: SiteConfig, result: RulesResult) -> None:
+    from ..sim.time import TimeFormatError, hm
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    by_id = {e.id: e for e in site.equipment}
+    pools = {p.id: p for p in site.operator_pools}
+    ids = [t.id for t in site.background_tasks]
+    if len(set(ids)) != len(ids):
+        err("Two background tasks share an id.")
+    seen: set[str] = set()
+    for t in site.background_tasks:
+        label = f"Background task {t.id}"
+        if t.produces in CONDITIONS:
+            err(f"{label}: the condition name {t.produces} is reserved; choose another name.")
+        if t.produces in seen:
+            err(f"There is more than one background task produces {t.produces}; each condition needs one producer.")
+        seen.add(t.produces)
+        acts = [a for a in ("unload", "load", "weigh") if (t.activities is None or a in t.activities)
+                and t.started_by in getattr(site.sequences, a)]
+        if not acts:
+            err(f"{label} starts after {t.started_by}, but no truck process has {t.started_by}.")
+        for eq in t.equipment:
+            e = by_id.get(eq)
+            if e is None:
+                err(f"{label} uses unknown equipment {eq}.")
+            elif e.type not in ("sampler", "grader", "weighbridge") or not (e.cap or 0) >= 1:
+                err(f"{label} can only use a station with lanes (sampler, grader or weighbridge), not {eq}.")
+        if len(t.time) != 3 or not 0 <= t.time[0] <= t.time[1] <= t.time[2]:
+            err(f"{label}: give its time as [min, most likely, max] minutes, in that order.")
+        if t.pool is not None:
+            p = pools.get(t.pool)
+            if p is None:
+                err(f"{label} refers to unknown operator pool {t.pool}.")
+                continue
+            if t.id not in p.skills:
+                err(f"Operator pool {t.pool} does not have the skill {t.id}, so it cannot do background task {t.id}.")
+            for scenario in [None, *site.staffing_scenarios]:
+                windows = (site.staffing_scenarios[scenario].pools.get(t.pool) if scenario else None) or p.schedule
+                try:
+                    most = max((w.count for w in windows if hm(w.to) > hm(w.from_)), default=0)
+                except TimeFormatError:
+                    continue
+                if t.workers > most:
+                    err(f"{label} needs {t.workers} worker(s) from {t.pool}"
+                        f"{' in scenario ' + scenario if scenario else ''}, which never has that many; it could never start.")
 
 
 def _validate_systems(site: SiteConfig, result: RulesResult) -> None:
@@ -513,6 +641,8 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_station_activities(site, result)
     _validate_systems(site, result)
     _validate_release_rules(site, result)
+    _validate_background_tasks(site, result)
+    _validate_task_phases(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

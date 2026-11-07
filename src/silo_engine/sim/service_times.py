@@ -39,9 +39,15 @@ class StochasticServiceTimes:
         self._equipment = {e.id: e for e in site.equipment}
         ul = site.unloading_labour  # unloading tasks other than the discharge: "tip:<task id>"
         self._tasks = {f"tip:{t.id}": t.time for t in ul.tasks if t.time != "tip"} if ul else {}
+        self._tasks.update({f"task:{t.id}": t.time for t in site.background_tasks})  # P1 background tasks
+        self._tasks.update({f"{sp.step}:{p.id}": p.time for sp in site.task_phases for p in sp.phases
+                            if p.time != "service"})  # P4 station phases
         self.seed = seed
 
     def duration_ms(self, truck_id: str, step: str, equipment_id: str) -> int:
+        if step in self._tasks and step.startswith("task:"):  # a background task's own time, whatever its unit
+            low, mode, high = self._tasks[step]
+            return round(triangular(Stream(self.seed, "service", truck_id, step).uniform(), low, mode, high) * MS_PER_MINUTE)
         e = self._equipment[equipment_id]
         if e.distributions and step in e.distributions:  # fitted distribution: same uniform, other transform
             u = Stream(self.seed, "service", truck_id, step).uniform()

@@ -156,6 +156,7 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
     _audit_outages(a, site, [*transfers, *loads])
     _audit_access(a, site, trucks, result)
     _audit_labour(a, site, result)
+    _audit_background(a, site, result)
     _audit_segments(a, eq, transfers, loads, lot_commodity, truck)
     a.checked = {"lots": len(lot_kg), "transfers": len(transfers), "loads": len(loads), "bins": len(opening_bins),
                  "pits": len(result.pits)}
@@ -381,10 +382,24 @@ def _audit_access(a, site, trucks, result) -> None:
             q.remove(tid)
 
 
+def _audit_background(a, site, result) -> None:
+    """P1: a background task starts only after its truck finished the starting step, and ends after it starts."""
+    tasks = {t.id: t for t in site.background_tasks}
+    recs = {r.truck_id: r for r in result.records}
+    for x in getattr(result, "background_log", []) or []:
+        t, rec = tasks.get(x["task"]), recs.get(x["truck"])
+        step = next((s for s in rec.steps if t and s.step == t.started_by), None) if rec else None
+        if t is None or step is None or step.finished is None or x["start"] < step.finished:
+            a.problems.append(f"background task {x['task']} of {x['truck']} started before {t.started_by if t else '?'} finished")
+        elif x["end"] is not None and x["end"] < x["start"]:
+            a.problems.append(f"background task {x['task']} of {x['truck']} ends before it starts")
+
+
 def _audit_labour(a, site, result) -> None:
     """Staffing: operators in use at any task start never exceed the scheduled count (tasks may run past a shift end),
     and every task needing labour held its operators for the required phase."""
-    if not site.labour and site.unloading_labour is None:
+    if not site.labour and site.unloading_labour is None and not site.task_phases and not any(
+            t.pool for t in site.background_tasks):
         return
     scenario = (getattr(result, "staffing", {}) or {}).get("scenario")
     schedules = {p.id: list(p.schedule) for p in site.operator_pools}

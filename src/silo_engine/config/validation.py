@@ -22,6 +22,7 @@ EQUIPMENT_LABEL = {
     "elevator": "Bucket elevator",
     "bin": "Storage bin",
     "loadpoint": "Loading point",
+    "station": "Truck station",  # generic station for site-defined steps (not in the prototype)
 }
 # Which equipment types each type may discharge grain into.
 ALLOWED_CONNECTIONS = {
@@ -33,9 +34,10 @@ ALLOWED_CONNECTIONS = {
     "sampler": (),
     "grader": (),
     "weighbridge": (),
+    "station": (),
 }
 ACTIVITY_LABEL = {"unload": "Unloading", "load": "Loading", "weigh": "Weighbridge only"}
-TRUCK_STATIONS = ("sampler", "grader", "weighbridge")
+TRUCK_STATIONS = ("sampler", "grader", "weighbridge", "station")
 
 
 @dataclass

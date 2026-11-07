@@ -223,4 +223,21 @@ screen and primitive can be exercised with it.
   - **Store:** overlay paths can address list items by id (`operator_pools[unloaders].schedule`, `equipment[H1].rate`).
   - **Engine fix found by the end-to-end test:** a truck waiting for workers after the pool's last shift of the day was classed as a stall (a failed run). It is now treated like a wait for a closed plant: unfinished work at the end of the day. Test: `test_waiting_for_workers_after_the_last_shift_is_unfinished_work_not_a_stall`. The pre-run warning `labour.no_workers_in_overtime` still flags such configurations.
   - Verified in the browser on Site A: add a pool with one unloading worker → tasks → save → scenario "three_workers" → run both → compare (identical arrivals, all pairs used, no clear difference with 3 replications).
-- **Next:** steps 4–6 (background tasks, worker phases for any step, user-defined step types), then the Ventersdorp demonstration once its data is available.
+- **Step 4 (done) — background tasks (P1):**
+  - `background_tasks: [{id, started_by, produces, time, equipment?, pool?, workers, activities?}]`: off-truck work started when a truck finishes a step. It may occupy a station lane and/or pool workers (skill = task id), and produces a named condition that release rules can wait for.
+  - Conditions of tasks that do not apply to a truck (e.g. started by sampling, for a truck needing none) count as met.
+  - Validation refuses unknown equipment or pools, missing skills, impossible worker counts, reserved or duplicate condition names, starting steps no process has, and rules waiting for a condition produced only after the held step.
+  - `result.background_log`; audit: a task starts only after its starting step finished.
+  - **Deviation from the plan:** built-in grading was *not* re-implemented as a background task, to keep the verified grading code untouched. Instead a test shows that a task configured like grading gives identical step times.
+  - Tests: `tests/test_background_tasks.py`.
+- **Step 5 (done) — worker phases for any station step (P4):**
+  - `task_phases: [{step, pool, allocation, phases: [{id, workers, time | "service", truck_present}]}]` for sample, weigh_in, weigh_out and custom steps. Workers are released between phases; the truck keeps its station; the first phase's workers are taken together with the place.
+  - For `tip`, `task_phases` is read as `unloading_labour`; identical results are shown by test.
+  - Not yet for `load`.
+  - Tests: `tests/test_task_phases.py`.
+- **Step 6 (done) — user-defined steps (G2):**
+  - `custom_steps: [{id, label, equipment}]` at equipment of the new generic type `station` (lanes, time). Custom steps can be used in sequences, paths, release rules, worker phases and as starts of background tasks; each has its own queue.
+  - Undeclared steps are still refused when a configuration is read (existing behaviour kept).
+  - Tests: `tests/test_custom_steps.py`.
+- **Not yet in the app:** screens for background tasks, worker phases and custom steps. They can be edited in the configuration JSON, and the app shows them under Advanced.
+- **Next:** those builder screens, then the Ventersdorp demonstration once its data is available.

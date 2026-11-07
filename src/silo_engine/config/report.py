@@ -134,6 +134,8 @@ def _workers_in_overtime(site: SiteConfig) -> list[Finding]:
     """Services may start until closing + overtime; a pool the process needs may have no shift then."""
     steps = {s for act in ACTIVITIES for s in getattr(site.sequences, act)}
     needed = {r.pool for r in site.labour if r.step in steps}
+    needed |= {sp.pool for sp in site.task_phases if sp.step in steps}
+    needed |= {t.pool for t in site.background_tasks if t.pool and t.started_by in steps}
     if site.unloading_labour is not None and "tip" in steps:
         needed.add(site.unloading_labour.pool)
     stop = site.hours.close + site.hours.overtime
@@ -161,10 +163,11 @@ def _unused_places_and_stations(site: SiteConfig) -> list[Finding]:
                                f"Waiting area {a.name or a.id} is on no truck path, so no truck will use it.", [a.id],
                                "Add it to a truck path or remove it."))
     for e in site.equipment:
-        if e.type not in STATION_OF_STEP.values():
+        if e.type not in STATION_OF_STEP.values() and e.type != "station":
             continue
         moves = e.moves or "both"
-        served = False
+        served = e.type == "station" and any(
+            e.id in c.equipment and any(c.id in getattr(site.sequences, a) for a in ACTIVITIES) for c in site.custom_steps)
         for act in ACTIVITIES:
             if e.activities is not None and act not in e.activities:
                 continue

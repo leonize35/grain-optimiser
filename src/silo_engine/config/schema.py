@@ -11,13 +11,15 @@ Intentional differences from the prototype (which accepts anything):
 - weighbridge direction must be `in`, `out` or `both`.
 """
 import hashlib
+import typing
 import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 Activity = Literal["unload", "load", "weigh"]
-TruckStep = Literal["sample", "grade", "weigh_in", "tip", "load", "weigh_out"]
+TruckStep = Literal["sample", "grade", "weigh_in", "tip", "load", "weigh_out"]  # built-in steps
+StepName = str  # a built-in step or a site's custom step id (validated by rules_validation)
 
 
 class _Model(BaseModel):
@@ -112,9 +114,9 @@ class EndOfDay(_Model):
 
 
 class Sequences(_Model):
-    unload: list[TruckStep] = []
-    load: list[TruckStep] = []
-    weigh: list[TruckStep] = []
+    unload: list[StepName] = []
+    load: list[StepName] = []
+    weigh: list[StepName] = []
 
 
 class ActivityDemand(_Model):
@@ -296,12 +298,57 @@ class System(_Model):
     equipment: list[str]
 
 
+class BackgroundTask(_Model):
+    """P1 (docs/PLATFORM_GAP_ANALYSIS.md step 4): work done off the truck, started when a truck finishes
+    `started_by`. It may occupy one lane of one of `equipment` (stations) and `workers` of `pool` (whose skills must
+    include the task id), takes `time` (triangular minutes), and when done produces the condition `produces` for
+    that truck, which release rules can wait for. It never occupies a truck place. `activities`: trucks it applies
+    to (None: every activity whose sequence has `started_by`)."""
+    id: str
+    started_by: StepName
+    produces: str
+    time: list[float]
+    equipment: list[str] = []
+    pool: str | None = None
+    workers: int = Field(default=1, ge=1)
+    activities: list[Activity] | None = None
+
+
+class Phase(_Model):
+    """P4: one phase of a step done with `workers` workers (0 allowed). `time`: triangular minutes, or "service"
+    (the station's own time for the step; exactly one phase). `truck_present` False is allowed only for unloading
+    (work after the truck has left the hopper, occupying workers only)."""
+    id: str
+    workers: int = Field(ge=0)
+    time: list[float] | Literal["service"]
+    truck_present: bool = True
+
+
+class StepPhases(_Model):
+    """P4 (docs/PLATFORM_GAP_ANALYSIS.md step 5): a step split into phases with their own worker needs, from one pool;
+    workers are released between phases and the truck keeps its place meanwhile. For `tip` this is the same as
+    `unloading_labour` (it is read as that)."""
+    step: StepName  # sample, weigh_in, weigh_out, tip, or a custom step
+    pool: str
+    phases: list[Phase]
+    allocation: Literal["oldest_task_first", "strict_order", "started_trucks_first"] = "oldest_task_first"
+
+
+class CustomStep(_Model):
+    """G2 (docs/PLATFORM_GAP_ANALYSIS.md step 6): a truck step defined by the site, served at equipment of type
+    `station` (lanes `cap`, time `time`). It can be used in sequences, paths, release rules, worker phases and as the
+    start of background tasks, like a built-in station step."""
+    id: str
+    label: str
+    equipment: list[str]
+
+
 class ReleaseRule(_Model):
     """P3 (docs/PLATFORM_GAP_ANALYSIS.md): when a truck may leave the place where `step` was done. Always after the
     service ("service_done", implied) and once it has its next place; in addition every listed condition must hold
     for that truck. Conditions (P2): "graded" (its sample has been graded; applies to sampled trucks only)."""
     activity: Activity
-    step: TruckStep
+    step: StepName
     when: list[str]
 
 
@@ -353,6 +400,36 @@ class SiteConfig(_Model):
     outages: list[Outage] = []  # scheduled equipment unavailability (step 17)
     truck_bypasses: list[TruckBypass] = []  # sampler access (declared physical bypasses)
     release_rules: list[ReleaseRule] = []  # P3: conditions for leaving a step's place (none: leave after service)
+    background_tasks: list[BackgroundTask] = []  # P1: off-truck work producing conditions
+    task_phases: list[StepPhases] = []  # P4: worker phases per step (tip: same as unloading_labour)
+    custom_steps: list[CustomStep] = []  # G2: site-defined truck steps at `station` equipment
+
+    @model_validator(mode="after")
+    def _steps_are_known(self):
+        """Every sequence step is built-in or declared in custom_steps (a truck reaching an unknown step would
+        never advance; the prototype accepted such names silently)."""
+        known = set(typing.get_args(TruckStep)) | {c.id for c in self.custom_steps}
+        for act in ("unload", "load", "weigh"):
+            unknown = [s for s in getattr(self.sequences, act) if s not in known]
+            if unknown:
+                raise ValueError(f"the {act} sequence has unknown step {unknown[0]}; declare it in custom_steps "
+                                 "or remove it")
+        return self
+
+    @model_validator(mode="after")
+    def _tip_phases_are_unloading_labour(self):
+        """`task_phases` for tip is another form of `unloading_labour`: read it as that (one implementation)."""
+        tips = [p for p in self.task_phases if p.step == "tip"]
+        if not tips:
+            return self
+        if len(tips) > 1 or self.unloading_labour is not None:
+            raise ValueError("give unloading labour once: either unloading_labour or one task_phases entry for tip")
+        t = tips[0]
+        self.unloading_labour = UnloadingLabour(pool=t.pool, allocation=t.allocation, tasks=[
+            UnloadingTask(id=p.id, operators=p.workers, time="tip" if p.time == "service" else p.time,
+                          truck_present=p.truck_present) for p in t.phases])
+        self.task_phases = [p for p in self.task_phases if p.step != "tip"]
+        return self
     # Staffing (docs/OPERATOR_STAFFING_DESIGN.md); empty = no labour constraint (unchanged behaviour).
     operator_pools: list[OperatorPool] = []
     labour: list[LabourRequirement] = []
@@ -397,7 +474,8 @@ def config_hash(cfg: SiteConfig) -> str:
         if isinstance(d, dict) and d.get("sampling_share") is None:
             d.pop("sampling_share", None)
     for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {}),
-                         ("unloading_labour", None), ("systems", []), ("release_rules", [])):
+                         ("unloading_labour", None), ("systems", []), ("release_rules", []),
+                         ("background_tasks", []), ("task_phases", []), ("custom_steps", [])):
         if data.get(added) == unset:
             data.pop(added, None)
     for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),

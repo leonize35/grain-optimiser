@@ -395,6 +395,7 @@ class TruckFlowResult:
     # per (reason, resource) when labour is configured.
     staffing: dict = field(default_factory=dict)
     labour_use: list[dict] = field(default_factory=list)
+    background_log: list[dict] = field(default_factory=list)  # P1: truck, task, unit, start, end, produces
     waiting_attribution: dict[str, float] = field(default_factory=dict)
     lots: dict[str, LotFlow] = field(default_factory=dict)  # lot id -> tipping-to-storage record
     # Step 18: process losses, book inventory per bin, observations, stock event log, reconciliation per bin + "site".
@@ -440,6 +441,13 @@ class TruckFlowModel:
         else:
             self.policy_source = "default"
             policies = {g: DEFAULT_POLICY for g in groups}
+        for sp in site.task_phases:  # P4: workers for the later phases of a station step, per step
+            policies[f"phases:{sp.step}"] = "strict_fifo" if sp.allocation == "strict_order" else "feasible_first"
+        for cs in site.custom_steps:  # G2: each site-defined step queues like a station of its own
+            policies.setdefault(f"step:{cs.id}", policy if isinstance(policy, str) else
+                                site.queue_policies.default if site.queue_policies is not None else DEFAULT_POLICY)
+        if site.background_tasks:  # P1: off-truck work, in request order among themselves
+            policies["background"] = "feasible_first"
         if site.unloading_labour is not None:  # worker allocation among unloading tasks (not truck dispatch)
             policies["unload_labour"] = "strict_fifo" if site.unloading_labour.allocation == "strict_order" else "feasible_first"
         self.queue_policies = {g: p if isinstance(p, str) else p.name for g, p in policies.items()}
@@ -470,7 +478,8 @@ class TruckFlowModel:
         eq = site.equipment
         self.equipment = {e.id: e for e in eq}
         self.units = [_Unit(e.id, lane, e.type, e.moves or "both", tuple(e.activities) if e.activities else None)
-                      for e in eq if e.type in ("sampler", "grader", "weighbridge") for lane in range(int(e.cap or 0))]
+                      for e in eq if e.type in ("sampler", "grader", "weighbridge", "station")
+                      for lane in range(int(e.cap or 0))]
         self.bins = {e.id: self._make_bin(e) for e in eq if e.type == "bin"}
         self._lots_seen: dict[str, tuple] = {}  # lot id -> (truck, pit, grain, kg, tipped at); reporting only
         self.pits = {e.id: self._make_pit(e) for e in eq if e.type == "hopper"}
@@ -528,6 +537,12 @@ class TruckFlowModel:
         # P3 release rules: (activity, step) -> conditions besides the service; trucks held on their place for them
         self._release = {(r.activity, r.step): [c for c in r.when if c != "service_done"] for r in site.release_rules}
         self._release_wait: dict[str, ScriptedTruck] = {}
+        # P1 background tasks: produced conditions (truck, name) -> time; tasks already started per truck; log
+        self._cond_time: dict[tuple[str, str], int] = {}
+        self._phases = {sp.step: sp for sp in site.task_phases}  # P4 station steps (tip is unloading_labour)
+        self._custom = {c.id: c for c in site.custom_steps}  # G2 site-defined steps
+        self._task_started: set[tuple[str, str]] = set()
+        self._background_log: list[dict] = []
         self._results: dict[str, tuple[str, int]] = {}
         self._intake_active: set[str] = set()  # pits with an intake request waiting or a transfer running
         self._transfer_count = 0
@@ -779,6 +794,7 @@ class TruckFlowModel:
 
     def _leave_or_send_away(self, truck: ScriptedTruck) -> None:
         """After a service: continue, unless the truck must leave and still has steps to do."""
+        self._start_background(truck)
         if truck.id in self._send_away and self._position[truck.id] + 1 < len(self.paths[truck.activity]):
             self._send_away_now(truck.id)
         elif self._unmet_release(truck):
@@ -796,7 +812,75 @@ class TruckFlowModel:
     def _condition(self, truck: ScriptedTruck, name: str) -> bool:
         if name == "graded":  # P2; applies to sampled trucks only
             return not self._needs_sampling(truck) or f"S-{truck.id}" in self._results
-        raise ModelError(f"Unknown condition {name}")
+        task = next((t for t in self.site.background_tasks if t.produces == name), None)
+        if task is None:
+            raise ModelError(f"Unknown condition {name}")
+        return not self._task_applies(task, truck) or (truck.id, name) in self._cond_time
+
+    # ---- background tasks (P1, docs/PLATFORM_GAP_ANALYSIS.md step 4) ----
+    def _task_applies(self, task, truck: ScriptedTruck) -> bool:
+        """A task applies to a truck whose activity it covers and that does its starting step (a truck needing no
+        sampling skips sampling, so a task started by sampling does not apply to it)."""
+        return ((task.activities is None or truck.activity in task.activities)
+                and task.started_by in getattr(self.site.sequences, truck.activity)
+                and not (task.started_by == "sample" and not self._needs_sampling(truck)))
+
+    def _start_background(self, truck: ScriptedTruck) -> None:
+        rec = self.records[truck.id]
+        if not rec.steps:
+            return
+        done = rec.steps[-1].step
+        for task in self.site.background_tasks:
+            if task.started_by != done or (truck.id, task.id) in self._task_started or not self._task_applies(task, truck):
+                continue
+            self._task_started.add((truck.id, task.id))
+            owner = f"{truck.id}/task:{task.id}"
+            if not task.equipment and task.pool is None:
+                self._task_begin(truck, task, owner, None)
+                continue
+            self.dispatcher.submit(owner, "background", self.cal.now,
+                                   lambda now, t=task, o=owner: self._try_task(truck, t, o))
+
+    def _try_task(self, truck: ScriptedTruck, task, owner: str) -> list[WaitReason]:
+        units = [u for u in self.units if u.equipment_id in task.equipment]
+        unit = next((u for u in units if self.ledger.lane_free(u.resource)), None) if units else None
+        if units and unit is None:
+            ids = sorted({u.equipment_id for u in units})
+            return [WaitReason("EQUIPMENT_BUSY", ",".join(ids), f"{', '.join(ids)} busy")]
+        items = []
+        if unit is not None:
+            items.append((f"{owner}/lane", [LaneClaim(unit.resource)]))
+        if task.pool is not None:
+            items.append((f"{owner}/labour", [LabourClaim(task.pool, task.workers)]))
+        reasons = self.ledger.try_reserve_many(items, self.cal.now)
+        if reasons:
+            return reasons
+        self._task_begin(truck, task, owner, unit)
+        return []
+
+    def _task_begin(self, truck: ScriptedTruck, task, owner: str, unit) -> None:
+        entry = {"truck": truck.id, "task": task.id, "unit": unit.resource if unit else None, "start": self.cal.now,
+                 "end": None, "produces": task.produces}
+        self._background_log.append(entry)
+        if task.pool is not None:
+            use = {"owner": owner, "step": f"task:{task.id}", "pool": task.pool, "operators": task.workers,
+                   "start": self.cal.now, "end": None}
+            self._labour_use.append(use)
+            self._labour_open[owner] = (f"{owner}/labour", use)
+        ms = self.times.duration_ms(truck.id, f"task:{task.id}", unit.equipment_id if unit else "")
+        self.cal.schedule(self.cal.now + ms, RELEASE, lambda c: self._task_done(truck, task, owner, unit, entry),
+                          f"{truck.id} {task.id} done")
+
+    def _task_done(self, truck: ScriptedTruck, task, owner: str, unit, entry: dict) -> None:
+        if unit is not None:
+            self.ledger.release(f"{owner}/lane", self.cal.now, "completed")
+        self._labour_finished(owner)
+        entry["end"] = self.cal.now
+        self._cond_time[(truck.id, task.produces)] = self.cal.now
+        if truck.id in self._release_wait and not self._unmet_release(truck):
+            del self._release_wait[truck.id]
+            self._leave_or_send_away(truck)
+        self._after_event()
 
     # ---- trucks: movement along the truck path (R5) ----
     # A truck holds exactly one place at a time: a place in a waiting area, or a station/hopper lane. It gives a
@@ -866,7 +950,8 @@ class TruckFlowModel:
         if element == "sample" and self._colocated:
             handler = self._try_colocated_sample
         attempt = lambda now, tr=truck, sr=step_rec, h=handler: h(tr, sr)  # noqa: E731
-        self._submit_for(truck, element, f"{truck.id}/{element}", QUEUE_GROUP[element], self._guarded(truck, attempt))
+        group = QUEUE_GROUP.get(element, f"step:{element}")  # a custom step has a queue of its own
+        self._submit_for(truck, element, f"{truck.id}/{element}", group, self._guarded(truck, attempt))
 
     # ---- sampler access (docs/SAMPLER_ACCESS_DESIGN.md) ----
     def _needs_sampling(self, truck: ScriptedTruck) -> bool:
@@ -1084,15 +1169,27 @@ class TruckFlowModel:
         if step_rec.step == "weigh_in" and truck.id in self._bay_held:
             return self._weigh_on_held_bay(truck, step_rec)
         res_id = f"{truck.id}/{step_rec.step}"
-        compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)
-                      and u.for_activity(truck.activity)]
+        custom = self._custom.get(step_rec.step)
+        if custom is not None:
+            compatible = [u for u in self.units if u.equipment_id in custom.equipment and u.for_activity(truck.activity)]
+        else:
+            compatible = [u for u in self.units if u.type == STATION_TYPE[step_rec.step] and u.serves(step_rec.step)
+                          and u.for_activity(truck.activity)]
         for u in compatible:
             if not self.ledger.lane_free(u.resource):
                 continue
             lab = self._labour_item(res_id, step_rec.step)
+            sp = self._phases.get(step_rec.step)
+            if sp is not None and sp.phases[0].workers:
+                lab = (f"{res_id}#0/labour", [LabourClaim(sp.pool, sp.phases[0].workers)])
             got = self._reserve_service(truck, res_id, [LaneClaim(u.resource)], extra=[lab] if lab else None)
             if got:
                 return got  # the next area is full or no operator: the same for every lane
+            if sp is not None:
+                self._occupy_station(truck, res_id, step_rec)
+                step_rec.unit, step_rec.started = u.resource, self.cal.now
+                self._phase_start(truck, step_rec, res_id, u, sp, 0)
+                return []
             self._labour_started(res_id, step_rec.step)
             self._occupy_station(truck, res_id, step_rec)
             step_rec.unit, step_rec.started = u.resource, self.cal.now
@@ -1104,6 +1201,43 @@ class TruckFlowModel:
             return []
         ids = sorted({u.equipment_id for u in compatible})
         return [WaitReason("EQUIPMENT_BUSY", ",".join(ids), f"{', '.join(ids)} busy")]
+
+    # ---- worker phases of a station step (P4, docs/PLATFORM_GAP_ANALYSIS.md step 5) ----
+    def _phase_start(self, truck: ScriptedTruck, step_rec: StepRecord, res_id: str, unit, sp, k: int) -> None:
+        """Phase k starts; its workers are already reserved under '<res_id>#k/labour'."""
+        phase = sp.phases[k]
+        owner = f"{res_id}#{k}"
+        if phase.workers:
+            use = {"owner": owner, "step": f"{sp.step}:{phase.id}", "pool": sp.pool, "operators": phase.workers,
+                   "start": self.cal.now, "end": None}
+            self._labour_use.append(use)
+            self._labour_open[owner] = (f"{owner}/labour", use)
+        ms = (self._dur(truck.id, sp.step, unit.equipment_id) if phase.time == "service"
+              else self.times.duration_ms(truck.id, f"{sp.step}:{phase.id}", unit.equipment_id))
+        self.cal.schedule(self.cal.now + ms, RELEASE, lambda c: self._phase_done(truck, step_rec, res_id, unit, sp, k),
+                          f"{truck.id} finishes {phase.id} of {sp.step} at {unit.equipment_id}")
+
+    def _phase_done(self, truck: ScriptedTruck, step_rec: StepRecord, res_id: str, unit, sp, k: int) -> None:
+        self._labour_finished(f"{res_id}#{k}")
+        nxt = k + 1
+        if nxt >= len(sp.phases):
+            self._truck_service_done(truck, step_rec)
+            return
+        workers = sp.phases[nxt].workers
+        if workers == 0:
+            self._phase_start(truck, step_rec, res_id, unit, sp, nxt)
+            self._after_event()
+            return
+        owner = f"{res_id}#{nxt}"
+
+        def attempt(now: int) -> list[WaitReason]:
+            reasons = self.ledger.try_reserve(f"{owner}/labour", [LabourClaim(sp.pool, workers)], now)
+            if not reasons:
+                self._phase_start(truck, step_rec, res_id, unit, sp, nxt)
+            return reasons
+        first = sp.allocation == "started_trucks_first"  # the truck is already at its station
+        self.dispatcher.submit(owner, f"phases:{sp.step}", self.cal.now, attempt, order=(lambda: -1) if first else None)
+        self._after_event()
 
     def _truck_service_done(self, truck: ScriptedTruck, step_rec: StepRecord) -> None:
         step_rec.finished = self.cal.now  # the truck keeps the lane until it can move on
@@ -1716,7 +1850,7 @@ class TruckFlowModel:
             truck_access=self._access_report(), area_occupancy=self._occupancy_report(),
             single_file_exits=list(self._sf_exits), single_file_log=list(self._sf_log),
             staffing=self._staffing_report(), labour_use=[dict(u) for u in self._labour_use],
-            waiting_attribution=self._attribution_report(),
+            waiting_attribution=self._attribution_report(), background_log=[dict(x) for x in self._background_log],
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(),
             outcomes=self._outcomes(), clearance=clearance(list(self.records.values()), self.windows, self._closes),

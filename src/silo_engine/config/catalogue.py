@@ -62,6 +62,7 @@ FIELDS = {
         _f("rate", "Loading rate", "number", "t/h", True),
         _f("setup", "Setup time per truck", "triangular", "min"),
     ],
+    "station": list(_STATION),  # a site-defined step's station (custom_steps)
 }
 
 
