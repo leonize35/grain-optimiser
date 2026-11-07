@@ -292,12 +292,21 @@ class UnloadingLabour(_Model):
     allocation: Literal["oldest_task_first", "strict_order", "started_trucks_first"] = "oldest_task_first"
 
 
+class SystemHours(_Model):
+    """G-D5 (confirmed 2026-11-07): a system's own admission cut-off and overtime, in hours like `Hours`. A truck
+    admitted at the gate before the cut-off may still be sent to the system; one admitted after it may not. The
+    system's hoppers may start tipping until the site's closing + `overtime`. None: the site's value."""
+    admission_cutoff: float | None = None
+    overtime: float | None = Field(default=None, ge=0)
+
+
 class System(_Model):
     """A silo system: a named group of equipment (e.g. "Silo A"). A grouping for reporting, validation messages and
-    the builder only; it changes no simulation decision. Equipment in no system is shared or site-level."""
+    the builder; it changes no simulation decision unless `hours` are given. Equipment in no system is shared."""
     id: str
     name: str
     equipment: list[str]
+    hours: SystemHours | None = None
 
 
 class BackgroundTask(_Model):
@@ -469,6 +478,9 @@ def config_hash(cfg: SiteConfig) -> str:
         for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities", "tip_portion_min_t"):
             if e.get(k) is None:
                 e.pop(k, None)
+    for s in data.get("systems", []):  # per-system hours: hash as before when unset
+        if s.get("hours") is None:
+            s.pop("hours", None)
     for a in data.get("truck_areas", []):
         if a.get("single_file") is False:
             a.pop("single_file")

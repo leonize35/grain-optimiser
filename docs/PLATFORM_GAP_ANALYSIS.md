@@ -244,4 +244,8 @@ screen and primitive can be exercised with it.
   - **Labour:** "Workers by phase at stations". Pool skills include custom steps and off-truck tasks.
   - `GET /meta` serves the engine's `BACKGROUND_STATION_TYPES` (now including `station`) and `PHASE_STEPS`.
   - Verified in the browser on Site A: document station and own step after weighing in, held until off-truck paperwork is done; a clerk needed only for check-in; check, save, and a 2-replication run. The saved version holds exactly those settings.
-- **Next:** the Ventersdorp demonstration, once its data is available.
+- **Found while building the first real site (2026-11-07):**
+  - **Station times:** the structural check accepts fitted distributions as station times.
+  - **Partial tipping** (R2 `partial`): loads larger than the pit tip in portions as the pit drains. Tests: `tests/test_partial_tipping.py`.
+  - **Per-silo hours** (G-D5): `systems[].hours` with `admission_cutoff` and `overtime`. After a silo's cut-off, newly admitted trucks go to other silos; that silo's hoppers stop at closing + its overtime (at most the site's); clearance is reported per silo (`outcomes.clearance_by_system`). Editable on the My silo screen. Tests: `tests/test_system_hours.py`.
+- **Next:** the remaining Ventersdorp inputs (the hopper → belt → elevator table, each silo's hours), then load classes (G-D1).

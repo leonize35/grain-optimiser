@@ -607,6 +607,18 @@ def _validate_partial_tipping(site: SiteConfig, result: RulesResult) -> None:
 
 
 def _validate_systems(site: SiteConfig, result: RulesResult) -> None:
+    h = site.hours
+    gate = h.admission_cutoff if h.admission_cutoff is not None else h.close
+    for s in site.systems:
+        sh = s.hours
+        if sh is None:
+            continue
+        if sh.admission_cutoff is not None and not h.open <= sh.admission_cutoff <= gate:
+            result.errors.append(Issue(f"{s.name}'s admission cut-off ({_clock(sh.admission_cutoff)}) must be between "
+                                       f"opening ({_clock(h.open)}) and the site's gate cut-off ({_clock(gate)})."))
+        if sh.overtime is not None and sh.overtime > h.overtime:
+            result.errors.append(Issue(f"{s.name}'s overtime ({sh.overtime:g} h) is longer than the site's "
+                                       f"({h.overtime:g} h): the shared weighbridges would stop before its trucks leave."))
     ids = [s.id for s in site.systems]
     if len(set(ids)) != len(ids):
         result.errors.append(Issue("Two systems share the id " + next(i for i in ids if ids.count(i) > 1) + "."))

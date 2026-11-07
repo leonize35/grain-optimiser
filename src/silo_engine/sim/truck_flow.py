@@ -541,6 +541,8 @@ class TruckFlowModel:
         self._cond_time: dict[tuple[str, str], int] = {}
         self._phases = {sp.step: sp for sp in site.task_phases}  # P4 station steps (tip is unloading_labour)
         self._custom = {c.id: c for c in site.custom_steps}  # G2 site-defined steps
+        # G-D5 per-system hours: hopper id -> (system id, hours) for systems with hours
+        self._pit_hours = {eq: (s.id, s.hours) for s in site.systems if s.hours is not None for eq in s.equipment}
         self._task_started: set[tuple[str, str]] = set()
         self._background_log: list[dict] = []
         self._results: dict[str, tuple[str, int]] = {}
@@ -686,18 +688,41 @@ class TruckFlowModel:
             if "load" in getattr(self.site.sequences, truck.activity) and not self.planner.can_load(truck.commodity):
                 name = self.names.get(truck.commodity, truck.commodity)
                 raise ModelError(f"No bin for {name} is connected to a load point (truck {truck.id}).")
-            if "tip" in getattr(self.site.sequences, truck.activity) and not self._hopper_candidates(truck):
+            if "tip" in getattr(self.site.sequences, truck.activity) and not self._hopper_candidates(truck, False):
                 name = self.names.get(truck.commodity, truck.commodity)
                 raise ModelError(f"No hopper can take {name} (truck {truck.id}) and send it to a bin assigned to it.")
 
     def _grain(self, truck: ScriptedTruck) -> GradedCommodity:
         return self.grades.grain(truck.commodity, truck.grade)
 
-    def _hopper_candidates(self, truck: ScriptedTruck) -> list[Pit]:
+    def _hopper_candidates(self, truck: ScriptedTruck, respect_hours: bool = True) -> list[Pit]:
+        """Hoppers that can take the truck's grain; with `respect_hours`, only systems still taking this truck."""
         grain = self._grain(truck)
-        ok = [p for p in self.pits.values() if truck.commodity in p.accepts and self.planner.has_intake_route(p.id, grain)]
+        ok = [p for p in self.pits.values() if truck.commodity in p.accepts and self.planner.has_intake_route(p.id, grain)
+              and (not respect_hours or self._system_admits(p, truck))]
         # Prefer a pit already holding this grain (prototype rule), otherwise configuration order.
         return [p for p in ok if p.lots and p.identity() == grain] + [p for p in ok if not (p.lots and p.identity() == grain)]
+
+    def _system_admits(self, pit: Pit, truck: ScriptedTruck) -> bool:
+        """G-D5: a system takes a truck admitted at the gate before its cut-off on the admission day."""
+        sh = self._pit_hours.get(pit.id)
+        if sh is None or sh[1].admission_cutoff is None:
+            return True
+        admitted = self.records[truck.id].admitted
+        if admitted is None:
+            return False
+        base = (admitted // MS_PER_DAY) * MS_PER_DAY
+        return admitted < base + _hours_ms(sh[1].admission_cutoff)
+
+    def _pit_serving(self, pit: Pit, t: int) -> bool:
+        """G-D5: tipping may start at a system's hoppers until closing + the system's overtime."""
+        sh = self._pit_hours.get(pit.id)
+        if sh is None or sh[1].overtime is None:
+            return True
+        day = t // MS_PER_DAY
+        opens = self.windows[day][0] if day < len(self.windows) else None
+        stop = day * MS_PER_DAY + _hours_ms(self.site.hours.close + sh[1].overtime)
+        return opens is not None and opens <= t < stop
 
     def _build_path(self, act: str) -> list[str]:
         """The truck's physical path: waiting areas and steps. Without a configured path, an unlimited implicit area
@@ -728,7 +753,8 @@ class TruckFlowModel:
             # A wait for a closed plant, or for workers whose shifts are over for the day, ends at the next opening
             # (shift) or becomes unfinished work when the run ends. While a later shift today is scheduled, its
             # staffing event is pending and this check is not reached.
-            closed = any(r.code in ("PLANT_CLOSED", "LABOUR_UNAVAILABLE") for rs in waiting.values() for r in rs)
+            closed = any(r.code in ("PLANT_CLOSED", "LABOUR_UNAVAILABLE", "SYSTEM_CLOSED")
+                         for rs in waiting.values() for r in rs)
             day_event_ahead = any(not e.cancelled and not e.done for e in self._day_events)
             # A loading truck short of stock may still be supplied by an unloading truck that has yet to arrive.
             short = any(r.code == "STOCK_SHORT" for rs in waiting.values() for r in rs)
@@ -1282,7 +1308,15 @@ class TruckFlowModel:
             return self._closed()
         grain, kg, res_id = self._grain(truck), truck.kg, f"{truck.id}/tip"
         reasons: list[WaitReason] = []
-        for pit in self._hopper_candidates(truck):
+        candidates = self._hopper_candidates(truck)
+        if not candidates and self._pit_hours:  # every hopper for this grain is in a system that no longer takes it
+            return [WaitReason("SYSTEM_CLOSED", None, "the silos that take this truck's grain take no new trucks now")]
+        for pit in candidates:
+            if not self._pit_serving(pit, self.cal.now):
+                closed = WaitReason("SYSTEM_CLOSED", pit.id, f"{pit.id}: its silo's service has stopped for the day")
+                if closed not in reasons:
+                    reasons.append(closed)
+                continue
             lane = f"{pit.id}:tip"
             if not self.ledger.lane_free(lane):  # cheap check first; a lane coming free triggers a re-check anyway
                 busy = WaitReason("EQUIPMENT_BUSY", lane, f"{lane} busy")
@@ -1928,6 +1962,24 @@ class TruckFlowModel:
         result.outcomes["fairness"] = commodity_fairness(result.truck_metrics.values())
         return result
 
+    def _clearance_by_system(self, trucks: dict) -> dict:
+        """G-D5: clearance per system with its own cut-off and hard stop; trucks that never reached a hopper are
+        "unassigned" (site hours)."""
+        h = self.site.hours
+        out = {}
+        for s in [*self.site.systems, None]:
+            sid = None if s is None else s.id
+            recs = [r for r in self.records.values() if trucks[r.truck_id]["system"] == sid]
+            windows = []
+            for d, (opens, cutoff, stop) in enumerate(self.windows):
+                sh = s.hours if s is not None else None
+                base = d * MS_PER_DAY
+                windows.append((opens,
+                                base + _hours_ms(sh.admission_cutoff) if sh and sh.admission_cutoff is not None else cutoff,
+                                base + _hours_ms(h.close + sh.overtime) if sh and sh.overtime is not None else stop))
+            out["unassigned" if s is None else s.id] = clearance(recs, windows, self._closes)
+        return out
+
     def _outcomes(self) -> dict:
         end = min(self.cal.now, self._horizon_end)
         tipped: dict[str, int] = {}
@@ -1939,6 +1991,9 @@ class TruckFlowModel:
         out = {"trucks": trucks, "summary": outcome_summary(trucks), "horizon_end": end}
         if self.site.systems:
             out["by_system"] = by_system(trucks, self.site.systems)
+        if any(s.hours is not None and (s.hours.admission_cutoff is not None or s.hours.overtime is not None)
+               for s in self.site.systems):
+            out["clearance_by_system"] = self._clearance_by_system(trucks)
         return out
 
     def _access_report(self) -> dict[str, dict]:

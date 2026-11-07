@@ -119,9 +119,9 @@ screens.silo = async () => {
   }
   html += `</div>`;
   if (c) {
-    html += `<div class="grid2"><div class="card"><h2>Silo systems</h2><p class="muted small">Group equipment into systems such as "Silo A" and "Silo B". Equipment in no system is shared. Grouping changes reporting only, never how trucks or grain move.</p>
-      <table><thead><tr><th>Id</th><th>Name</th><th>Equipment</th><th></th></tr></thead><tbody>
-      ${c.systems.map((s, i) => `<tr><td><input data-sys-id="${i}" value="${esc(s.id)}" size="6"></td><td><input data-sys-name="${i}" value="${esc(s.name)}"></td><td class="small">${s.equipment.length}</td><td><button class="danger" data-sys-del="${i}">Remove</button></td></tr>`).join("") || `<tr><td colspan="4" class="muted">No systems yet: everything is site-level.</td></tr>`}
+    html += `<div class="grid2"><div class="card"><h2>Silo systems</h2><p class="muted small">Group equipment into systems such as "Silo A" and "Silo B". Equipment in no system is shared. A silo may have its own cut-off (after it, newly admitted trucks go to other silos) and overtime (its hoppers stop then; at most the site's overtime). Leave them empty to use the site's hours.</p>
+      <table><thead><tr><th>Id</th><th>Name</th><th>Equipment</th><th>Takes new trucks until</th><th>Overtime (h)</th><th></th></tr></thead><tbody>
+      ${c.systems.map((s, i) => `<tr><td><input data-sys-id="${i}" value="${esc(s.id)}" size="6"></td><td><input data-sys-name="${i}" value="${esc(s.name)}"></td><td class="small">${s.equipment.length}</td><td><input type="number" step="0.1" data-sys-h="${i}|admission_cutoff" value="${esc((s.hours || {}).admission_cutoff ?? "")}" placeholder="site" style="width:80px"></td><td><input type="number" step="0.1" min="0" data-sys-h="${i}|overtime" value="${esc((s.hours || {}).overtime ?? "")}" placeholder="site" style="width:70px"></td><td><button class="danger" data-sys-del="${i}">Remove</button></td></tr>`).join("") || `<tr><td colspan="6" class="muted">No systems yet: everything is site-level.</td></tr>`}
       </tbody></table><div class="actions"><button id="btn-add-sys">Add system</button></div></div>
       <div class="card"><h2>Commodities</h2>
       <table><thead><tr><th>Id</th><th>Name</th><th></th></tr></thead><tbody>
@@ -154,6 +154,10 @@ screens.silo = async () => {
   bind("#f-cutoff", (v) => { if (v === "") delete c.hours.admission_cutoff; else c.hours.admission_cutoff = num(v); });
   document.querySelectorAll("[data-sys-id]").forEach((el) => { el.onchange = () => { c.systems[+el.dataset.sysId].id = el.value.trim(); markDirty(); }; });
   document.querySelectorAll("[data-sys-name]").forEach((el) => { el.onchange = () => { c.systems[+el.dataset.sysName].name = el.value; markDirty(); }; });
+  document.querySelectorAll("[data-sys-h]").forEach((el) => { el.onchange = () => {
+    const [i, k] = el.dataset.sysH.split("|"); const s = c.systems[+i]; s.hours = { ...(s.hours || {}) };
+    if (el.value === "") delete s.hours[k]; else s.hours[k] = +el.value;
+    if (!Object.keys(s.hours).length) delete s.hours; markDirty(); }; });
   document.querySelectorAll("[data-sys-del]").forEach((el) => { el.onclick = () => { c.systems.splice(+el.dataset.sysDel, 1); markDirty(); render(); }; });
   $("#btn-add-sys").onclick = () => { const n = c.systems.length + 1; c.systems.push({ id: `SYS${n}`, name: `Silo ${String.fromCharCode(64 + n)}`, equipment: [] }); markDirty(); render(); };
   document.querySelectorAll("[data-com-id]").forEach((el) => { el.onchange = () => { c.commodities[+el.dataset.comId].id = el.value.trim(); markDirty(); }; });
@@ -891,7 +895,7 @@ screens.advanced = () => {
 function focusKey(el) {  // a selector that finds the same input after a redraw
   if (!el || el === document.body) return null;
   if (el.id) return "#" + el.id;
-  for (const k of ["field", "multi", "sysId", "sysName", "comId", "comName", "slot", "ar", "rule", "cs", "bt", "sp", "ph"]) {
+  for (const k of ["field", "multi", "sysId", "sysName", "sysH", "comId", "comName", "slot", "ar", "rule", "cs", "bt", "sp", "ph"]) {
     if (el.dataset[k] !== undefined) return `[data-${k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase())}="${el.dataset[k]}"]` + (el.value && k === "multi" ? `[value="${el.value}"]` : "");
   }
   if (el.dataset.tri !== undefined) return `[data-tri="${el.dataset.tri}"][data-i="${el.dataset.i}"]`;
