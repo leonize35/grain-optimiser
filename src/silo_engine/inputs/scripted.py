@@ -45,6 +45,7 @@ class _TruckEntry(BaseModel):
     grade: str | None = None  # R4: needed for graded commodities when the site keeps grades apart
     backlog: bool = False
     requires_sampling: bool | None = None  # None: as the activity's sequence says
+    load_class: str | None = None  # G-D1: the truck's payload class (selects class-specific unloading times)
 
 
 class _Script(BaseModel):
@@ -62,6 +63,7 @@ class ScriptedTruck:
     backlog: bool
     grade: str | None = None
     requires_sampling: bool | None = None  # None: every truck whose sequence has a sample step needs sampling
+    load_class: str | None = None  # G-D1 payload class
 
 
 def load_arrival_script(raw: dict[str, Any]) -> list[ScriptedTruck]:
@@ -100,7 +102,8 @@ def load_arrival_script(raw: dict[str, Any]) -> list[ScriptedTruck]:
                 kg = tonnes_to_kg(t.tonnes)
             except QuantityError as e:
                 raise ScriptError(f"Truck {t.id}: {e}") from None
-        trucks.append(ScriptedTruck(t.id, t.activity, arrive, t.commodity, kg, t.backlog, t.grade, t.requires_sampling))
+        trucks.append(ScriptedTruck(t.id, t.activity, arrive, t.commodity, kg, t.backlog, t.grade, t.requires_sampling,
+                                    t.load_class))
     return trucks
 
 

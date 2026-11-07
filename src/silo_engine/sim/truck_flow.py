@@ -541,6 +541,7 @@ class TruckFlowModel:
         self._cond_time: dict[tuple[str, str], int] = {}
         self._phases = {sp.step: sp for sp in site.task_phases}  # P4 station steps (tip is unloading_labour)
         self._custom = {c.id: c for c in site.custom_steps}  # G2 site-defined steps
+        self._class_of = {t.id: t.load_class for t in trucks if getattr(t, "load_class", None)}  # G-D1
         # G-D5 per-system hours: hopper id -> (system id, hours) for systems with hours
         self._pit_hours = {eq: (s.id, s.hours) for s in site.systems if s.hours is not None for eq in s.equipment}
         self._task_started: set[tuple[str, str]] = set()
@@ -1739,7 +1740,12 @@ class TruckFlowModel:
             held[1]["end"] = self.cal.now
 
     def _dur(self, truck_id: str, step: str, equipment_id: str) -> int:
-        ms = self.times.duration_ms(truck_id, step, equipment_id)
+        cls = self._class_of.get(truck_id)
+        e = self.equipment.get(equipment_id)
+        if step == "tip" and cls is not None and e is not None and e.tip_by_class and cls in e.tip_by_class:
+            ms = self.times.duration_ms(truck_id, f"tip|{cls}", equipment_id)  # G-D1 class-specific unloading time
+        else:
+            ms = self.times.duration_ms(truck_id, step, equipment_id)
         need = self._labour.get(step)
         factor = self.site.crew_time.get(step, {}).get(str(need[1])) if need else None
         return ms if factor is None else round(ms * factor)

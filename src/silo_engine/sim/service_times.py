@@ -27,6 +27,8 @@ class FixedServiceTimes:
     def duration_ms(self, truck_id: str, step: str, equipment_id: str) -> int:
         if (truck_id, step) in self._overrides:
             return self._overrides[(truck_id, step)]
+        if step not in self._by_step and "|" in step:  # a class-specific step ("tip|large") falls back to the step
+            step = step.split("|", 1)[0]
         if step not in self._by_step:
             raise KeyError(f"No service time given for step '{step}'")
         return self._by_step[step]
@@ -49,6 +51,11 @@ class StochasticServiceTimes:
             low, mode, high = self._tasks[step]
             return round(triangular(Stream(self.seed, "service", truck_id, step).uniform(), low, mode, high) * MS_PER_MINUTE)
         e = self._equipment[equipment_id]
+        if step.startswith("tip|") and e.tip_by_class and step[4:] in e.tip_by_class:  # G-D1, same uniform as "tip"
+            u = Stream(self.seed, "service", truck_id, "tip").uniform()
+            return round(quantile(e.tip_by_class[step[4:]].model_dump(), u) * MS_PER_MINUTE)
+        if step.startswith("tip|"):
+            step = "tip"
         if e.distributions and step in e.distributions:  # fitted distribution: same uniform, other transform
             u = Stream(self.seed, "service", truck_id, step).uniform()
             return round(quantile(e.distributions[step].model_dump(), u) * MS_PER_MINUTE)

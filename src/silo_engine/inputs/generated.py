@@ -27,11 +27,25 @@ def _minutes(hours: float) -> float:
     return float(Decimal(str(hours)) * 60)
 
 
-def _attributes(site: SiteConfig, act: str, d: ActivityDemand, stream: Stream) -> tuple[str | None, int | None, str | None]:
+def _load_class(d: ActivityDemand, hour: int, stream: Stream) -> str | None:
+    """G-D1: the truck's payload class, from its own class stream (other draws are unchanged)."""
+    if not d.load_classes:
+        return None
+    weights = {c.id: c.hour_shares.get(hour, c.share) for c in d.load_classes}
+    if not any(w > 0 for w in weights.values()):
+        weights = {c.id: c.share for c in d.load_classes}
+    return pick_weighted(stream.uniform(), weights)
+
+
+def _attributes(site: SiteConfig, act: str, d: ActivityDemand, stream: Stream,
+                load_class: str | None = None) -> tuple[str | None, int | None, str | None]:
     if act == "weigh":
         return None, None, None
     commodity = pick_weighted(stream.uniform(), d.mix)
-    low, mode, high = d.payload
+    if load_class is not None:
+        low, mode, high = next(c.payload for c in d.load_classes if c.id == load_class)
+    else:
+        low, mode, high = d.payload
     kg = round(triangular(stream.uniform(), low, mode, high) * 1000)
     grade = None
     graded = next((c.grades for c in site.commodities if c.id == commodity and c.grades), None)
@@ -81,15 +95,17 @@ def generate_arrivals(site: SiteConfig, seed: int, days: int = 1, demand_factor:
                     if t >= end:
                         break
                     index += 1
-                    commodity, kg, grade = _attributes(site, act, d, Stream(seed, "truck", act, day + 1, index))
+                    cls = _load_class(d, int(t // 60), Stream(seed, "load_class", act, day + 1, index))
+                    commodity, kg, grade = _attributes(site, act, d, Stream(seed, "truck", act, day + 1, index), cls)
                     arrive = day * MS_PER_DAY + round(t * MS_PER_MINUTE)
                     tid = f"{PREFIX[act]}{day + 1}-{index:03d}"
-                    trucks.append(ScriptedTruck(tid, act, arrive, commodity, kg, False, grade, _sampling(seed, d, tid)))
+                    trucks.append(ScriptedTruck(tid, act, arrive, commodity, kg, False, grade, _sampling(seed, d, tid), cls))
         for n in range(1, getattr(site.initial.queue, act) + 1):
-            commodity, kg, grade = _attributes(site, act, d, Stream(seed, "backlog", act, n))
+            cls = _load_class(d, int(open_min // 60), Stream(seed, "load_class_backlog", act, n))
+            commodity, kg, grade = _attributes(site, act, d, Stream(seed, "backlog", act, n), cls)
             tid = f"{PREFIX[act]}B-{n:02d}"
             trucks.append(ScriptedTruck(tid, act, m(Decimal(str(open_min))), commodity, kg, True, grade,
-                                        _sampling(seed, d, tid)))
+                                        _sampling(seed, d, tid), cls))
     order = {a: i for i, a in enumerate(ACTIVITIES)}
     trucks.sort(key=lambda t: (t.arrive_ms, not t.backlog, order[t.activity], t.id))
     return trucks

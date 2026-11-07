@@ -109,9 +109,13 @@ def _hours_representable(site: SiteConfig) -> list[Finding]:
 
 def _storage_for_a_day(site: SiteConfig) -> list[Finding]:
     d = site.demand.unload
-    if d is None or not d.daily > 0 or not d.payload or not d.mix:
+    if d is None or not d.daily > 0 or not (d.payload or d.load_classes) or not d.mix:
         return []
-    mean_t = sum(d.payload[:3]) / 3
+    if d.load_classes:  # share-weighted mean of the classes' triangular means
+        shares = sum(c.share for c in d.load_classes) or 1
+        mean_t = sum(c.share * sum(c.payload[:3]) / 3 for c in d.load_classes) / shares
+    else:
+        mean_t = sum(d.payload[:3]) / 3
     total = sum(v for v in d.mix.values() if v > 0)
     names = {c.id: c.name for c in site.commodities}
     out = []

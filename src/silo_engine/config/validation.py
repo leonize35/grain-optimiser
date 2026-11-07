@@ -278,12 +278,14 @@ def validate(cfg: SiteConfig) -> ValidationResult:
             if not any(c in (h.commodities or []) for h in hoppers):
                 err(cname(c) + " trucks arrive, but no hopper accepts " + cname(c) + ".")
         largest_payload = _third(un.payload)
-        if un.payload is None or not _gt(largest_payload, 0):
+        if un.load_classes:  # G-D1: payloads from the classes (not a prototype feature: unchanged without them)
+            largest_payload = max(_third(c.payload) or 0 for c in un.load_classes)
+        if (un.payload is None and not un.load_classes) or not _gt(largest_payload, 0):
             err("Unloading trucks need a payload range in tonnes.")
         # a hopper with partial tipping takes any load in portions (not a prototype feature: unchanged without it)
         max_hopper = math.inf if any(h.tip_admission == "partial" for h in hoppers) else \
             max([0.0] + [h.cap_t or 0 for h in hoppers])
-        if un.payload is not None and _gt(largest_payload, max_hopper + EPS):
+        if (un.payload is not None or un.load_classes) and _gt(largest_payload, max_hopper + EPS):
             err("The largest unloading payload (" + js_number(largest_payload) + " t) exceeds every hopper capacity (largest "
                 + js_number(max_hopper) + " t).")
 

@@ -94,6 +94,8 @@ class Equipment(_Model):
     max_concurrent_feeds: int = Field(default=1, ge=1)
     # R1: minutes the route stays reserved after the last grain is fed (equipment emptying). Site input.
     clear_minutes: float = Field(default=0, ge=0)
+    # G-D1 (hoppers): tipping time per load class; other classes and trucks without a class use the normal time.
+    tip_by_class: dict[str, Distribution] | None = None
     # Fitted distributions per step this equipment does (e.g. {"weigh_in": {...}}); they replace the triangular
     # time for that step only. None: triangular as configured.
     distributions: dict[str, Distribution] | None = None
@@ -121,6 +123,15 @@ class Sequences(_Model):
     weigh: list[StepName] = []
 
 
+class LoadClass(_Model):
+    """G-D1: a payload class. Weight `share`, or `hour_shares[hour]` within that clock hour (hours 0-23 as strings or
+    numbers); payload triangular [min, mode, max] tonnes."""
+    id: str
+    share: float = Field(ge=0)
+    payload: list[float]
+    hour_shares: dict[int, float] = {}
+
+
 class ActivityDemand(_Model):
     daily: float = 0
     profile: list[float] | None = None  # 24 hourly weights
@@ -128,6 +139,7 @@ class ActivityDemand(_Model):
     mix: dict[str, float] = {}
     grade_mix: dict[str, dict[str, float]] = {}  # R4: per graded commodity, share of each grade
     sampling_share: float | None = Field(default=None, ge=0, le=1)  # share of trucks needing sampling (None = all)
+    load_classes: list[LoadClass] = []  # G-D1: payload classes (replace `payload` when given)
 
 
 class Demand(_Model):
@@ -475,7 +487,8 @@ def config_hash(cfg: SiteConfig) -> str:
     """SHA-256 of the canonical JSON form; identifies the exact configuration a run used."""
     data = cfg.model_dump(mode="json", by_alias=True)
     for e in data.get("equipment", []):  # sampler-access fields: hash as before when unset
-        for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities", "tip_portion_min_t"):
+        for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities", "tip_portion_min_t",
+                  "tip_by_class"):
             if e.get(k) is None:
                 e.pop(k, None)
     for s in data.get("systems", []):  # per-system hours: hash as before when unset
@@ -487,6 +500,8 @@ def config_hash(cfg: SiteConfig) -> str:
     for d in (data.get("demand") or {}).values():
         if isinstance(d, dict) and d.get("sampling_share") is None:
             d.pop("sampling_share", None)
+        if isinstance(d, dict) and d.get("load_classes") == []:
+            d.pop("load_classes", None)
     for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {}),
                          ("unloading_labour", None), ("systems", []), ("release_rules", []),
                          ("background_tasks", []), ("task_phases", []), ("custom_steps", [])):

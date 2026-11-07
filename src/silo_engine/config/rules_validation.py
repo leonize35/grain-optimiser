@@ -231,6 +231,31 @@ def _validate_hours(site: SiteConfig, result: RulesResult) -> None:
                                    f"({_clock(h.open)}) and closing ({_clock(h.close)})."))
 
 
+def _validate_load_classes(site: SiteConfig, d, label: str, result: RulesResult) -> None:
+    """G-D1: payload classes of one activity, and hoppers' class-specific unloading times."""
+    from ..sim.distributions import problems
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    ids = [c.id for c in d.load_classes]
+    for dup in sorted({i for i in ids if ids.count(i) > 1}):
+        err(f"The {label} load class {dup} is defined more than once.")
+    for c in d.load_classes:
+        if len(c.payload) != 3 or not 0 < c.payload[0] <= c.payload[1] <= c.payload[2]:
+            err(f"The {label} load class {c.id}: give its payload as [min, most likely, max] tonnes with "
+                "0 < min <= mode <= max.")
+        if any(not 0 <= h <= 23 or v < 0 for h, v in c.hour_shares.items()):
+            err(f"The {label} load class {c.id}: hour shares need hours 0-23 and non-negative shares.")
+    if d.load_classes and not any(c.share > 0 for c in d.load_classes):
+        err(f"The {label} load classes need at least one class with a positive share.")
+    if label != "unloading":
+        return
+    for e in site.equipment:
+        for cls, dist in (e.tip_by_class or {}).items():
+            if cls not in ids:
+                err(f"{e.name or e.id} has an unloading time for unknown load class {cls}.")
+            for msg in problems(dist.model_dump()):
+                err(f"{e.name or e.id}, unloading time for {cls}: {msg}.")
+
+
 def _validate_demand(site: SiteConfig, result: RulesResult) -> None:
     """Demand used to generate arrivals: 24-value profiles, grade mixes for graded commodities."""
     policy = GradePolicy(site)
@@ -241,6 +266,7 @@ def _validate_demand(site: SiteConfig, result: RulesResult) -> None:
             continue
         if d.profile is not None and len(d.profile) != 24:
             result.errors.append(Issue(f"The {label} arrival profile needs 24 hourly values (it has {len(d.profile)})."))
+        _validate_load_classes(site, d, label, result)
         if act != "unload":
             continue
         for c, share in d.mix.items():
