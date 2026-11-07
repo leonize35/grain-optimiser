@@ -5,6 +5,8 @@ Layout under the store root (default: outside the repository, see `default_store
     <site id>/versions/0001.json, 0002.json, ...   immutable; the store numbers versions
     <site id>/history.json                         version, note, configuration hash, parent, time, report summary
     <site id>/scenarios/<name>.json                base version + overlay operations (the base is never edited)
+    <site id>/studies/<name>.json                  TLS study settings (step classes, CTQ, thresholds): beside the
+                                                   configuration, never in it (they do not change the simulation)
 
 A configuration must be readable (schema) to be saved; one that cannot run yet is saved as a draft and its
 pre-run report summary is recorded. Nothing here interprets site data: it stores what the user saves.
@@ -117,12 +119,56 @@ class ConfigStore:
         folder = self.root / _safe(site_id, "site id") / "scenarios"
         return sorted(p.stem for p in folder.glob("*.json")) if folder.exists() else []
 
+    # ---- TLS studies (docs/TLS_ANALYSIS_DESIGN.md §6) ----
+    def save_study(self, site_id: str, study: dict) -> dict:
+        self.history(site_id)  # the site must exist
+        record = _check_study(study)
+        self._write_json(self.root / site_id / "studies" / f"{record['name']}.json", record)
+        return record
+
+    def load_study(self, site_id: str, name: str) -> dict:
+        path = self.root / _safe(site_id, "site id") / "studies" / f"{_safe(name, 'study name')}.json"
+        if not path.exists():
+            raise StoreNotFound(f"{site_id} has no study {name}.")
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def list_studies(self, site_id: str) -> list[str]:
+        folder = self.root / _safe(site_id, "site id") / "studies"
+        return sorted(p.stem for p in folder.glob("*.json")) if folder.exists() else []
+
     @staticmethod
     def _write_json(path: Path, data) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         tmp.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
         tmp.replace(path)
+
+
+def _check_study(study: dict) -> dict:
+    from ..analysis.capability import MEASURES
+    from ..analysis.value_stream import CLASSES
+    if not isinstance(study, dict):
+        raise StoreError("A study must be an object.")
+    name = _safe(study.get("name"), "study name")
+    classes = study.get("classification") or {}
+    bad = sorted(k for k, v in classes.items() if v not in CLASSES)
+    if bad:
+        raise StoreError(f"Step class for {', '.join(bad)} must be value_adding, necessary or waste.")
+    ctq = study.get("ctq")
+    if ctq:
+        if ctq.get("measure") not in MEASURES:
+            raise StoreError(f"The CTQ measure must be one of {', '.join(MEASURES)}.")
+        if not isinstance(ctq.get("usl"), (int, float)) or ctq["usl"] <= 0:
+            raise StoreError("A CTQ needs an upper limit (usl, minutes, above 0); there is no default target.")
+        if ctq.get("lsl") is not None and not 0 <= ctq["lsl"] < ctq["usl"]:
+            raise StoreError("The CTQ lower limit must be at least 0 and below the upper limit.")
+    settings = study.get("settings") or {}
+    for k, lo, hi in (("lead_share", 0, 1), ("lead_ratio", 1, 100), ("min_hour_min", 0, 1e6),
+                      ("little_tolerance", 0, 10)):
+        if k in settings and not (isinstance(settings[k], (int, float)) and lo <= settings[k] <= hi):
+            raise StoreError(f"The setting {k} must be a number from {lo:g} to {hi:g}.")
+    return {"name": name, "classification": dict(classes), "ctq": dict(ctq) if ctq else None,
+            "settings": dict(settings), "activity": study.get("activity", "unload"), "note": study.get("note", "")}
 
 
 # ---- overlays (scenarios as changes to a base; the base is never edited) ----

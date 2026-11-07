@@ -62,31 +62,44 @@ def _reconciled(result) -> bool:
 
 def constraint_candidates(site: SiteConfig, result, lead_share: float = 0.4, lead_ratio: float = 1.5,
                           min_hour_min: float = 5) -> dict:
-    use = resource_use(site, result)["equipment"]
+    """Candidates of one run."""
+    use = resource_use(site, result)
+    util = {k: v["utilisation"] for k, v in use["equipment"].items()}
+    util.update({k: v["utilisation"] for k, v in use["segments"].items()})  # belts and elevators: grain flowing
+    out = rank_wait_causes(site, [result.wait_causes], util, lead_share, lead_ratio, min_hour_min)
+    return {**out, "reconciled": _reconciled(result)}
+
+
+def rank_wait_causes(site: SiteConfig, causes: list[dict], utilisation: dict[str, float | None],
+                     lead_share: float = 0.4, lead_ratio: float = 1.5, min_hour_min: float = 5) -> dict:
+    """Candidates from the wait causes of one or more runs (several: pooled, as the mean truck-minutes per run)."""
+    scale = 1 / len(causes) if causes else 1.0
     cands: dict[str, dict] = {}
     by_hour: dict[int, dict[str, float]] = {}
     for kind in ("truck", "in_service"):
-        for hour, cell in result.wait_causes.get(kind, {}).items():
-            for key, minutes in cell.items():
-                cid, code, via = _root(key)
-                c = cands.setdefault(cid, {"id": cid, "kind": _kind(site, cid, code), "truck_min": 0.0, "direct_min": 0.0,
-                                           "in_service_min": 0.0, "via": {}, "codes": {}})
-                c["truck_min"] += minutes
-                if kind == "in_service":
-                    c["in_service_min"] += minutes
-                c["codes"][code] = c["codes"].get(code, 0.0) + minutes
-                if via:
-                    c["via"][via] = c["via"].get(via, 0.0) + minutes
-                else:
-                    c["direct_min"] += minutes
-                h = by_hour.setdefault(int(hour), {})
-                h[cid] = h.get(cid, 0.0) + minutes
+        for wc in causes:
+            for hour, cell in wc.get(kind, {}).items():
+                for key, minutes in cell.items():
+                    minutes *= scale
+                    cid, code, via = _root(key)
+                    c = cands.setdefault(cid, {"id": cid, "kind": _kind(site, cid, code), "truck_min": 0.0,
+                                               "direct_min": 0.0, "in_service_min": 0.0, "via": {}, "codes": {}})
+                    c["truck_min"] += minutes
+                    if kind == "in_service":
+                        c["in_service_min"] += minutes
+                    c["codes"][code] = c["codes"].get(code, 0.0) + minutes
+                    if via:
+                        c["via"][via] = c["via"].get(via, 0.0) + minutes
+                    else:
+                        c["direct_min"] += minutes
+                    h = by_hour.setdefault(int(hour), {})
+                    h[cid] = h.get(cid, 0.0) + minutes
     total = sum(c["truck_min"] for c in cands.values())
     in_service = sum(c["in_service_min"] for c in cands.values())
     ranked = sorted(cands.values(), key=lambda c: (-c["truck_min"], c["id"]))
     for c in ranked:
         c["share"] = c["truck_min"] / total if total else None
-        c["utilisation"] = use.get(c["id"], {}).get("utilisation")
+        c["utilisation"] = utilisation.get(c["id"])
         for f in ("truck_min", "direct_min", "in_service_min"):
             c[f] = round(c[f], 6)
         c["via"] = {k: round(v, 6) for k, v in sorted(c["via"].items(), key=lambda kv: -kv[1])}
@@ -123,8 +136,8 @@ def constraint_candidates(site: SiteConfig, result, lead_share: float = 0.4, lea
         else:
             shifts.append({"from": label, "to": end, "leader": h["leader"]})
 
-    return {"total_truck_min": round(total, 6), "in_service_min": round(in_service, 6),
-            "reconciled": _reconciled(result), "candidates": ranked, "constraint": constraint, "verdict": verdict,
+    return {"total_truck_min": round(total, 6), "in_service_min": round(in_service, 6), "runs": len(causes),
+            "candidates": ranked, "constraint": constraint, "verdict": verdict,
             "by_hour": hourly, "shifts": shifts,
             "settings": {"lead_share": lead_share, "lead_ratio": lead_ratio, "min_hour_min": min_hour_min},
             "limitations": [

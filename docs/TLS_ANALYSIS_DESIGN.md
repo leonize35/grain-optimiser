@@ -1,6 +1,6 @@
 # TLS on the model: design draft (TOC, Lean, Six Sigma)
 
-Status: **draft for the user to correct** against the integrated TLS framework of the dissertation (2026-11-07).
+Status: **draft for the user to correct** against the integrated TLS framework of the dissertation (2026-11-07). Slices T1–T6 are built; the open questions in §9 still stand.
 
 Progress:
 - **T1 (built 2026-11-07).** `silo_engine.analysis.resource_use(site, result, little_tolerance=0.1)` reports:
@@ -35,6 +35,43 @@ Progress:
     - checks independently that the truck causes reconcile exactly with the step records.
 
   Tests: `tests/test_constraints.py` (hand-traced). The thresholds are provisional. Not yet in the API or app.
+- **T3 (built 2026-11-07).** `silo_engine.analysis.value_stream(site, result, classification, activity="unload")`.
+  - **Classification:** the site classifies its own steps (`value_adding`, `necessary`, `waste`). There is no default. Unclassified steps are shown, and process cycle efficiency is then not given.
+  - **Per step:** moving, waiting, service, held during service, held after service, lanes, cycle time against takt time.
+  - **Per truck:** time on site is split exactly into its parts, checked by `adds_up`.
+  - **Waiting during service** (pit space while tipping in portions, or workers) is taken out of service. It comes from the engine's new kind `in_service_by_truck` in `wait_causes`.
+  - **Waste view:** waiting, moving, unfinished, turned away, Little's L, and tipping to storage.
+
+  Tests: `tests/test_value_stream.py`.
+- **T4 (built 2026-11-07).** `silo_engine.analysis.capability(results, ctq, min_n=30, sigma_level=False, shift=0)`.
+  - **CTQ:** measure (`turnaround`, `weighbridge_interval` or `hopper_wait`), USL (required, no default) and optional LSL.
+  - **Censoring:** an unfinished truck already over the USL is a defect; otherwise it is unknown and reported apart.
+  - **Turned-away trucks:** reported apart; they count as defects only if `turned_away_is_defect`.
+  - **Measures:** defect share per replication with a 95 % interval, yield, DPMO, percentile-based Pp/Ppk (flagged below `min_n`), and an optional sigma level with an explicit shift.
+
+  Tests: `tests/test_capability.py`.
+- **T5 (built 2026-11-07).** `silo_engine.analysis.screening(base_config, factors, responses, replications, base_seed, ctq=None)`.
+  - **Factors:** each is two overlay levels.
+  - **Design:** full factorial up to 4 factors, half fraction for 5–6, refused above 6.
+  - **Pairing:** common random numbers, with a check that the arrivals are the same per seed.
+  - **Effects:** main effects per seed with a 95 % interval, ranked. Responses are run measures, plus `ctq.defect_share`.
+
+  Tests: `tests/test_screening.py`.
+- **T6 (built 2026-11-07).**
+  - **Studies.** Kept beside the configuration (`store.save_study`, `<site>/studies/<name>.json`); they are not in the configuration hash and are validated on save.
+  - **`analysis.study.improvement_study`.** Combines TOC (pooled over runs, with the number of runs each resource was the constraint), resource use, Lean and Six Sigma over the replications.
+  - **API:**
+    - `GET/POST /sites/{id}/studies` and `GET /sites/{id}/studies/{name}`;
+    - `POST /analyses` → `GET /analyses/{id}`;
+    - `POST /screenings` → `GET /screenings/{id}` (the factors are saved scenarios);
+    - every result carries the engine version, configuration hash, seeds, replications, the study and failed replications.
+  - **App: the "Improve my silo" screen.**
+    - The study form: step classes chosen by the user, an optional target, and provisional thresholds under Advanced.
+    - Analyse: step 1 TOC (the verdict, candidates with the chain of causes, the leader through the day, the five focusing steps as next actions); step 2 Lean (a time-on-site bar, the value-stream table, cycle time against takt); step 3 Six Sigma (share missing the target with an interval, DPMO, Ppk with a reliability flag).
+    - Screening of up to 6 saved scenarios.
+    - Checks and limitations.
+
+  Tests: `tests/test_improvement_study.py` (including the API). The screen was checked by hand in the browser on synthetic site A.
 
 TLS here is an **analysis layer over simulated runs**. It reads run results; it never changes how the engine dispatches, reserves or moves grain. It works for any silo configured in the platform. No layout, step, target or threshold is assumed, and each is a setting of the silo or of the study.
 

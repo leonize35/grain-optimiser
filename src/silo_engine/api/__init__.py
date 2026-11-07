@@ -12,6 +12,11 @@ Endpoints:
     POST /runs {site_id, version | scenario, replications, base_seed, days, demand_factor, policy} -> 202 run_id
     GET  /runs/{id} ; GET /runs/{id}/results
     POST /compare {run_a, run_b, kpis?}             paired comparison b - a (experiments.runner.compare)
+    GET  /sites/{id}/studies ; POST {name, classification, ctq, settings} ; GET /sites/{id}/studies/{name}
+    POST /analyses {site_id, version | scenario, study | study_settings, replications, base_seed} -> 202 analysis_id
+    GET  /analyses/{id}                              TLS improvement study: TOC, Lean, Six Sigma (analysis.study)
+    POST /screenings {site_id, version, factors (scenario names), responses, replications, base_seed, study?}
+    GET  /screenings/{id}                            main effects of the factors (analysis.screening)
     GET  /meta                                       equipment catalogue (types, fields, allowed connections)
     GET  /examples ; GET /examples/{file}            synthetic example sites (evidence/configs; labelled synthetic)
     GET  /app/                                       the silo builder (static files in api/static; no build step)
@@ -42,8 +47,14 @@ from ..config import ConfigSchemaError, load_site_config
 from ..config.catalogue import catalogue
 from ..config.report import prerun_report
 from ..config.schema import config_hash
+from ..analysis.screening import screening
+from ..analysis.study import improvement_study
 from ..experiments.runner import ExperimentResult, Replication, compare, run_experiment
-from ..store import ConfigStore, StoreError, StoreNotFound, diff_configs
+from ..inputs.generated import generate_arrivals
+from ..sim.random_streams import derived_seed
+from ..sim.service_times import StochasticServiceTimes
+from ..sim.truck_flow import TruckFlowModel
+from ..store import ConfigStore, StoreError, StoreNotFound, _check_study, diff_configs
 
 
 STATIC = Path(__file__).parent / "static"
@@ -66,6 +77,28 @@ class CompareRequest(BaseModel):
     run_a: str  # baseline
     run_b: str  # alternative
     kpis: list[str] | None = None  # default: every KPI both runs have
+
+
+class AnalysisRequest(BaseModel):
+    site_id: str
+    version: int | None = None
+    scenario: str | None = None
+    study: str | None = None  # a stored study, or
+    study_settings: dict[str, Any] | None = None  # an unsaved one
+    replications: int = Field(default=10, ge=1, le=100)
+    base_seed: int = 20261019
+    days: int = Field(default=1, ge=1, le=60)
+    policy: str | None = None
+
+
+class ScreeningRequest(BaseModel):
+    site_id: str
+    version: int | None = None
+    factors: list[str]  # scenario names: each is a factor, low = the version, high = the scenario's changes
+    responses: list[str] = ["unload.mean_turnaround_min", "unload.p90_turnaround_min", "unload.completed"]
+    replications: int = Field(default=5, ge=1, le=50)
+    base_seed: int = 20261019
+    study: str | None = None  # a stored study whose CTQ adds the response ctq.defect_share
 
 
 class RunRequest(BaseModel):
@@ -246,6 +279,119 @@ def create_app(store_root: Path | str | None = None) -> FastAPI:
                      "differences include the change in demand itself.")
         return {"run_a": req.run_a, "run_b": req.run_b, "arrivals": "identical" if same else "different", "note": note,
                 "rankable": {"a": exps[0].failed == 0, "b": exps[1].failed == 0}, "kpis": out}
+
+    # ---- TLS studies, analyses and screenings (docs/TLS_ANALYSIS_DESIGN.md) ----
+    @app.get("/sites/{site_id}/studies")
+    def list_studies(site_id: str):
+        return _store_errors(lambda: store.list_studies(site_id))
+
+    @app.post("/sites/{site_id}/studies")
+    def save_study(site_id: str, study: dict[str, Any]):
+        return _store_errors(lambda: store.save_study(site_id, study))
+
+    @app.get("/sites/{site_id}/studies/{name}")
+    def get_study(site_id: str, name: str):
+        return _store_errors(lambda: store.load_study(site_id, name))
+
+    jobs: dict[str, dict] = {}
+
+    def _job(kind: str, fields: dict, fn) -> dict:
+        job_id = uuid.uuid4().hex[:12]
+        record = {f"{kind}_id": job_id, "state": "queued", **fields, "error": None, "results": None,
+                  "created": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+        with lock:
+            jobs[job_id] = record
+
+        def work():
+            with lock:
+                record["state"] = "running"
+            try:
+                out = fn()
+                with lock:
+                    record["results"], record["state"] = out, "done"
+            except Exception as e:  # reported, never hidden
+                with lock:
+                    record["state"], record["error"] = "failed", f"{type(e).__name__}: {e}"
+        pool.submit(work)
+        return {f"{kind}_id": job_id, "state": record["state"]}
+
+    def _get_job(job_id: str) -> dict:
+        with lock:
+            if job_id not in jobs:
+                raise HTTPException(404, f"No analysis or screening {job_id}.")
+            return copy.deepcopy(jobs[job_id])
+
+    def _runnable(raw: dict):
+        site = _store_errors(lambda: load_site_config(copy.deepcopy(raw)))
+        report = prerun_report(site).as_dict()
+        if not report["ok"]:
+            raise HTTPException(409, {"message": "The configuration has errors and cannot run.", "report": report})
+        return site
+
+    @app.post("/analyses", status_code=202)
+    def start_analysis(req: AnalysisRequest):
+        def snapshot():
+            if req.scenario is not None:
+                sc = store.load_scenario(req.site_id, req.scenario)
+                return sc["config"], sc["base_version"]
+            raw = store.load(req.site_id, req.version)
+            return raw, raw["version"]
+        raw, version = _store_errors(snapshot)
+        if req.study is not None:
+            study = _store_errors(lambda: store.load_study(req.site_id, req.study))
+        else:
+            study = _store_errors(lambda: _check_study({"name": "unsaved", **(req.study_settings or {})}))
+        site = _runnable(raw)
+        seeds = [derived_seed(req.base_seed, "replication", i) for i in range(req.replications)]
+
+        def fn():
+            results, failed = [], []
+            for i, seed in enumerate(seeds):
+                trucks = generate_arrivals(site, seed, days=req.days)
+                r = TruckFlowModel(site, trucks, StochasticServiceTimes(site, seed), policy=req.policy,
+                                   days=req.days).run()
+                if r.stall is not None or r.violations or r.material_balance_kg != 0:
+                    failed.append({"replication": i, "seed": seed, "stall": r.stall is not None,
+                                   "violations": len(r.violations)})
+                    continue
+                results.append(r)
+            out = improvement_study(site, results, study) if results else {"toc": None}
+            out["metadata"] = {"engine_version": VERSION, "config_hash": config_hash(site), "site_id": req.site_id,
+                               "version": version, "scenario": req.scenario, "base_seed": req.base_seed,
+                               "seeds": seeds, "replications": req.replications, "days": req.days,
+                               "policy": req.policy, "study": study, "failed": failed,
+                               "scope": ("all replications" if not failed else
+                                         f"successful replications only: {len(results)} of {req.replications}")}
+            return out
+        return _job("analysis", {"site_id": req.site_id, "version": version, "scenario": req.scenario}, fn)
+
+    @app.get("/analyses/{analysis_id}")
+    def get_analysis(analysis_id: str):
+        return _get_job(analysis_id)
+
+    @app.post("/screenings", status_code=202)
+    def start_screening(req: ScreeningRequest):
+        raw = _store_errors(lambda: store.load(req.site_id, req.version))
+        _runnable(raw)
+        scs = [_store_errors(lambda n=n: store.load_scenario(req.site_id, n)) for n in req.factors]
+        factors = [{"name": sc["name"], "low": [], "high": sc["ops"]} for sc in scs]
+        ctq = None
+        if req.study is not None:
+            ctq = _store_errors(lambda: store.load_study(req.site_id, req.study)).get("ctq")
+        if not 1 <= len(factors) <= 6:
+            raise HTTPException(400, "A screening experiment takes 1 to 6 factors.")
+        responses = list(req.responses) + (["ctq.defect_share"] if ctq else [])
+
+        def fn():
+            out = screening(raw, factors, responses, replications=req.replications, base_seed=req.base_seed, ctq=ctq)
+            out["metadata"].update({"site_id": req.site_id, "version": raw["version"],
+                                    "factor_base_versions": {sc["name"]: sc["base_version"] for sc in scs}})
+            return out
+        return _job("screening", {"site_id": req.site_id, "version": raw["version"], "factors": req.factors}, fn)
+
+    @app.get("/screenings/{screening_id}")
+    def get_screening(screening_id: str):
+        return _get_job(screening_id)
 
     @app.get("/runs/{run_id}/results")
     def run_results(run_id: str):

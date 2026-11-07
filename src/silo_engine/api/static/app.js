@@ -769,6 +769,183 @@ screens.scenarios = async () => {
   };
 };
 
+// ---------- Improve my silo (TLS: docs/TLS_ANALYSIS_DESIGN.md) ----------
+const STEP_CLASSES = [["", "Not classified"], ["value_adding", "Adds value"], ["necessary", "Necessary, adds no value"], ["waste", "Waste"]];
+const CTQ_MEASURES = [["turnaround", "Turnaround (gate to exit)"], ["weighbridge_interval", "Weigh-in to weigh-out"], ["hopper_wait", "Wait for a hopper"]];
+const BAR_PARTS = [["value_adding", "Adds value", "#236A50"], ["necessary", "Necessary", "#155DB5"], ["waste", "Waste steps", "#9D681B"],
+  ["waiting", "Waiting", "#B23839"], ["moving", "Moving", "#7A8796"], ["unclassified", "Not classified", "#C9D3DC"]];
+const pct = (v) => (v === null || v === undefined ? "–" : `${Math.round(v * 100)}%`);
+const resName = (id) => (eqById(id) ? nameOf(id) : id);
+
+function studyForm(st) {
+  const steps = [...new Set([...(S.config.sequences.unload || [])])];
+  const cl = st.classification || {}, ctq = st.ctq || {}, set = st.settings || {};
+  return `<label for="st-name">Study name</label><input id="st-name" value="${esc(st.name || "")}" placeholder="e.g. harvest_review">
+    <h2 style="margin-top:14px">1. What does each receiving step do for the customer?</h2>
+    <p class="muted small">You decide; the platform assumes nothing. Steps left unclassified are shown as such.</p>
+    <table><tbody>${steps.map((s) => `<tr><td>${esc(stepLabel(s))}</td><td><select data-stclass="${esc(s)}">${STEP_CLASSES.map(([v, l]) => `<option value="${v}" ${(cl[s] || "") === v ? "selected" : ""}>${l}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table>
+    <h2 style="margin-top:14px">2. Your target (optional)</h2>
+    <div class="tri" style="flex-wrap:wrap"><select id="st-measure">${CTQ_MEASURES.map(([v, l]) => `<option value="${v}" ${ctq.measure === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+      <span class="unit">should be at most</span><input id="st-usl" type="number" min="0" step="any" value="${ctq.usl ?? ""}"><span class="unit">min</span></div>
+    <p class="muted small">Leave empty for no target. There is no default target.</p>
+    <details><summary class="small">Advanced: thresholds (provisional)</summary>
+      <div class="tri" style="flex-wrap:wrap"><label style="margin:0">A constraint stands out at</label><input id="st-share" type="number" min="0" max="100" value="${Math.round((set.lead_share ?? 0.4) * 100)}"><span class="unit">% of waiting and</span>
+      <input id="st-ratio" type="number" min="1" step="0.1" value="${set.lead_ratio ?? 1.5}"><span class="unit">× the next</span></div>
+      <div class="tri" style="flex-wrap:wrap"><label style="margin:0">Hours with at least</label><input id="st-hour" type="number" min="0" value="${set.min_hour_min ?? 5}"><span class="unit">truck-min of waiting · Little's law tolerance</span><input id="st-tol" type="number" min="0" step="0.01" value="${set.little_tolerance ?? 0.1}"></div></details>`;
+}
+
+function readStudy() {
+  const cl = {};
+  document.querySelectorAll("[data-stclass]").forEach((el) => { if (el.value) cl[el.dataset.stclass] = el.value; });
+  const usl = $("#st-usl").value;
+  return { name: $("#st-name").value.trim() || "unsaved", classification: cl,
+    ctq: usl === "" ? null : { measure: $("#st-measure").value, usl: +usl },
+    settings: { lead_share: +$("#st-share").value / 100, lead_ratio: +$("#st-ratio").value, min_hour_min: +$("#st-hour").value, little_tolerance: +$("#st-tol").value } };
+}
+
+const LINK = { PIT_SPACE: (r) => `no pit space at ${resName(r)}`, BLOCKED: (r) => `trucks held at ${resName(r)}`,
+  RELEASE: () => "trucks held for a condition (e.g. grading result)", GRADE_PENDING: () => "trucks waiting for their grading result",
+  QUEUE_ORDER: () => "trucks behind them in the queue", CONDITION: (r) => `waiting for ${r}`, IN_SERVICE: (r) => `${resName(r)} busy` };
+function chainLabel(k) {  // "PIT_SPACE:H1<BLOCKED:WB" (root first) -> "no pit space at Hopper 1 ← trucks held at Weighbridge"
+  return k.split("<").map((part) => { const [code, ...rest] = part.split(":"); const r = rest.join(":").split("#")[0];
+    return (LINK[code] || ((x) => `${code.toLowerCase().replace(/_/g, " ")}${x ? " " + resName(x) : ""}`))(r); }).join(" ← ");
+}
+
+function verdictText(t) {
+  const top = t.candidates[0];
+  if (!top) return "No waiting was recorded.";
+  const next = t.candidates[1], st = t.settings;
+  if (t.constraint) return `Likely constraint: <strong>${esc(resName(top.id))}</strong>. It causes ${pct(top.share)} of truck waiting${next ? `, ${(top.truck_min / next.truck_min).toFixed(1)} times the next resource` : ""}.`;
+  return `No single constraint stands out. The leader, <strong>${esc(resName(top.id))}</strong>, causes ${pct(top.share)} of truck waiting; a constraint needs at least ${pct(st.lead_share)} and ${st.lead_ratio} times the next resource.`;
+}
+
+function tocCard(t) {
+  if (!t) return `<div class="card"><p class="muted">No successful replication to analyse.</p></div>`;
+  const rows = t.candidates.slice(0, 8).map((c) => {
+    const via = Object.entries(c.via).slice(0, 2).map(([k, v]) => `${esc(chainLabel(k))} (${fmt(v, "min")})`).join("; ");
+    return `<tr><td><strong>${esc(resName(c.id))}</strong></td><td class="small">${esc(c.kind)}</td><td>${fmt(c.truck_min, "min")}</td><td>${pct(c.share)}</td><td>${pct(c.utilisation)}</td><td class="small">${c.direct_min ? `${fmt(c.direct_min, "min")} trucks waiting for it` : ""}${c.in_service_min ? `<br>${fmt(c.in_service_min, "min")} during service` : ""}${via ? `<br>through: ${via}` : ""}</td></tr>`; }).join("");
+  const shifts = t.shifts.map((s) => `<li>${esc(s.from.replace("day 1 ", ""))}–${esc(s.to.replace("day 1 ", ""))}: <strong>${esc(resName(s.leader))}</strong></li>`).join("");
+  return `<div class="card"><h2>Step 1 · Find the constraint (Theory of Constraints)</h2>
+    <div class="banner ${t.constraint ? "warn" : ""}">${verdictText(t)}</div>
+    <table><thead><tr><th>Resource</th><th>Kind</th><th>Truck waiting it causes, per day</th><th>Share</th><th>Busy</th><th>How</th></tr></thead><tbody>${rows || `<tr><td colspan="6" class="muted">No waiting recorded.</td></tr>`}</tbody></table>
+    ${shifts ? `<details open><summary class="small">The leading cause through the day</summary><ul class="small">${shifts}</ul></details>` : ""}
+    ${Object.keys(t.led_runs).length ? `<p class="small muted">The constraint in each simulated day: ${Object.entries(t.led_runs).map(([k, n]) => `${esc(resName(k))} in ${n}`).join(", ")} of ${t.runs}.</p>` : ""}
+    <p class="small">Next, as scenarios on the <a href="#scenarios">Scenarios</a> screen: <strong>exploit</strong> the constraint (rules: queue policy, release rules, partial tipping), <strong>subordinate</strong> the rest to it (gate admission, waiting space before it), <strong>elevate</strong> it (a lane, a hopper, faster equipment, workers). Then analyse the scenario again: the constraint may move.</p></div>`;
+}
+
+function leanCard(l) {
+  if (!l) return "";
+  const b = l.breakdown_min || {}, tot = Object.values(b).reduce((a, x) => a + (x || 0), 0) || 1;
+  const bar = BAR_PARTS.filter(([k]) => b[k] > 0).map(([k, label, col]) => `<span title="${label}: ${fmt(b[k], "min")}" style="width:${(100 * b[k]) / tot}%;background:${col}"></span>`).join("");
+  const legend = BAR_PARTS.filter(([k]) => b[k] > 0).map(([k, label, col]) => `<span class="small"><i style="background:${col}"></i>${label} ${fmt(b[k], "min")}</span>`).join("");
+  const rows = l.steps.map((s) => `<tr><td>${esc(stepLabel(s.step))}</td><td class="small">${esc((STEP_CLASSES.find(([v]) => v === s.class) || [, "Not classified"])[1])}</td><td>${fmt(s.mean_wait_min, "min")}</td><td>${fmt(s.mean_service_min, "min")}</td><td>${fmt(s.mean_held_in_service_min, "min")}</td><td>${fmt(s.mean_blocked_min, "min")}</td><td>${s.cycle_min === null ? "–" : fmt(s.cycle_min, "min")}${s.slower_than_takt ? ` <span class="badge error">slower than takt</span>` : ""}</td></tr>`).join("");
+  return `<div class="card"><h2>Step 2 · Flow and waste (Lean)</h2>
+    <p>Average receiving truck on site: <strong>${fmt(l.mean_lead_time_min, "min")}</strong>. ${l.process_cycle_efficiency === null ? `<span class="muted">${esc(l.notes[0] || "")}</span>` : `Time that adds value: <strong>${pct(l.process_cycle_efficiency)}</strong> (process cycle efficiency).`}</p>
+    <div class="vsbar" role="img" aria-label="Where the time on site goes">${bar}</div><div class="vslegend">${legend}</div>
+    <table style="margin-top:10px"><thead><tr><th>Step</th><th>Class</th><th>Waiting for it</th><th>Service</th><th>Waiting during service</th><th>Held after</th><th>Cycle time (takt ${fmt(l.takt_min, "min")})</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="small muted">Waiting during service: e.g. a truck on the hopper waiting for pit space. Cycle time = service time / lanes; takt = open time / trucks arriving. Trucks on site on average: ${fmt(l.waste.mean_trucks_on_site)}; tipping to storage: ${fmt(l.waste.mean_tipping_to_storage_min, "min")}. ${esc((l.not_modelled || []).join(" "))}</p></div>`;
+}
+
+function sigmaCard(c) {
+  if (!c) return `<div class="card"><h2>Step 3 · Variation against your target (Six Sigma)</h2><p class="muted">Set a target in the study to see how often trucks miss it.</p></div>`;
+  const m = (CTQ_MEASURES.find(([v]) => v === c.ctq.measure) || [, c.ctq.measure])[1];
+  return `<div class="card"><h2>Step 3 · Variation against your target (Six Sigma)</h2>
+    <p>Target: ${esc(m)} at most <strong>${esc(c.ctq.usl)} min</strong>.</p>
+    <div class="kpis"><div class="kpi"><div class="name">Trucks missing the target</div><div class="val">${pct(c.defect_share)}</div><div class="ci">${c.defect_share_low !== null && c.replications > 1 ? `95% interval ${pct(c.defect_share_low)} – ${pct(c.defect_share_high)}` : "single replication"} · ${c.defects} of ${c.assessed}</div></div>
+      <div class="kpi"><div class="name">Defects per million trucks</div><div class="val">${c.dpmo === null ? "–" : Math.round(c.dpmo).toLocaleString()}</div><div class="ci">yield ${pct(c.yield)}</div></div>
+      <div class="kpi"><div class="name">Performance index Ppk</div><div class="val">${c.ppk === null ? "–" : c.ppk.toFixed(2)}</div><div class="ci">${c.index_reliable ? `from ${c.completed_n} trucks` : `only ${c.completed_n} trucks: not reliable (needs ${c.min_n})`}</div></div>
+      <div class="kpi"><div class="name">Median · 99.865th percentile</div><div class="val">${c.percentiles ? fmt(c.percentiles.p50, "min") : "–"}</div><div class="ci">${c.percentiles ? fmt(c.percentiles.p99_865, "min") : ""}</div></div></div>
+    <p class="small muted">${c.unknown ? `${c.unknown} unfinished truck(s) not yet past the target: outcome unknown, not counted. ` : ""}${c.turned_away ? `${c.turned_away} turned away (${c.ctq.turned_away_is_defect ? "counted as missing the target" : "not counted"}). ` : ""}${esc(c.notes.join(" "))}</p></div>`;
+}
+
+screens.improve = async () => {
+  if (needSite()) return;
+  if (!S.saved || S.dirty) { $("#main").innerHTML = `<h1>Improve my silo</h1><div class="banner warn">The analysis runs a <strong>saved</strong> version. <a href="#versions">Save this configuration first.</a></div>`; return; }
+  const site = S.saved.site_id, enc = encodeURIComponent(site);
+  const [studies, scenarios] = await Promise.all([api("GET", `/sites/${enc}/studies`), api("GET", `/sites/${enc}/scenarios`)]);
+  S.study = S.study || {};
+  const chosen = S.studyName || "";
+  const a = S.analysis, sc = S.screen;
+  $("#main").innerHTML = `<h1>Improve my silo</h1><p class="lead">Find what limits your silo, where time is lost, and how often trucks miss your target, in that order: Theory of Constraints, then Lean, then Six Sigma. Try changes as scenarios and analyse again. <span class="label-sim">SIMULATED</span></p>
+    <div class="grid2"><div class="card"><h2>Study</h2>
+      <label for="st-pick">Open a saved study</label><select id="st-pick"><option value="">New study</option>${studies.map((n) => `<option ${n === chosen ? "selected" : ""}>${esc(n)}</option>`).join("")}</select>
+      ${studyForm(S.study)}
+      <div class="actions"><button id="st-save">Save study</button></div></div>
+    <div class="card"><h2>Analyse version ${S.saved.version}</h2>
+      <div class="tri"><label style="margin:0">Simulated days</label><input id="an-reps" type="number" min="1" max="100" value="10"><label style="margin:0">Seed</label><input id="an-seed" type="number" value="20261019"></div>
+      <div class="actions"><button class="primary" id="an-go">Analyse</button></div>
+      <p class="small muted">Each simulated day has its own random arrivals; the same seed gives the same results. The study's settings do not change the simulation.</p>
+      <h2 style="margin-top:16px">Which change matters most? (screening)</h2>
+      <p class="small muted">Pick up to 6 saved scenarios. Each is tried on and off in combination, with the same arrivals, and ranked by its effect.</p>
+      ${scenarios.length ? scenarios.map((n) => `<label class="check"><input type="checkbox" data-scf="${esc(n)}"> ${esc(n)}</label>`).join("") : `<p class="muted small">No scenarios yet: <a href="#scenarios">make some</a>.</p>`}
+      <div class="tri"><label style="margin:0">Days per combination</label><input id="sc-reps" type="number" min="1" max="50" value="5"></div>
+      <div class="actions"><button id="sc-go" ${scenarios.length ? "" : "disabled"}>Run screening</button></div></div></div>
+    <div id="an-out">${a ? analysisView(a) : ""}</div><div id="sc-out">${sc ? screeningView(sc) : ""}</div>`;
+  $("#st-pick").onchange = async () => {
+    const n = $("#st-pick").value;
+    S.studyName = n; S.study = n ? await api("GET", `/sites/${enc}/studies/${encodeURIComponent(n)}`) : {};
+    screens.improve();
+  };
+  $("#st-save").onclick = async () => {
+    try { const st = readStudy(); const saved = await api("POST", `/sites/${enc}/studies`, st); S.study = saved; S.studyName = saved.name; toast("Study saved."); screens.improve(); }
+    catch (e) { toast("Not saved: " + e.message); }
+  };
+  $("#an-go").onclick = async () => {
+    try {
+      const st = readStudy(); S.study = st;
+      const body = { site_id: site, version: S.saved.version, replications: +$("#an-reps").value, base_seed: +$("#an-seed").value };
+      if (S.studyName && st.name === S.studyName) body.study = S.studyName; else body.study_settings = { classification: st.classification, ctq: st.ctq, settings: st.settings };
+      const j = await api("POST", "/analyses", body);
+      S.analysis = { state: "running" }; $("#an-out").innerHTML = analysisView(S.analysis);
+      S.analysis = await pollJob(`/analyses/${j.analysis_id}`, "#an-out", analysisView);
+    } catch (e) { toast("Not started: " + e.message); }
+  };
+  $("#sc-go").onclick = async () => {
+    const factors = [...document.querySelectorAll("[data-scf]:checked")].map((el) => el.dataset.scf);
+    if (!factors.length || factors.length > 6) return toast("Pick 1 to 6 scenarios.");
+    try {
+      const body = { site_id: site, version: S.saved.version, factors, replications: +$("#sc-reps").value, base_seed: +$("#an-seed").value };
+      if (S.studyName) body.study = S.studyName;
+      const j = await api("POST", "/screenings", body);
+      S.screen = { state: "running" }; $("#sc-out").innerHTML = screeningView(S.screen);
+      S.screen = await pollJob(`/screenings/${j.screening_id}`, "#sc-out", screeningView);
+    } catch (e) { toast("Not started: " + e.message); }
+  };
+};
+
+async function pollJob(path, target, view) {
+  for (;;) {
+    const rec = await api("GET", path);
+    if (rec.state === "done" || rec.state === "failed") { if (current() === "improve") $(target).innerHTML = view(rec); toast(rec.state === "done" ? "Finished." : "Failed."); return rec; }
+    await new Promise((res) => setTimeout(res, 800));
+  }
+}
+
+function analysisView(a) {
+  if (a.state === "failed") return `<div class="banner error">Failed: ${esc(a.error)}</div>`;
+  if (a.state !== "done") return `<div class="card"><p class="muted">Simulating and analysing…</p></div>`;
+  const r = a.results, m = r.metadata;
+  return `${m.failed.length ? `<div class="banner warn">${m.failed.length} simulated day(s) could not finish and are not in these figures (${esc(m.scope)}).</div>` : ""}
+    ${tocCard(r.toc)}${leanCard(r.lean)}${sigmaCard(r.six_sigma)}
+    <div class="card"><p class="small muted">Version ${m.version} · engine ${esc(m.engine_version)} · configuration ${esc(m.config_hash.slice(0, 12))}… · ${m.replications} day(s), seeds ${esc(m.seeds.join(", "))} · study ${esc(m.study.name)}. ${esc(r.assurance || "")}</p>
+      <details><summary class="small">Checks and limitations</summary><ul class="small">
+        <li>Waiting by cause matches the trucks' own records: ${r.reconciled ? "yes" : "<strong>no</strong>"}.</li>
+        <li>Little's law (trucks on site = arrival rate × time on site): ${r.little && r.little.exact_ok ? "holds" : "<strong>does not hold</strong>"}; edge effects on the mean turnaround: ${r.little ? pct(r.little.steady_gap_mean) : "–"} (tolerance ${r.little ? pct(r.little.tolerance) : "–"}).</li>
+        ${(r.limitations || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></details></div>`;
+}
+
+function screeningView(s) {
+  if (s.state === "failed") return `<div class="banner error">Failed: ${esc(s.error)}</div>`;
+  if (s.state !== "done") return `<div class="card"><p class="muted">Running the combinations…</p></div>`;
+  const r = s.results;
+  const names = { "unload.mean_turnaround_min": ["Mean turnaround", "min"], "unload.p90_turnaround_min": ["90th percentile turnaround", "min"], "unload.completed": ["Trucks completed", "trucks"], "ctq.defect_share": ["Share missing the target", ""] };
+  const tables = Object.entries(r.effects).map(([resp, rows]) => { const [label, unit] = names[resp] || [resp, ""];
+    return `<h3 class="small">${esc(label)}</h3><table><thead><tr><th>Change</th><th>Effect (on − off)</th><th>95% interval</th><th></th></tr></thead><tbody>${rows.map((e) => `<tr><td>${esc(e.factor)}</td><td><strong>${e.effect === null ? "–" : (e.effect > 0 ? "+" : "") + (unit ? fmt(e.effect, unit) : pct(e.effect))}</strong></td><td class="small">${e.low === null ? "–" : unit ? `${fmt(e.low)} to ${fmt(e.high)}` : `${pct(e.low)} to ${pct(e.high)}`}</td><td>${e.clear ? "clear" : `<span class="muted">not clear</span>`}${e.seeds_left_out ? ` <span class="small muted">(${e.seeds_left_out} day(s) left out)</span>` : ""}</td></tr>`).join("")}</tbody></table>`; }).join("");
+  return `<div class="card"><h2>Screening: ${esc(r.design)}, ${r.points.length} combinations × ${r.metadata.replications} day(s) <span class="label-sim">SIMULATED</span></h2>
+    ${r.same_arrivals ? "" : `<div class="banner warn">Some changes alter the arrivals, so their effects include the change in demand itself.</div>`}
+    ${tables}<p class="small muted">${esc(r.notes.join(" "))} No revenue or lost-demand effect is inferred.</p></div>`;
+}
+
 screens.check = () => {
   if (needSite()) return;
   const r = S.report;
