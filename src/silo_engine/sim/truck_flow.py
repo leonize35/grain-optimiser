@@ -411,6 +411,11 @@ class TruckFlowResult:
     clearance: list[dict] = field(default_factory=list)
     # Every reservation and release, in order (ledger.LedgerEntry); read by analysis (e.g. TLS resource use).
     ledger_log: list = field(default_factory=list)
+    # TLS T2: minutes of waiting per clock hour (absolute, day * 24 + hour), per kind (truck, in_service, task, sample,
+    # grain) and cause.
+    # A cause is "CODE:resource", followed by "<" and the wait it explains when traced (e.g. a full pit waiting for a
+    # belt: "EQUIPMENT_BUSY:C1<PIT_SPACE:H1"). One waiting request counts 1 per minute, split equally over its causes.
+    wait_causes: dict = field(default_factory=dict)
 
 
 def _hours_ms(hours: float) -> int:
@@ -474,6 +479,8 @@ class TruckFlowModel:
         self._labour_open: dict[str, tuple[str, dict]] = {}  # owner -> (labour reservation id, use record)
         self._attribution: dict[str, float] = {}
         self._attr_last: tuple[int, dict] | None = None
+        self._wait_causes: dict[str, dict[int, dict[str, float]]] = {}  # TLS T2 (reporting only)
+        self._wc_last: tuple[int, dict] | None = None
         self.changeover_matrix = ChangeoverMatrix.from_site(site)
         self.grades = GradePolicy(site)
         self.mixing = self.grades.mixing()
@@ -745,6 +752,7 @@ class TruckFlowModel:
         self.dispatcher.reconsider(self.cal.now)
         if self._labour or self._unload:
             self._attribute_waiting()
+        self._record_wait_causes()
         for problem in self.ledger.check_invariants(self.cal.now):
             self.violations.append((self.cal.now, problem))
         # Stall: work is waiting and nothing is left that could change it. New arrivals and the daily open/stop
@@ -1765,6 +1773,130 @@ class TruckFlowModel:
                 snap[k] = snap.get(k, 0) + 1
         self._attr_last = (now, snap)
 
+    # ---- wait causes (TLS T2; reads the state, never changes it) ----
+    def _record_wait_causes(self) -> None:
+        now = self.cal.now
+        if self._wc_last is not None:
+            self._integrate_wait_causes(self._wc_last[0], now, self._wc_last[1])
+        self._wc_last = (now, self._wait_cause_snapshot())
+
+    def _integrate_wait_causes(self, t0: int, t1: int, snap: dict) -> None:
+        t1 = min(t1, self._horizon_end)
+        while t0 < t1:
+            hour = t0 // (60 * MS_PER_MINUTE)
+            cut = min(t1, (hour + 1) * 60 * MS_PER_MINUTE)
+            for (kind, key), w in snap.items():
+                cell = self._wait_causes.setdefault(kind, {}).setdefault(hour, {})
+                cell[key] = cell.get(key, 0.0) + w * (cut - t0) / MS_PER_MINUTE
+            t0 = cut
+
+    def _wait_cause_report(self) -> dict:
+        if self._wc_last is not None:
+            t0, snap = self._wc_last
+            self._integrate_wait_causes(t0, max(t0, self.cal.now), snap)
+            self._wc_last = (max(t0, self.cal.now), snap)
+        return {kind: {h: {k: round(v, 6) for k, v in sorted(cell.items())} for h, cell in sorted(hours.items())}
+                for kind, hours in sorted(self._wait_causes.items())}
+
+    def _wait_cause_snapshot(self) -> dict[tuple[str, str], float]:
+        """Each waiting request, held truck or sample weighs 1, split equally over its reasons; a reason is traced
+        (at most 4 steps) to what explains it: behind an earlier request (QUEUE_ORDER), a pit without space (its
+        intake's reasons, or the slowest part of the draining route), equipment whose lanes are occupied by trucks
+        that finished service but are held there (those trucks' own causes, BLOCKED), a truck held for its grading
+        result (the sample's reasons, or the grader serving it)."""
+        waiting = self.dispatcher.waiting()
+        by_id = {rid: (group, reasons) for rid, group, reasons, _ in waiting}
+        truck_req = {tid: (group, reasons) for _, group, reasons, tid in waiting
+                     if tid is not None and group not in ("intake", "grade")}
+        held = {t.id: (self._unmet_release(t), "RELEASE") for t in self._release_wait.values()}
+        held.update({tid: (["graded"], "GRADE_PENDING") for tid in self._awaiting_result})
+        occupants: dict[str, list[tuple[str, bool]]] = {}
+        for tid, loc in self._location.items():
+            if loc is not None and loc[1] is not None and loc[1].unit and loc[1].started is not None:
+                occupants.setdefault(loc[1].unit.split("#")[0], []).append((tid, loc[1].finished is not None))
+
+        def scaled(parts: dict[str, float], suffix: str, w: float) -> dict[str, float]:
+            return {k + suffix: v * w for k, v in parts.items()}
+
+        def merge(out: dict[str, float], parts: dict[str, float]) -> None:
+            for k, v in parts.items():
+                out[k] = out.get(k, 0.0) + v
+
+        def resolve(reasons, group: str, depth: int) -> dict[str, float]:
+            keys = list(dict.fromkeys((r.code, r.resource) for r in reasons))
+            out: dict[str, float] = {}
+            for code, res in keys:
+                w = 1 / len(keys)
+                plain = {f"{code}:{res}" if res else code: w}
+                if depth >= 4:
+                    merge(out, plain)
+                elif code == "QUEUE_ORDER":  # behind an earlier request: what that one waits for
+                    head = next((rs for _, g, rs, _ in waiting if g == group and rs and
+                                 all(x.code not in ("QUEUE_ORDER", "POLICY_HOLD") for x in rs)), None)
+                    merge(out, scaled(resolve(head, group, depth + 1), "<QUEUE_ORDER", w) if head else plain)
+                elif code == "PIT_SPACE" and res in self.pits:
+                    merge(out, scaled(pit(res, depth), f"<PIT_SPACE:{res}", w))
+                elif code == "EQUIPMENT_BUSY" and res and occupants.get(res.split(":")[0]):
+                    occ = occupants[res.split(":")[0]]
+                    stuck = [t for t, blocked in occ if blocked]
+                    merge(out, {f"{code}:{res}": w * (len(occ) - len(stuck)) / len(occ)} if len(stuck) < len(occ) else {})
+                    for t in stuck:
+                        merge(out, scaled(truck(t, depth + 1), f"<BLOCKED:{res.split(':')[0]}", w / len(occ)))
+                else:
+                    merge(out, plain)
+            return out
+
+        def truck(tid: str, depth: int) -> dict[str, float]:
+            if tid in held:
+                return hold(tid, depth)
+            if tid in truck_req:
+                return resolve(truck_req[tid][1], truck_req[tid][0], depth) or {"UNKNOWN": 1.0}
+            return {"UNKNOWN": 1.0}
+
+        def hold(tid: str, depth: int) -> dict[str, float]:
+            conds, why = held[tid]
+            if not conds:
+                return {why: 1.0}
+            out: dict[str, float] = {}
+            for c in conds:
+                w, sid = 1 / len(conds), f"S-{tid}/grade"
+                if c == "graded" and sid in by_id:
+                    merge(out, scaled(resolve(by_id[sid][1], "grade", depth + 1), f"<{why}:graded", w))
+                elif c == "graded" and self.ledger.is_held(sid):
+                    lane = next((x.resource for x in self.ledger.holds(sid) if isinstance(x, LaneClaim)), None)
+                    merge(out, {f"IN_SERVICE:{lane}<{why}:graded": w})
+                else:
+                    merge(out, {f"CONDITION:{c}<{why}": w})
+            return out
+
+        def pit(pit_id: str, depth: int) -> dict[str, float]:
+            """A pit without space: its intake is waiting (the intake's causes), or grain is draining (the slowest
+            of the pit's discharge and the route's segments, at nominal rates; concurrent feeds not considered)."""
+            intake = next((rid for rid in by_id if rid.startswith(f"{pit_id}/intake#")), None)
+            if intake is not None:
+                return resolve(by_id[intake][1], "intake", depth + 1) or {f"PIT_SPACE:{pit_id}": 1.0}
+            running = [x for x in self.transfers if x.pit == pit_id and x.finished is None]
+            if not running:
+                return {f"PIT_SPACE:{pit_id}": 1.0}
+            path = running[-1].path
+            rates = [(self.pits[pit_id].rate_tph, pit_id)] + [(self.equipment[sg].rate, sg) for sg in path[1:-1]
+                                                              if sg in self.equipment and self.equipment[sg].rate]
+            slowest = min(r for r, _ in rates)
+            return {f"FLOW:{next(i for r, i in rates if r == slowest)}": 1.0}  # ties: the first along the route
+
+        snap: dict[tuple[str, str], float] = {}
+        for rid, group, reasons, tid in waiting:
+            # truck: a truck waiting to start a step; in_service: a truck already in service waiting for pit space
+            # (partial tipping) or workers (phases); task: a background task; sample; grain (intake transfers).
+            kind = ("grain" if group == "intake" else "sample" if group == "grade" else "truck" if tid is not None
+                    else "task" if group == "background" else "in_service")
+            for k, v in (resolve(reasons, group, 0) or {"UNKNOWN": 1.0}).items():
+                snap[(kind, k)] = snap.get((kind, k), 0.0) + v
+        for tid in held:
+            for k, v in hold(tid, 0).items():
+                snap[("truck", k)] = snap.get(("truck", k), 0.0) + v
+        return snap
+
     def _attribution_report(self) -> dict[str, float]:
         if not self._labour and not self._unload:
             return {}
@@ -1966,7 +2098,7 @@ class TruckFlowModel:
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(),
             outcomes=self._outcomes(), clearance=clearance(list(self.records.values()), self.windows, self._closes),
-            ledger_log=list(self.ledger.log),
+            ledger_log=list(self.ledger.log), wait_causes=self._wait_cause_report(),
             **self._fairness())
         result.outcomes["fairness"] = commodity_fairness(result.truck_metrics.values())
         return result

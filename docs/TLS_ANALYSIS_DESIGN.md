@@ -13,6 +13,28 @@ Progress:
   - the Little's law check (exact and steady-state).
 
   Tests: `tests/test_resource_use.py` (hand-traced). Not yet in the API or app. Known limitations are listed in each report. The 10 % tolerance is provisional.
+- **T2 (built 2026-11-07).**
+  - **New engine output.** Runs carry `wait_causes`, recorded at every event (reporting only; about 12 % extra run time). It holds the minutes of waiting per clock hour, per kind and per cause.
+    - Kinds:
+      - truck: waiting to start a step;
+      - in_service: during service, waiting for pit space in partial tipping, or for workers;
+      - task;
+      - sample;
+      - grain.
+    - Each waiting request counts 1 per minute, split equally over its reasons.
+  - **Causes are traced** to what explains them:
+    - a full pit → its intake's reasons (e.g. a full bin), or the slowest part of the draining route;
+    - a busy station whose lanes hold trucks that finished but are held → those trucks' causes;
+    - a truck held for its grading result → the sample's queue, or the grader serving it;
+    - a request behind an earlier one → that one's reasons.
+  - **`silo_engine.analysis.constraint_candidates(site, result, lead_share=0.4, lead_ratio=1.5, min_hour_min=5)`:**
+    - sums the causes by the resource at the root of each chain and ranks the candidates;
+    - shows for each candidate its direct and traced minutes, the chains, its in-service minutes and its utilisation;
+    - names the constraint only if it stands out, otherwise "no single constraint";
+    - reports the leader per clock hour and the periods in which it stays the same;
+    - checks independently that the truck causes reconcile exactly with the step records.
+
+  Tests: `tests/test_constraints.py` (hand-traced). The thresholds are provisional. Not yet in the API or app.
 
 TLS here is an **analysis layer over simulated runs**. It reads run results; it never changes how the engine dispatches, reserves or moves grain. It works for any silo configured in the platform. No layout, step, target or threshold is assumed, and each is a setting of the silo or of the study.
 

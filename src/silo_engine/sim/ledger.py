@@ -134,6 +134,9 @@ class ReservationLedger:
     def last_grain(self, segment_id: str) -> GradedCommodity | None:
         return self._segments[segment_id].last
 
+    def is_held(self, reservation_id: str) -> bool:
+        return reservation_id in self._held
+
     def holds(self, reservation_id: str) -> tuple[Claim, ...]:
         return self._held[reservation_id]
 

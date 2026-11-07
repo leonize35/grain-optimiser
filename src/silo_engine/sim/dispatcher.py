@@ -155,5 +155,11 @@ class Dispatcher:
     def waiting_reasons(self) -> dict[str, list[WaitReason]]:
         return {p.id: list(p.reasons) for p in self._pending}
 
+    def waiting(self) -> list[tuple[str, str, list[WaitReason], str | None]]:
+        """(request id, queue group, reasons, truck id) of every waiting request, in queue-position order (read
+        only). The truck id is the one given with the request (None for grain transfers)."""
+        return [(p.id, p.group, list(p.reasons), p.info.get("truck_id"))  # type: ignore[misc]
+                for p in sorted(self._pending, key=lambda p: p.position())]
+
     def overtaken(self) -> dict[str, int]:
         return dict(self._overtaken)
