@@ -78,7 +78,7 @@ function nameOf(id) { const e = eqById(id); return e ? (e.name || e.id) : id; }
 function newId(prefix) {
   let n = 1; while (S.config.equipment.some((e) => e.id === `${prefix}${n}`)) n++; return `${prefix}${n}`;
 }
-const PREFIX = { sampler: "S", grader: "G", weighbridge: "WB", hopper: "H", conveyor: "C", elevator: "E", bin: "B", loadpoint: "L", station: "ST" };
+const PREFIX = { sampler: "S", grader: "G", weighbridge: "WB", hopper: "H", conveyor: "C", elevator: "E", bin: "B", loadpoint: "L", station: "ST", cleaner: "CL", grain_dryer: "D" };
 
 function blankSite() {
   return { id: "my-silo", name: "My silo", version: 1, hours: { open: 7, close: 18 },
@@ -191,6 +191,12 @@ function fieldInput(e, f) {
     return `${label}<select id="${id}" data-field="${f.name}" data-kind="choice"><option value="">(default)</option>${f.options.map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>${help}`;
   if (f.kind === "commodity")
     return `${label}<select id="${id}" data-field="${f.name}" data-kind="choice"><option value="">(none)</option>${S.config.commodities.map((c) => `<option value="${esc(c.id)}" ${v === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("")}</select>${help}`;
+  if (f.kind === "shares") {  // per commodity, entered in %
+    const m = v || {};
+    return `${label}<div class="tri" style="flex-wrap:wrap">${S.config.commodities.map((c) => `<span class="unit">${esc(c.name)}</span><input type="number" min="0" max="99.9" step="any" data-share="${f.name}|${esc(c.id)}" value="${m[c.id] === undefined ? "" : +(m[c.id] * 100).toFixed(3)}" style="width:70px"><span class="unit">%</span>`).join("")}</div>${help}`;
+  }
+  if (f.kind === "boolean")
+    return `<label class="check"><input type="checkbox" id="${id}" data-bool="${f.name}" ${v ? "checked" : ""}> ${esc(f.label)}</label>${help}`;
   if (f.kind === "commodities" || f.kind === "activities") {
     const opts = f.kind === "commodities" ? S.config.commodities.map((c) => [c.id, c.name]) : S.meta.activities.map((a) => [a.id, a.label]);
     const set = new Set(v || []);
@@ -266,6 +272,16 @@ screens.equipment = () => {
   document.querySelectorAll("[data-multi]").forEach((el) => { el.onchange = () => {
     const k = el.dataset.multi, vals = [...document.querySelectorAll(`[data-multi="${k}"]:checked`)].map((x) => x.value);
     if (vals.length) e[k] = vals; else delete e[k];
+    markDirty();
+  }; });
+  document.querySelectorAll("[data-share]").forEach((el) => { el.onchange = () => {
+    const [k, cid] = el.dataset.share.split("|"); const m = { ...(e[k] || {}) };
+    if (el.value === "") delete m[cid]; else m[cid] = Math.min(0.999, Math.max(0, +el.value / 100));
+    if (Object.keys(m).length) e[k] = m; else delete e[k];
+    markDirty();
+  }; });
+  document.querySelectorAll("[data-bool]").forEach((el) => { el.onchange = () => {
+    if (el.checked) e[el.dataset.bool] = true; else delete e[el.dataset.bool];
     markDirty();
   }; });
 };
@@ -668,6 +684,12 @@ screens.demand = () => {
       <label style="margin:0">Payload</label>${[0, 1, 2].map((k) => `<input type="number" min="0" step="any" data-pay="${act}|${k}" value="${esc((d.payload || [])[k] ?? "")}" aria-label="payload ${["minimum", "most likely", "maximum"][k]}">`).join("")}<span class="unit">t (min, most likely, max)</span></div>
       <label>Commodity mix</label><div class="tri" style="flex-wrap:wrap">${c.commodities.map((m) => `<span class="unit">${esc(m.name)}</span><input type="number" min="0" step="any" data-mix="${act}|${esc(m.id)}" value="${esc(d.mix && d.mix[m.id] !== undefined ? +(d.mix[m.id] * 100 / (total || 1)).toFixed(2) : "")}" style="width:70px"><span class="unit">%</span>`).join("")}</div>
       ${act === "unload" ? `<label for="ss-${act}">Share of trucks that need sampling</label><input id="ss-${act}" type="number" min="0" max="100" step="any" data-ss="${act}" value="${esc(d.sampling_share === null || d.sampling_share === undefined ? "" : d.sampling_share * 100)}" placeholder="all"> <span class="unit">%</span>` : ""}
+      ${act === "unload" ? `<label>Found at grading (per commodity; leave empty if not modelled)</label>
+        <table><thead><tr><th>Commodity</th><th>Dirty loads (need a cleaner)</th><th>Moisture: min, most likely, max</th><th>Wet above (to a wet holding bin)</th></tr></thead><tbody>
+        ${c.commodities.map((m) => { const mo = (d.moisture || {})[m.id] || ["", "", ""]; return `<tr><td>${esc(m.name)}</td>
+          <td><input type="number" min="0" max="100" step="any" data-dirty="${esc(m.id)}" value="${(d.dirty_share || {})[m.id] === undefined ? "" : +((d.dirty_share[m.id]) * 100).toFixed(3)}" style="width:70px"> <span class="unit">%</span></td>
+          <td>${[0, 1, 2].map((k) => `<input type="number" min="0" max="99" step="any" data-moist="${esc(m.id)}|${k}" value="${esc(mo[k])}" style="width:60px">`).join("")} <span class="unit">%</span></td>
+          <td><input type="number" min="0" max="99" step="any" data-wetlim="${esc(m.id)}" value="${esc((c.moisture_limits || {})[m.id] ?? "")}" style="width:70px"> <span class="unit">%</span></td></tr>`; }).join("")}</tbody></table>` : ""}
       <label>Arrivals across the day</label>
       ${profile ? `<div class="tri" style="flex-wrap:wrap">${profile.map((v, h) => `<span class="unit">${String(h).padStart(2, "0")}h</span><input type="number" min="0" step="any" data-prof="${act}|${h}" value="${esc(v)}" style="width:56px">`).join("")}</div><div class="actions"><button data-prof-off="${act}">Spread evenly over opening hours</button></div>`
         : `<p class="muted small">Spread evenly over the admission hours.</p><div class="actions"><button data-prof-on="${act}">Set an hourly profile</button></div>`}
@@ -681,9 +703,49 @@ screens.demand = () => {
   bindAll("[data-mix]", (el) => { const [a, m] = el.dataset.mix.split("|"); const d = c.demand[a]; d.mix = { ...(d.mix || {}) };
     if (el.value === "" || +el.value === 0) delete d.mix[m]; else d.mix[m] = +el.value / 100; markDirty(); });
   bindAll("[data-ss]", (el) => { const d = c.demand[el.dataset.ss]; if (el.value === "") delete d.sampling_share; else d.sampling_share = Math.min(1, Math.max(0, +el.value / 100)); markDirty(); });
+  bindAll("[data-dirty]", (el) => { const d = c.demand.unload, m = { ...(d.dirty_share || {}) };
+    if (el.value === "") delete m[el.dataset.dirty]; else m[el.dataset.dirty] = Math.min(1, Math.max(0, +el.value / 100));
+    if (Object.keys(m).length) d.dirty_share = m; else delete d.dirty_share; markDirty(); });
+  bindAll("[data-moist]", (el) => { const [cid, k] = el.dataset.moist.split("|"); const d = c.demand.unload, m = { ...(d.moisture || {}) };
+    const vals = [0, 1, 2].map((i) => document.querySelector(`[data-moist="${cid}|${i}"]`).value);
+    if (vals.every((x) => x === "")) delete m[cid]; else m[cid] = vals.map((x) => (x === "" ? 0 : +x));
+    if (Object.keys(m).length) d.moisture = m; else delete d.moisture; markDirty(); });
+  bindAll("[data-wetlim]", (el) => { const m = { ...(c.moisture_limits || {}) };
+    if (el.value === "") delete m[el.dataset.wetlim]; else m[el.dataset.wetlim] = +el.value;
+    if (Object.keys(m).length) c.moisture_limits = m; else delete c.moisture_limits; markDirty(); });
   bindAll("[data-prof-on]", (el) => { c.demand[el.dataset.profOn].profile = Array.from({ length: 24 }, (_, h) => (h >= c.hours.open && h < c.hours.close ? 1 : 0)); markDirty(); render(); });
   bindAll("[data-prof-off]", (el) => { delete c.demand[el.dataset.profOff].profile; markDirty(); render(); });
   bindAll("[data-prof]", (el) => { const [a, h] = el.dataset.prof.split("|"); c.demand[a].profile[+h] = Math.max(0, +el.value || 0); markDirty(); });
+};
+
+// ---------- planned grain moves between bins ----------
+screens.moves = () => {
+  if (needSite()) return;
+  const c = S.config;
+  c.grain_moves = c.grain_moves || [];
+  const bins = c.equipment.filter((e) => e.type === "bin");
+  const binSel = (i, k, v) => `<select data-mv="${i}|${k}">${bins.map((b) => `<option value="${esc(b.id)}" ${v === b.id ? "selected" : ""}>${esc(b.name || b.id)}${b.wet_holding ? " (wet)" : ""}</option>`).join("")}</select>`;
+  const rows = c.grain_moves.map((mv, i) => `<tr><td><input data-mv="${i}|id" value="${esc(mv.id)}" size="8"></td>
+    <td><input type="number" min="1" data-mv="${i}|day" value="${esc(mv.day ?? 1)}" style="width:56px"></td>
+    <td><input data-mv="${i}|at" value="${esc(mv.at)}" size="5" placeholder="HH:MM"></td>
+    <td>${binSel(i, "from_bin", mv.from_bin)}</td><td>${binSel(i, "to_bin", mv.to_bin)}</td>
+    <td><input type="number" min="0" step="any" data-mv="${i}|tonnes" value="${esc(mv.tonnes ?? "")}" placeholder="all" style="width:80px"></td>
+    <td><select data-mv="${i}|kind"><option value="transfer" ${mv.kind !== "drying" ? "selected" : ""}>Move / turn</option><option value="drying" ${mv.kind === "drying" ? "selected" : ""}>Dry</option></select></td>
+    <td>${mv.kind === "drying" ? `<input type="number" min="0" max="99" step="any" data-mv="${i}|target_moisture" value="${esc(mv.target_moisture ?? "")}" style="width:60px"> <span class="unit">%</span>` : `<span class="muted small">–</span>`}</td>
+    <td><button class="danger" data-mvdel="${i}">Remove</button></td></tr>`).join("");
+  $("#main").innerHTML = `<h1>Grain moves</h1><p class="lead">Planned moves of grain between bins: turning a bin (same bin as source and destination), moving grain to free a bin, or drying grain from a wet holding bin through a dryer. A move waits for a free route and gives way to grain waiting in the hoppers. If less stock or space is available than planned, the possible part moves and the shortfall is reported.</p>
+    <div class="card"><table><thead><tr><th>Name</th><th>Day</th><th>Time</th><th>From</th><th>To</th><th>Tonnes</th><th>What</th><th>Dry to</th><th></th></tr></thead><tbody>${rows || `<tr><td colspan="9" class="muted">No planned moves.</td></tr>`}</tbody></table>
+    <div class="actions"><button id="mv-add" ${bins.length ? "" : "disabled"}>Add a move</button></div>
+    <p class="muted small">Routes come from the grain connections: a move needs a path from the source bin through conveyors and elevators back to a bin (drying: through a dryer). The check reports moves without a route.</p></div>`;
+  $("#mv-add").onclick = () => { const n = c.grain_moves.length + 1; c.grain_moves.push({ id: `M${n}`, day: 1, at: "18:00", from_bin: bins[0].id, to_bin: bins[0].id, tonnes: null, kind: "transfer" }); markDirty(); render(); };
+  bindAll("[data-mvdel]", (el) => { c.grain_moves.splice(+el.dataset.mvdel, 1); if (!c.grain_moves.length) delete c.grain_moves; markDirty(); render(); });
+  bindAll("[data-mv]", (el) => { const [i, k] = el.dataset.mv.split("|"); const mv = c.grain_moves[+i];
+    if (k === "day") mv.day = Math.max(1, +el.value || 1);
+    else if (k === "tonnes") mv.tonnes = el.value === "" ? null : +el.value;
+    else if (k === "target_moisture") mv.target_moisture = el.value === "" ? null : +el.value;
+    else mv[k] = el.value;
+    if (k === "kind" && mv.kind !== "drying") delete mv.target_moisture;
+    markDirty(); if (k === "kind") render(); });
 };
 
 // ---------- scenarios and comparison (slice 9c) ----------

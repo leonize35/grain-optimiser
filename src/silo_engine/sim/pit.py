@@ -5,7 +5,7 @@
   truck appears gradually. Committed quantities change only when the drain finishes; `level_at(t)` and
   `free_space_at(t)` give the continuous view used for admission.
 - A pit holds one commodity and grade at a time (A4), unless the site's grade mixing rules (R4) let two grades
-  of the same commodity share it.
+  of the same commodity share it. It holds dirty or clean grain, not both at once (G-D4, assumption to confirm).
 - Admission rules (site input): ``full_load_space`` (free space ≥ load), ``empty_pit`` (nothing in the pit) or
   ``partial`` (tip what fits, then wait for space for the remainder; each portion is claimed like a small load).
 - Space for a truck that is tipping is held by a *claim* until tipping ends, when the claim becomes a lot.
@@ -28,6 +28,9 @@ class Lot:
     grain: GradedCommodity
     kg: int  # still in the pit
     created: int
+    dirty: bool = False  # G-D4: found dirty at grading; must pass a cleaner
+    wet: bool = False  # above the commodity's moisture limit: goes to a wet holding bin
+    moisture: float | None = None  # percent
 
 
 @dataclass
@@ -59,6 +62,7 @@ class Pit:
         self.mixing = mixing or MixingRules([])
         self.lots: deque[Lot] = deque(lots or [])
         self.claims: dict[str, tuple[GradedCommodity, int]] = {}
+        self.claim_dirty: dict[str, tuple[bool, bool]] = {}  # (dirty, wet) of each claim
         self.draining: Drain | None = None
         self._version = 0  # bumped on every change; keys the free-space cache
         self._free_cache: tuple[int, int, Fraction] | None = None
@@ -105,13 +109,23 @@ class Pit:
     def identity(self) -> GradedCommodity | None:
         return self._combined([])[1]
 
+    def dirty_states(self) -> set[tuple[bool, bool]]:
+        """(dirty, wet) of the grain in the pit and of the space claimed for tipping (one kind at a time)."""
+        return {(lot.dirty, lot.wet) for lot in self.lots} | set(self.claim_dirty.values())
+
     # ---- admission ----
-    def check_claim(self, now: int, grain: GradedCommodity, kg: int) -> list[WaitReason]:
+    def check_claim(self, now: int, grain: GradedCommodity, kg: int, dirty: bool = False,
+                    wet: bool = False) -> list[WaitReason]:
         reasons: list[WaitReason] = []
         current = self.identity()
         if current is not None and not self._combined([grain])[0]:
             reasons.append(WaitReason("PIT_INCOMPATIBLE", self.id,
                                       f"{self.id} holds {current.commodity}; {grain.commodity} must wait until it is empty"))
+        elif self.dirty_states() - {(dirty, wet)}:
+            kind = lambda d, w: f"{'dirty' if d else 'clean'}, {'wet' if w else 'dry'}"  # noqa: E731
+            held = ", or ".join(kind(*s) for s in sorted(self.dirty_states()))
+            reasons.append(WaitReason("PIT_INCOMPATIBLE", self.id,
+                                      f"{self.id} holds {held} grain; a {kind(dirty, wet)} load must wait until it is empty"))
         if self.admission == "empty_pit":
             if self.lots or self.claims:
                 reasons.append(WaitReason("PIT_SPACE", self.id, f"{self.id} must be empty before the next truck tips"))
@@ -136,19 +150,23 @@ class Pit:
         base = max(now, d.start, d.since)  # predicted at the current rate; a rate change triggers a new prediction
         return base + math.ceil((drained_needed - self.drained_at(base)) / d.rate)
 
-    def claim(self, reservation_id: str, grain: GradedCommodity, kg: int) -> None:
+    def claim(self, reservation_id: str, grain: GradedCommodity, kg: int, dirty: bool = False,
+              wet: bool = False) -> None:
         if reservation_id in self.claims:
             raise PitError(f"{self.id}: claim {reservation_id} already exists")
         self.claims[reservation_id] = (grain, kg)
+        self.claim_dirty[reservation_id] = (dirty, wet)
         self._changed()
 
     def release_claim(self, reservation_id: str) -> None:
         self.claims.pop(reservation_id, None)
+        self.claim_dirty.pop(reservation_id, None)
         self._changed()
 
     def claim_to_lot(self, reservation_id: str, lot: Lot) -> None:
         grain, kg = self.claims.pop(reservation_id)
-        if (grain, kg) != (lot.grain, lot.kg):
+        state = self.claim_dirty.pop(reservation_id, (False, False))
+        if (grain, kg, state) != (lot.grain, lot.kg, (lot.dirty, lot.wet)):
             raise PitError(f"{self.id}: lot {lot.id} does not match claim {reservation_id}")
         self.lots.append(lot)
         self._changed()
@@ -198,4 +216,6 @@ class Pit:
             problems.append(f"{self.id}: grain plus claimed space exceeds pit capacity")
         if not self._combined([])[0]:
             problems.append(f"{self.id}: grain in the pit that may not be mixed")
+        if len(self.dirty_states()) > 1:
+            problems.append(f"{self.id}: dirty and clean, or wet and dry, grain in the pit at once")
         return problems

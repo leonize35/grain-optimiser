@@ -249,4 +249,27 @@ screen and primitive can be exercised with it.
   - **Partial tipping** (R2 `partial`): loads larger than the pit tip in portions as the pit drains. Tests: `tests/test_partial_tipping.py`.
   - **Per-silo hours** (G-D5): `systems[].hours` with `admission_cutoff` and `overtime`. After a silo's cut-off, newly admitted trucks go to other silos; that silo's hoppers stop at closing + its overtime (at most the site's); clearance is reported per silo (`outcomes.clearance_by_system`). Editable on the My silo screen. Tests: `tests/test_system_hours.py`.
   - **Load classes** (G-D1, with G-D2): `demand.<activity>.load_classes` = [{id, share, payload [min, mode, max] t, hour_shares {hour: share}}] and, on hoppers, `tip_by_class` {class: distribution}. A truck's class comes from its own random stream, so arrival times, commodities and grades are unchanged. A truck of a listed class takes that class's tipping time (with the same random number as the plain tipping time); others take the hopper's normal time. The check reads payloads from the classes. Not yet editable in the app (configuration or API only). Tests: `tests/test_load_classes.py`.
-- **Next:** the app fields for load classes; each silo's hours; the dirty-load cleaning route (G-D4); labour.
+  - **Dirty-load cleaning route** (G-D4; rules confirmed 2026-11-07).
+    - A new equipment type `cleaner` is a route segment; its `screenings` give, per commodity, the share removed from a dirty load.
+    - Grading decides dirty: `demand.unload.dirty_share` per commodity for generated trucks, or `dirty` on a scripted truck.
+    - A dirty load reaches its bin only through a cleaner; a clean load only without one (the bypass).
+    - Screenings are a recorded loss (cause `cleaning`); the flow audit replays what reaches the bins.
+    - Assumption to confirm: a pit holds dirty or clean grain, not both at once.
+    - Tests: `tests/test_cleaning_route.py`.
+  - **Planned grain moves between bins** (rules confirmed 2026-11-07).
+    - `grain_moves` [{id, day, at, from_bin, to_bin, tonnes or all}] covers turning (the same bin), transfers and freeing a bin.
+    - A move is reserved as one transaction (route, stock, space). It gives way to grain waiting in pits and runs at the slowest rate on its route.
+    - If less stock or space is available, the move is recorded as short, with the reason.
+    - Moves run at any time of day.
+    - App screen: "Grain moves". Tests: `tests/test_grain_moves.py`.
+  - **Drying from wet holding bins** (rules confirmed 2026-11-07).
+    - Moisture per truck: `demand.unload.moisture` [min, mode, max] % per commodity, or `moisture` on a scripted truck. Wetness is found at grading.
+    - `moisture_limits` per commodity: wet loads go only to bins marked `wet_holding`, dry loads only to other bins.
+    - A drying move (`kind: drying`, `target_moisture`) runs through a `grain_dryer` (wet-grain rate).
+    - Water removed = kg × (m − t) / (1 − t), using the source bin's moisture when the move starts. It is a recorded loss (cause `moisture`).
+    - Each bin's moisture is tracked (`result.bin_moisture`).
+    - Assumption to confirm: a pit holds wet or dry grain, not both at once.
+    - Tests: `tests/test_drying.py`.
+  - **App.** Fields for cleaners (share per commodity) and bins (wet holding, opening moisture); dirty share, moisture range and wet limit per commodity on the Demand screen.
+  - **Type name.** The dryer's type is `grain_dryer` because the prototype-parity cases use `dryer` as their example of an unsupported type.
+- **Next:** the app fields for load classes; each silo's hours; labour; inline drying on intake (not built: drying is from wet holding bins only).

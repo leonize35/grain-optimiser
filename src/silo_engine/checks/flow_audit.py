@@ -134,8 +134,13 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
             a.problems.append(f"pit {pid}: {pit_in[pid]} kg in - {pit_out[pid]} kg out != {closing} kg left")
     opening_bins = {e.id: tonnes_to_kg(e.inv) if e.type == "bin" and e.inv else 0 for e in site.equipment if e.type == "bin"}
     bin_in, bin_out = defaultdict(int), defaultdict(int)
+    screened = getattr(result, "screenings", {})
+    for x in getattr(result, "moves", []):
+        if x.finished is not None and x.kg > 0 and x.from_bin != x.to_bin:
+            bin_out[x.from_bin] += x.kg
+            bin_in[x.to_bin] += x.kg - x.water_removed_kg
     for x in done_t:
-        bin_in[x.bin] += x.kg
+        bin_in[x.bin] += x.kg - screened.get(x.id, (0,))[0]  # screenings are a recorded loss (G-D4)
     for x in done_l:
         bin_out[x.bin] += x.kg
     losses = list(getattr(result, "losses", []))
@@ -171,26 +176,38 @@ def audit_flow(site: SiteConfig, trucks: list[ScriptedTruck], result) -> FlowAud
         if x.released is not None and (x.finished is None or x.released < x.finished):
             a.problems.append(f"{x.id}: route released at {x.released} before the grain finished ({x.finished})")
 
-    _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses)
+    moves = [x for x in getattr(result, "moves", []) if x.kg > 0]
+    _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses, moves, screened)
     if hasattr(result, "book"):
         _audit_stock(a, site, opening_bins, done_t, done_l, losses, result)
-    _audit_outages(a, site, [*transfers, *loads])
+    _audit_outages(a, site, [*transfers, *loads, *moves])
     _audit_access(a, site, trucks, result)
     _audit_labour(a, site, result)
     _audit_background(a, site, result)
-    _audit_segments(a, eq, transfers, loads, lot_commodity, truck)
+    _audit_segments(a, eq, transfers, loads, lot_commodity, truck, moves)
     a.checked = {"lots": len(lot_kg), "transfers": len(transfers), "loads": len(loads), "bins": len(opening_bins),
                  "pits": len(result.pits)}
     return a
 
 
-def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses=()) -> None:
+def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses=(), moves=(), screened=None) -> None:
     """Replay each bin: at equal times completions come before starts (the engine releases before it reserves)."""
     events = defaultdict(list)  # bin -> (time, order, kind, kg, commodity, id)
-    for x in transfers:
-        events[x.bin].append((x.started, 1, "reserve_in", x.kg, lot_commodity.get(x.lot_id), x.id))
+    for x in moves:  # planned moves between bins: out of one, into another; turning holds the stock, then frees it
+        events[x.from_bin].append((x.started, 1, "commit_out", x.kg, None, x.id))
+        if x.from_bin == x.to_bin:
+            if x.released is not None:
+                events[x.from_bin].append((x.released, 0, "release_out", x.kg, None, x.id))
+            continue
+        events[x.to_bin].append((x.started, 1, "reserve_in", x.kg - x.water_removed_kg, x.commodity, x.id))
         if x.finished is not None:
-            events[x.bin].append((x.finished, 0, "receive", x.kg, lot_commodity.get(x.lot_id), x.id))
+            events[x.from_bin].append((x.finished, 0, "dispatch", x.kg, None, x.id))
+            events[x.to_bin].append((x.finished, 0, "receive", x.kg - x.water_removed_kg, x.commodity, x.id))
+    for x in transfers:
+        to_bin = x.kg - (screened or {}).get(x.id, (0,))[0]  # G-D4: screenings never reach the bin
+        events[x.bin].append((x.started, 1, "reserve_in", to_bin, lot_commodity.get(x.lot_id), x.id))
+        if x.finished is not None:
+            events[x.bin].append((x.finished, 0, "receive", to_bin, lot_commodity.get(x.lot_id), x.id))
     for x in loads:
         events[x.bin].append((x.started, 1, "commit_out", x.kg, None, x.id))
         if x.finished is not None:
@@ -223,6 +240,8 @@ def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses=(
                 if stock - outgoing < kg:
                     a.problems.append(f"bin {e.id}: {xid} committed {kg} kg with {stock - outgoing} kg available at {t}")
                 outgoing += kg
+            elif kind == "release_out":
+                outgoing -= kg
             else:
                 outgoing -= kg
                 stock -= kg
@@ -234,9 +253,9 @@ def _audit_bins(a, site, opening_bins, transfers, loads, lot_commodity, losses=(
                 a.problems.append(f"bin {e.id}: {stock} kg + {incoming} kg reserved exceeds {cap} kg at {t}")
 
 
-def _audit_segments(a, eq, transfers, loads, lot_commodity, truck) -> None:
+def _audit_segments(a, eq, transfers, loads, lot_commodity, truck, moves=()) -> None:
     """Every stream holds its route segments from start to release (or to the end of the run)."""
-    streams = []
+    streams = [(x.id, x.path, x.commodity, x.started, x.released, x.finished) for x in moves]
     for x in transfers:
         streams.append((x.id, x.path, lot_commodity.get(x.lot_id), x.started, x.released, x.finished))
     for x in loads:
@@ -303,17 +322,25 @@ def _audit_stock(a, site, opening_bins, done_t, done_l, losses, result) -> None:
     phys = dict(opening_bins)
     comps = {b: {"administrative": 0, "survey_based": 0, "unposted_loss": 0} for b in opening_bins}
     timeline = [(x.finished, 0, "receive", x) for x in done_t] + [(x.finished, 0, "dispatch", x) for x in done_l]
+    timeline += [(x.finished, 0, "move", x) for x in getattr(result, "moves", [])
+                 if x.finished is not None and x.kg > 0 and x.from_bin != x.to_bin]
     loss_by_id = {x.id: x for x in losses}
     timeline += [(e.time, 1 + i, "stock", e) for i, e in enumerate(result.stock_log)]
     observations = {o.id: o for o in result.observations}
     seen_obs: dict[str, int] = {}
     for _, _, kind, x in sorted(timeline, key=lambda v: (v[0], v[1])):
         if kind == "receive":
-            book[x.bin] += x.kg
-            phys[x.bin] += x.kg
+            to_bin = x.kg - getattr(result, "screenings", {}).get(x.id, (0,))[0]  # G-D4
+            book[x.bin] += to_bin
+            phys[x.bin] += to_bin
         elif kind == "dispatch":
             book[x.bin] -= x.kg
             phys[x.bin] -= x.kg
+        elif kind == "move":  # planned move between bins (drying: the water removed reaches no bin)
+            book[x.from_bin] -= x.kg
+            phys[x.from_bin] -= x.kg
+            book[x.to_bin] += x.kg - x.water_removed_kg
+            phys[x.to_bin] += x.kg - x.water_removed_kg
         elif not x.applied:
             if x.delta_physical_kg or x.delta_book_kg:
                 a.problems.append(f"refused stock event {x.id} changed stock")

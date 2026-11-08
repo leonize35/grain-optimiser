@@ -52,11 +52,26 @@ FIELDS = {
         _f("max_concurrent_feeds", "Streams at once", "integer", "streams"),
         _f("clear_minutes", "Emptying time after the last grain", "number", "min"),
     ],
+    "cleaner": [
+        _f("rate", "Cleaning rate", "number", "t/h", True),
+        _f("screenings", "Share removed from a dirty load", "shares", "0-1 per commodity",
+           help="dirty loads must pass a cleaner; clean loads take a route without one"),
+        _f("changeover", "Changeover time", "number", "min"),
+        _f("clear_minutes", "Emptying time after the last grain", "number", "min"),
+    ],
+    "grain_dryer": [
+        _f("rate", "Drying rate (wet grain)", "number", "t/h", True,
+           help="grain reaches a dryer only in a drying move from a bin"),
+        _f("changeover", "Changeover time", "number", "min"),
+        _f("clear_minutes", "Emptying time after the last grain", "number", "min"),
+    ],
     "bin": [
         _f("capT", "Capacity", "number", "t", True),
         _f("commodities", "May store", "commodities", required=True),
         _f("inv", "Opening stock", "number", "t"),
         _f("invCommodity", "Opening stock commodity", "commodity"),
+        _f("inv_moisture", "Opening stock moisture", "number", "%"),
+        _f("wet_holding", "Holds wet loads until dried", "boolean"),
     ],
     "loadpoint": [
         _f("rate", "Loading rate", "number", "t/h", True),

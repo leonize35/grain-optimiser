@@ -19,7 +19,7 @@ from decimal import Decimal
 from ..config.schema import SiteConfig
 from .storage import GradedCommodity
 
-SEGMENT_TYPES = ("conveyor", "elevator")
+SEGMENT_TYPES = ("conveyor", "elevator", "cleaner", "grain_dryer")  # route segments: grain passes through them
 
 
 @dataclass(frozen=True)

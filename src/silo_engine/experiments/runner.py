@@ -131,6 +131,11 @@ def kpis_of(result: TruckFlowResult) -> dict[str, float | None]:
         out["reconciliation.difference_t"] = result.reconciliation["site"].difference_kg / 1000
         out["reconciliation.unexplained_t"] = result.reconciliation["site"].unexplained_kg / 1000
     out["observations.flagged"] = sum(1 for o in result.observations if o.flagged)
+    moves = getattr(result, "moves", [])
+    if moves:  # planned grain moves between bins (only for sites that plan them)
+        out["moves.moved_t"] = sum(x.kg for x in moves if x.finished is not None) / 1000
+        out["moves.short"] = sum(1 for x in moves if x.short)
+        out["moves.not_finished"] = sum(1 for x in moves if x.finished is None)
     for act, f in result.fairness.items():  # Q1 fairness and starvation, per replication
         out[f"{act}.starved"] = f.starved
         out[f"{act}.max_overtaken"] = f.max_overtaken

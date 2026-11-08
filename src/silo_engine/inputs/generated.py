@@ -67,6 +67,21 @@ def _sampling(seed: int, d, truck_id: str) -> bool | None:
     return Stream(seed, "sampling", truck_id).uniform() < d.sampling_share
 
 
+def _dirty(seed: int, d, truck_id: str, commodity: str | None) -> bool | None:
+    """G-D4: one draw per truck from its own stream; None without a dirty share (other draws are unchanged)."""
+    if not d.dirty_share or commodity is None:
+        return None
+    return Stream(seed, "dirty", truck_id).uniform() < d.dirty_share.get(commodity, 0)
+
+
+def _moisture(seed: int, d, truck_id: str, commodity: str | None) -> float | None:
+    """One draw per truck from its own stream (triangular, percent); None without a moisture range."""
+    if not d.moisture or commodity is None or commodity not in d.moisture:
+        return None
+    lo, mode, hi = d.moisture[commodity]
+    return triangular(Stream(seed, "moisture", truck_id).uniform(), lo, mode, hi)
+
+
 def generate_arrivals(site: SiteConfig, seed: int, days: int = 1, demand_factor: float = 1.0) -> list[ScriptedTruck]:
     trucks: list[ScriptedTruck] = []
     open_min, close_min = _minutes(site.hours.open), _minutes(site.hours.close)
@@ -99,13 +114,15 @@ def generate_arrivals(site: SiteConfig, seed: int, days: int = 1, demand_factor:
                     commodity, kg, grade = _attributes(site, act, d, Stream(seed, "truck", act, day + 1, index), cls)
                     arrive = day * MS_PER_DAY + round(t * MS_PER_MINUTE)
                     tid = f"{PREFIX[act]}{day + 1}-{index:03d}"
-                    trucks.append(ScriptedTruck(tid, act, arrive, commodity, kg, False, grade, _sampling(seed, d, tid), cls))
+                    trucks.append(ScriptedTruck(tid, act, arrive, commodity, kg, False, grade, _sampling(seed, d, tid), cls,
+                                                _dirty(seed, d, tid, commodity), _moisture(seed, d, tid, commodity)))
         for n in range(1, getattr(site.initial.queue, act) + 1):
             cls = _load_class(d, int(open_min // 60), Stream(seed, "load_class_backlog", act, n))
             commodity, kg, grade = _attributes(site, act, d, Stream(seed, "backlog", act, n), cls)
             tid = f"{PREFIX[act]}B-{n:02d}"
             trucks.append(ScriptedTruck(tid, act, m(Decimal(str(open_min))), commodity, kg, True, grade,
-                                        _sampling(seed, d, tid), cls))
+                                        _sampling(seed, d, tid), cls, _dirty(seed, d, tid, commodity),
+                                        _moisture(seed, d, tid, commodity)))
     order = {a: i for i, a in enumerate(ACTIVITIES)}
     trucks.sort(key=lambda t: (t.arrive_ms, not t.backlog, order[t.activity], t.id))
     return trucks

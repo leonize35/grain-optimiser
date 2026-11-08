@@ -63,7 +63,7 @@ from ..config.routes import build_routes
 from ..config.rules_validation import staffing_schedules, validate_rules
 from ..config.schema import ReconciliationSettings, SiteConfig
 from ..domain.book import BookLedger
-from ..domain.changeover import ChangeoverMatrix
+from ..domain.changeover import SEGMENT_TYPES, ChangeoverMatrix
 from ..domain.quantities import tonnes_to_kg
 from ..domain.storage import GradedCommodity, StorageBin
 from ..inputs.scripted import ScriptedTruck, schedule_arrivals
@@ -153,6 +153,31 @@ class TransferRecord:
     finished: int | None = None  # last grain fed; grain in the bin
     released: int | None = None  # route free again (after clear time)
     interruptions: list[list[int | None]] = field(default_factory=list)  # [suspended, resumed or None] (step 17)
+
+
+@dataclass
+class MoveRecord:
+    """A planned move of grain between bins (`grain_moves`); turning when from_bin == to_bin (contents unchanged).
+    kg leaves from_bin; to_bin receives kg - water_removed_kg (drying). kg 0: nothing could move (see `short`)."""
+    id: str  # reservation id "move:<move id>"
+    move_id: str
+    from_bin: str
+    to_bin: str
+    path: list[str]
+    commodity: str | None
+    kg: int
+    requested_kg: int
+    started: int
+    flow_started: int
+    changeover_segments: dict[str, int]
+    finished: int | None = None
+    released: int | None = None
+    interruptions: list[list[int | None]] = field(default_factory=list)
+    short: str | None = None  # why less than requested moved
+    kind: str = "transfer"
+    water_removed_kg: int = 0  # drying
+    dryer: str | None = None
+    target_moisture: float | None = None  # drying (percent)
 
 
 @dataclass
@@ -416,6 +441,10 @@ class TruckFlowResult:
     # A cause is "CODE:resource", followed by "<" and the wait it explains when traced (e.g. a full pit waiting for a
     # belt: "EQUIPMENT_BUSY:C1<PIT_SPACE:H1"). One waiting request counts 1 per minute, split equally over its causes.
     wait_causes: dict = field(default_factory=dict)
+    moves: list[MoveRecord] = field(default_factory=list)  # planned grain moves between bins
+    # G-D4: transfer id -> (kg removed as screenings, cleaner); the bin receives the transfer's kg minus these.
+    screenings: dict[str, tuple[int, str]] = field(default_factory=dict)
+    bin_moisture: dict[str, float | None] = field(default_factory=dict)  # percent at the end (None: empty or unknown)
 
 
 def _hours_ms(hours: float) -> int:
@@ -455,6 +484,8 @@ class TruckFlowModel:
                                 site.queue_policies.default if site.queue_policies is not None else DEFAULT_POLICY)
         if site.background_tasks:  # P1: off-truck work, in request order among themselves
             policies["background"] = "feasible_first"
+        if site.grain_moves:  # planned moves between bins (not truck dispatch)
+            policies["grain_move"] = "feasible_first"
         if site.unloading_labour is not None:  # worker allocation among unloading tasks (not truck dispatch)
             policies["unload_labour"] = "strict_fifo" if site.unloading_labour.allocation == "strict_order" else "feasible_first"
         self.queue_policies = {g: p if isinstance(p, str) else p.name for g, p in policies.items()}
@@ -490,6 +521,14 @@ class TruckFlowModel:
                       for e in eq if e.type in ("sampler", "grader", "weighbridge", "station")
                       for lane in range(int(e.cap or 0))]
         self.bins = {e.id: self._make_bin(e) for e in eq if e.type == "bin"}
+        # Moisture per bin: water kg (exact) and whether it is known (unknown opening stock or loads without moisture).
+        self._water: dict[str, Fraction] = {}
+        self._moisture_known: dict[str, bool] = {}
+        for e in eq:
+            if e.type == "bin":
+                stock = self.bins[e.id].tonnage_kg
+                self._water[e.id] = Fraction(stock) * Fraction(str(e.inv_moisture or 0)) / 100
+                self._moisture_known[e.id] = stock == 0 or e.inv_moisture is not None
         self._lots_seen: dict[str, tuple] = {}  # lot id -> (truck, pit, grain, kg, tipped at); reporting only
         self.pits = {e.id: self._make_pit(e) for e in eq if e.type == "hopper"}
         self.planner = RoutePlanner(build_routes(site), self.bins)
@@ -500,7 +539,7 @@ class TruckFlowModel:
             lanes={u.resource for u in self.units} | {f"{h}:tip" for h in self.pits}
                   | {f"{e.id}:load" for e in eq if e.type == "loadpoint"},
             pools={pid: self._staff_at(pid, 0) for pid in self._schedules},
-            segments={e.id: e.max_concurrent_feeds for e in eq if e.type in ("conveyor", "elevator")},
+            segments={e.id: e.max_concurrent_feeds for e in eq if e.type in SEGMENT_TYPES},
             pits=self.pits, bins=self.bins, areas=self._area_caps)
         self.assumptions = [f"{ACTIVITY_LABEL[act]} trucks have unlimited waiting space between steps "
                             "(no truck path configured)." for act in used if not getattr(site.truck_paths, act)]
@@ -627,9 +666,29 @@ class TruckFlowModel:
         for i, ev in enumerate(site.stock_events, start=1):  # validated by validate_rules
             when = (ev.day - 1) * MS_PER_DAY + hm(ev.time)
             self.cal.schedule(when, CONTROL, lambda c, ev=ev, i=i: self._stock_event(ev, i), f"stock event {i}: {ev.kind}")
-        if any(ev.kind == "process_loss" and ev.cause == "moisture" for ev in site.stock_events):
+        if any(ev.kind == "process_loss" and ev.cause == "moisture" for ev in site.stock_events)                 and not site.moisture_limits:
             self.assumptions.append("Moisture losses are generic physical mass losses: water content and drying are "
                                     "not modelled, and grade and identity are unchanged.")
+        if any(e.type == "cleaner" for e in eq):
+            self.assumptions.append("Cleaning: dirty loads pass a cleaner and clean loads the bypass; a pit holds dirty "
+                                    "or clean grain, not both at once (to be confirmed); screenings are a share of the "
+                                    "dirty load per commodity, removed as a recorded loss.")
+        if site.moisture_limits or any(mv.kind == "drying" for mv in site.grain_moves):
+            self.assumptions.append("Drying: wet loads go to wet holding bins and a pit holds wet or dry grain, not both "
+                                    "(to be confirmed); a dryer runs at its wet-grain rate whatever the moisture "
+                                    "removed; the water removed follows from the source bin's average moisture when "
+                                    "the drying move starts; dried grain has the target moisture.")
+        if site.grain_moves:
+            self.assumptions.append("Grain moves run as planned at any time of day, give way to grain waiting in pits "
+                                    "and do not share equipment with other streams while they run.")
+        self.screenings: dict[str, tuple[int, str]] = {}  # G-D4: transfer id -> (kg removed, cleaner)
+        self.moves: list[MoveRecord] = []
+        for mv in site.grain_moves:  # validated by validate_rules
+            when = (mv.day - 1) * MS_PER_DAY + hm(mv.at)
+            if when < self._horizon_end:
+                self.cal.schedule(when, CONTROL, lambda c, mv=mv: self._submit_move(mv), f"grain move {mv.id}")
+            else:
+                self.assumptions.append(f"Grain move {mv.id} is planned after the end of the run and does not happen.")
         for o in site.outages:  # validated by validate_rules
             start = (o.day - 1) * MS_PER_DAY + hm(o.start)
             self.cal.schedule(start, CONTROL, lambda c, e=o.equipment: self._equipment_down(e), f"{o.equipment} unavailable")
@@ -672,6 +731,10 @@ class TruckFlowModel:
             for step in steps:
                 if step in NOT_YET_SUPPORTED:
                     raise NotYetSupported(f"The '{step}' step is not built yet (needed by {act} trucks).")
+            if any(t.dirty or self._wet(t) for t in self.trucks if t.activity == act) and not (
+                    "grade" in steps and "tip" in steps and steps.index("grade") < steps.index("tip")):
+                raise ModelError(f"Some {act} trucks are dirty or wet, which is found at grading, so they must be "
+                                 "graded before they tip.")
             for i, step in enumerate(steps):
                 if step == "grade":
                     if "sample" not in steps[:i]:
@@ -705,10 +768,26 @@ class TruckFlowModel:
     def _grain(self, truck: ScriptedTruck) -> GradedCommodity:
         return self.grades.grain(truck.commodity, truck.grade)
 
+    def _wet(self, truck: ScriptedTruck) -> bool | None:
+        """Above the commodity's moisture limit (measured at grading); None when moisture is not tracked for it."""
+        limit = self.site.moisture_limits.get(truck.commodity) if truck.commodity else None
+        if limit is None:
+            return None
+        return truck.moisture is not None and truck.moisture > limit
+
+    def _lot_wet(self, lot: Lot) -> bool | None:
+        return lot.wet if lot.grain.commodity in self.site.moisture_limits else None
+
+    @staticmethod
+    def _dirty(truck: ScriptedTruck) -> bool:
+        """G-D4: found dirty at grading (the sequence grades before tipping, checked at start)."""
+        return bool(truck.dirty)
+
     def _hopper_candidates(self, truck: ScriptedTruck, respect_hours: bool = True) -> list[Pit]:
         """Hoppers that can take the truck's grain; with `respect_hours`, only systems still taking this truck."""
-        grain = self._grain(truck)
-        ok = [p for p in self.pits.values() if truck.commodity in p.accepts and self.planner.has_intake_route(p.id, grain)
+        grain, dirty, wet = self._grain(truck), self._dirty(truck), self._wet(truck)
+        ok = [p for p in self.pits.values()
+              if truck.commodity in p.accepts and self.planner.has_intake_route(p.id, grain, dirty, wet)
               and (not respect_hours or self._system_admits(p, truck))]
         # Prefer a pit already holding this grain (prototype rule), otherwise configuration order.
         return [p for p in ok if p.lots and p.identity() == grain] + [p for p in ok if not (p.lots and p.identity() == grain)]
@@ -1338,7 +1417,8 @@ class TruckFlowModel:
             if self._unload and self._unload[0][1]:
                 lab = (f"{res_id}#0/labour", [LabourClaim(self.site.unloading_labour.pool, self._unload[0][1])])
             claim_kg = self._portion(pit, kg) if pit.admission == "partial" else kg
-            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, claim_kg)],
+            got = self._reserve_service(truck, res_id, [LaneClaim(lane), PitSpaceClaim(pit.id, grain, claim_kg,
+                                                                                    self._dirty(truck), bool(self._wet(truck)))],
                                         extra=[lab] if lab else None)
             if not got and self._unload:
                 self._occupy_station(truck, res_id, step_rec)
@@ -1396,7 +1476,8 @@ class TruckFlowModel:
         def portion_done(claim_id: str, amount: int) -> None:
             state["k"] += 1
             lot_id = f"L-{truck.id}" if state["k"] == 1 else f"L-{truck.id}#{state['k']}"
-            pit.claim_to_lot(claim_id, Lot(lot_id, truck.id, grain, amount, self.cal.now))
+            pit.claim_to_lot(claim_id, Lot(lot_id, truck.id, grain, amount, self.cal.now, self._dirty(truck),
+                                           bool(self._wet(truck)), truck.moisture))
             self._lots_seen[lot_id] = (truck.id, pit.id, grain, amount, self.cal.now)
             self._tipped_kg += amount
             if claim_id != res_id:
@@ -1412,7 +1493,8 @@ class TruckFlowModel:
                 def attempt(now: int) -> list[WaitReason]:
                     remaining = kg - state["done"]
                     amount_ = self._portion(pit, remaining)
-                    reasons = self.ledger.try_reserve(f"{req}/space", [PitSpaceClaim(pit.id, grain, amount_)], now)
+                    reasons = self.ledger.try_reserve(f"{req}/space", [PitSpaceClaim(pit.id, grain, amount_,
+                                                                                     self._dirty(truck), bool(self._wet(truck)))], now)
                     if reasons:
                         if any(r.code == "PIT_SPACE" for r in reasons):
                             self._schedule_space_recheck(pit, amount_)
@@ -1431,7 +1513,8 @@ class TruckFlowModel:
             self.cal.schedule(when, CONTROL, lambda c: self._after_event(), f"space check {pit.id}")
 
     def _tip_done(self, truck: ScriptedTruck, step_rec: StepRecord, pit: Pit, res_id: str) -> None:
-        pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
+        pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now,
+                                     self._dirty(truck), bool(self._wet(truck)), truck.moisture))
         self._lots_seen[f"L-{truck.id}"] = (truck.id, pit.id, self._grain(truck), truck.kg, self.cal.now)
         self._tipped_kg += truck.kg  # the truck keeps the tipping lane until it can move on
         self._labour_finished(res_id)
@@ -1458,7 +1541,8 @@ class TruckFlowModel:
         task, _ = self._unload[k]
         self._labour_finished(f"{res_id}#{k}")
         if task.time == "tip" and pit.admission != "partial":  # the grain is in the pit (partial: lots already made)
-            pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now))
+            pit.claim_to_lot(res_id, Lot(f"L-{truck.id}", truck.id, self._grain(truck), truck.kg, self.cal.now,
+                                     self._dirty(truck), bool(self._wet(truck)), truck.moisture))
             self._lots_seen[f"L-{truck.id}"] = (truck.id, pit.id, self._grain(truck), truck.kg, self.cal.now)
             self._tipped_kg += truck.kg
             if pit.id not in self._intake_active:
@@ -1570,6 +1654,7 @@ class TruckFlowModel:
     def _load_done(self, truck: ScriptedTruck, step_rec: StepRecord, record: LoadRecord) -> None:
         self._load_end.pop(record.id, None)
         self._labour_finished(f"{truck.id}/load")
+        self._water_out(record.bin, record.kg)
         self.bins[record.bin].dispatch(record.id, record.kg)
         self.book.post(self.cal.now, record.bin, -record.kg, record.id)
         self._dispatched_kg += record.kg
@@ -1589,6 +1674,152 @@ class TruckFlowModel:
         if in_event:
             self._after_event()
 
+    # ---- moisture (water) per bin ----
+    def _water_in(self, bin_id: str, kg: int, moisture: float | Fraction | None) -> None:
+        if kg <= 0:
+            return
+        if moisture is None:
+            self._moisture_known[bin_id] = False
+        else:
+            self._water[bin_id] += Fraction(kg) * Fraction(str(moisture)) / 100
+
+    def _water_out(self, bin_id: str, kg: int) -> Fraction | None:
+        """Take kg at the bin's average moisture (call before the stock leaves); returns that moisture (percent)."""
+        stock = self.bins[bin_id].tonnage_kg
+        if stock <= 0:
+            return None
+        moisture = 100 * self._water[bin_id] / stock if self._moisture_known[bin_id] else None
+        self._water[bin_id] -= self._water[bin_id] * min(kg, stock) / stock
+        if stock - kg <= 0:
+            self._water[bin_id], self._moisture_known[bin_id] = Fraction(0), True
+        return moisture
+
+    def _bin_moisture(self) -> dict[str, float | None]:
+        return {b: (float(100 * self._water[b] / x.tonnage_kg) if self._moisture_known[b] and x.tonnage_kg > 0
+                    else None) for b, x in self.bins.items()}
+
+    # ---- planned grain moves between bins ----
+    def _submit_move(self, mv) -> None:
+        req = f"move:{mv.id}"
+        # Tried after every other request at the same moment (gives way to truck intake).
+        self.dispatcher.submit(req, "grain_move", self.cal.now, lambda now: self._try_move(mv, req), order=lambda: 2 ** 62)
+        self._after_event()
+
+    def _intake_waiting_segments(self) -> set[str]:
+        """Equipment on the routes of grain waiting in a pit for an intake route (moves give way to it)."""
+        out: set[str] = set()
+        for rid, group, _, _ in self.dispatcher.waiting():
+            if group != "intake":
+                continue
+            pit = self.pits[rid.split("/")[0]]
+            if pit.lots:
+                lot = pit.lots[0]
+                for p in self.planner.intake_candidates(pit.id, lot.grain, lot.dirty, self._lot_wet(lot)):
+                    out.update(p[1:-1])
+        return out
+
+    def _move_short(self, mv, req: str, why: str) -> list[WaitReason]:
+        """Nothing can move (no stock, or no space or acceptance at the destination): recorded, not waited for."""
+        requested = tonnes_to_kg(mv.tonnes) if mv.tonnes else 0
+        self.moves.append(MoveRecord(req, mv.id, mv.from_bin, mv.to_bin, [], None, 0, requested, self.cal.now,
+                                     self.cal.now, {}, self.cal.now, self.cal.now, short=why, kind=mv.kind))
+        return []
+
+    def _try_move(self, mv, req: str) -> list[WaitReason]:
+        src, dst, same = self.bins[mv.from_bin], self.bins[mv.to_bin], mv.from_bin == mv.to_bin
+        grain = src.identity
+        if grain is None or src.available_stock_kg <= 0:
+            return self._move_short(mv, req, f"no stock available in {mv.from_bin}")
+        requested = tonnes_to_kg(mv.tonnes) if mv.tonnes else src.available_stock_kg
+        kg, short = requested, None
+        if src.available_stock_kg < kg:
+            kg, short = src.available_stock_kg, f"only {src.available_stock_kg / 1000:g} t of stock in {mv.from_bin}"
+        if not same:
+            refused = dst.check_incoming(grain, 1)
+            if refused is not None and any(r.code != "BIN_FULL" for r in refused.reasons):
+                return self._move_short(mv, req, f"{mv.to_bin} does not accept the grain in {mv.from_bin}")
+            if dst.free_space_kg < kg:
+                kg, short = dst.free_space_kg, f"only {dst.free_space_kg / 1000:g} t of space in {mv.to_bin}"
+            if kg <= 0:
+                return self._move_short(mv, req, f"no space in {mv.to_bin}")
+        paths = self.planner.move_candidates(mv.from_bin, mv.to_bin, mv.kind == "drying")
+        if not paths:
+            return [WaitReason("NO_PHYSICAL_ROUTE", mv.from_bin, f"no route from {mv.from_bin} to {mv.to_bin}")]
+        intake = self._intake_waiting_segments()
+        reasons: list[WaitReason] = []
+        for path in paths:
+            segments = path[1:-1]
+            shared = sorted(intake & set(segments))
+            if shared:
+                reasons.append(WaitReason("GIVES_WAY", shared[0], f"{shared[0]} is needed for grain waiting in a pit"))
+                continue
+            changeovers = self._changeovers(segments, grain)
+            claims: list = [SegmentClaim(s, grain, ("move", req) + tuple(path[i:]))  # never merged with other streams
+                            for i, s in enumerate(path) if 0 < i < len(path) - 1]
+            claims.append(BinOutgoingClaim(mv.from_bin, grain.commodity, kg))
+            water, dryer, out_kg = self._drying_plan(mv, path, kg)
+            if not same:
+                claims.append(BinIncomingClaim(mv.to_bin, grain, out_kg))
+            got = self.ledger.try_reserve(req, claims, self.cal.now)
+            if got:
+                reasons.extend(r for r in got if r not in reasons)
+                continue
+            flow_start = self.cal.now + max(changeovers.values(), default=0)
+            rate = min(Fraction(str(self.equipment[s].rate)) for s in segments)
+            record = MoveRecord(req, mv.id, mv.from_bin, mv.to_bin, path, grain.commodity, kg, requested,
+                                self.cal.now, flow_start, changeovers, short=short, kind=mv.kind,
+                                water_removed_kg=water, dryer=dryer, target_moisture=mv.target_moisture)
+            self.moves.append(record)
+            self._schedule_move_end(record, flow_start + math.ceil(Fraction(kg) * 3600 / rate))
+            return []
+        return reasons
+
+    def _drying_plan(self, mv, path: list[str], kg: int) -> tuple[int, str | None, int]:
+        """(water removed, dryer, kg delivered). Drying to target t from the source bin's moisture m when the move
+        starts: delivered = kg x (1 - m) / (1 - t), rounded half up to whole kg; nothing removed if m <= t or m is
+        unknown."""
+        if mv.kind != "drying":
+            return 0, None, kg
+        dryer = next(s for s in path[1:-1] if self.equipment[s].type == "grain_dryer")
+        b = self.bins[mv.from_bin]
+        if not self._moisture_known[mv.from_bin] or b.tonnage_kg <= 0:
+            return 0, dryer, kg
+        m_in, target = self._water[mv.from_bin] / b.tonnage_kg, Fraction(str(mv.target_moisture)) / 100
+        if m_in <= target:
+            return 0, dryer, kg
+        out = math.floor(Fraction(kg) * (1 - m_in) / (1 - target) + Fraction(1, 2))
+        return kg - out, dryer, out
+
+    def _schedule_move_end(self, record: MoveRecord, end: int) -> None:
+        ev = self.cal.schedule(end, RELEASE, lambda c: self._move_done(record),
+                               f"{record.move_id}: {record.kg} kg {record.from_bin} -> {record.to_bin}")
+        self._load_end[record.id] = (ev, end)
+
+    def _move_done(self, record: MoveRecord) -> None:
+        self._load_end.pop(record.id, None)
+        delivered = record.kg - record.water_removed_kg
+        if record.from_bin != record.to_bin:
+            moisture = self._water_out(record.from_bin, record.kg)
+            self.bins[record.from_bin].dispatch(record.id, record.kg)
+            self.book.post(self.cal.now, record.from_bin, -record.kg, record.id)
+            if record.kind == "drying" and record.water_removed_kg:
+                moisture = record.target_moisture
+            self.bins[record.to_bin].receive(record.id, delivered)
+            self.book.post(self.cal.now, record.to_bin, delivered, record.id)
+            self._water_in(record.to_bin, delivered, moisture)
+        if record.water_removed_kg:  # drying: the water removed is a recorded loss
+            self._lost_kg += record.water_removed_kg
+            self.losses.append(LossRecord(f"{record.id}/water", self.cal.now, record.dryer, record.commodity,
+                                          record.water_removed_kg, "moisture", True))
+        record.finished = self.cal.now
+        clear = max((m(Decimal(str(self.equipment[s].clear_minutes))) for s in record.path[1:-1]), default=0)
+        if clear:
+            self.cal.schedule(self.cal.now + clear, RELEASE, lambda c: self._load_route_released(record),
+                              f"route clear after {record.id}")
+        else:
+            self._load_route_released(record, in_event=False)
+        self._after_event()
+
     # ---- intake transfers ----
     def _submit_intake(self, pit_id: str) -> None:
         self._intake_active.add(pit_id)
@@ -1604,20 +1835,23 @@ class TruckFlowModel:
             return self._closed()
         pit = self.pits[pit_id]
         lot = pit.lots[0]
-        candidates = self.planner.intake_candidates(pit_id, lot.grain)
+        candidates = self.planner.intake_candidates(pit_id, lot.grain, lot.dirty, self._lot_wet(lot))
         if not candidates:
-            return [WaitReason("NO_PHYSICAL_ROUTE", pit_id, f"no route from {pit_id} to a bin for this grain")]
+            return [WaitReason("NO_PHYSICAL_ROUTE", pit_id, f"no route from {pit_id} to a bin for this grain"
+                               + (" through a cleaner" if lot.dirty else ""))]
         reasons: list[WaitReason] = []
         for path in candidates:
             segments = path[1:-1]
             b = self.bins[path[-1]]
-            kg = min(lot.kg, b.free_space_kg)
-            if kg <= 0:
+            cleaner = next((s for s in segments if self.equipment[s].type == "cleaner"), None) if lot.dirty else None
+            share = Fraction(str((self.equipment[cleaner].screenings or {}).get(lot.grain.commodity, 0))) if cleaner else 0
+            kg, screen = self._cleaned_amount(lot.kg, b.free_space_kg, share)
+            if kg - screen <= 0:
                 reasons.append(WaitReason("BIN_FULL", b.id, f"{b.id} is full"))
                 continue
             changeovers = self._changeovers(segments, lot.grain)  # before reserving: joining needs no changeover
             claims = [SegmentClaim(s, lot.grain, tuple(path[i:])) for i, s in enumerate(path) if 0 < i < len(path) - 1]
-            claims.append(BinIncomingClaim(b.id, lot.grain, kg))
+            claims.append(BinIncomingClaim(b.id, lot.grain, kg - screen))
             lab = self._labour_item(req_id, "intake")
             got = self.ledger.try_reserve_many([(req_id, claims)] + ([lab] if lab else []), self.cal.now)
             if got:
@@ -1629,6 +1863,8 @@ class TruckFlowModel:
             pit.start_drain(kg, flow_start)
             record = TransferRecord(req_id, pit_id, lot.id, lot.truck_id, path, b.id, kg, self.cal.now, flow_start,
                                     changeovers)
+            if screen:  # G-D4, kept apart so transfer records of sites without cleaners are unchanged
+                self.screenings[req_id] = (screen, cleaner)
             self.transfers.append(record)
             if flow_start == self.cal.now:
                 self._start_flow(record)
@@ -1641,6 +1877,16 @@ class TruckFlowModel:
             if r not in unique:
                 unique.append(r)
         return unique
+
+    @staticmethod
+    def _cleaned_amount(lot_kg: int, free_kg: int, share) -> tuple[int, int]:
+        """G-D4: (kg leaving the pit, kg removed as screenings) so that what reaches the bin fits its free space.
+        Screenings = kg x share, rounded half up to whole kg."""
+        screen = lambda kg: math.floor(Fraction(kg) * share + Fraction(1, 2)) if share else 0  # noqa: E731
+        kg = min(lot_kg, math.floor(Fraction(free_kg) / (1 - share)) if share else free_kg)
+        while kg > 0 and kg - screen(kg) > free_kg:
+            kg -= 1
+        return kg, screen(kg)
 
     def _changeovers(self, segments: list[str], grain: GradedCommodity) -> dict[str, int]:
         """Changeover ms per segment whose last grain differs (first use of a segment needs none)."""
@@ -1694,8 +1940,16 @@ class TruckFlowModel:
         self._labour_finished(record.id)
         del self._flowing[record.id]
         del self._completion[record.id]
-        b.receive(record.id, record.kg)
-        self.book.post(self.cal.now, b.id, record.kg, record.id)
+        screen, cleaner = self.screenings.get(record.id, (0, None))
+        delivered = record.kg - screen  # G-D4: screenings never reach the bin
+        b.receive(record.id, delivered)
+        self._water_in(b.id, delivered, pit.lots[0].moisture)
+        self.book.post(self.cal.now, b.id, delivered, record.id)
+        if screen:
+            self._lost_kg += screen
+            self.losses.append(LossRecord(f"{record.id}/screenings", self.cal.now, cleaner,
+                                          self._lots_seen[record.lot_id][2].commodity, screen,
+                                          "cleaning", True))
         pit.finish_drain(self.cal.now)
         record.finished = self.cal.now
         self._recompute_rates()  # the others may speed up
@@ -1889,7 +2143,8 @@ class TruckFlowModel:
         for rid, group, reasons, tid in waiting:
             # truck: a truck waiting to start a step; in_service: a truck already in service waiting for pit space
             # (partial tipping) or workers (phases); task: a background task; sample; grain (intake transfers).
-            kind = ("grain" if group == "intake" else "sample" if group == "grade" else "truck" if tid is not None
+            kind = ("grain" if group in ("intake", "grain_move") else "sample" if group == "grade"
+                    else "truck" if tid is not None
                     else "task" if group == "background" else "in_service")
             for k, v in (resolve(reasons, group, 0) or {"UNKNOWN": 1.0}).items():
                 snap[(kind, k)] = snap.get((kind, k), 0.0) + v
@@ -1952,6 +2207,7 @@ class TruckFlowModel:
                 log(False, "; ".join(r.detail for r in refused.reasons) + " (only uncommitted stock can be lost)")
             else:
                 commodity = b.identity.commodity if b.identity else None
+                self._water_out(ev.bin, kg)
                 b.remove_loss(kg, ev.commodity)
                 self._lost_kg += kg
                 self.losses.append(LossRecord(eid, now, ev.bin, commodity, kg, ev.cause, ev.posted))
@@ -2013,7 +2269,7 @@ class TruckFlowModel:
         """Suspend every active transfer and load whose route contains the equipment; they keep their reservations."""
         self.ledger.down.add(equipment)
         now = self.cal.now
-        for rec in [*self.transfers, *self.loads]:
+        for rec in [*self.transfers, *self.loads, *self.moves]:
             if rec.finished is not None or rec.id in self._suspended or equipment not in rec.path[1:-1]:
                 continue
             rec.interruptions.append([now, None])
@@ -2063,6 +2319,9 @@ class TruckFlowModel:
                 rec.interruptions[-1][1] = now
                 if rec.flow_started > stopped:  # paused during setup or changeover (I4): flow starts later too
                     rec.flow_started += now - stopped
+                if isinstance(rec, MoveRecord):
+                    self._schedule_move_end(rec, now + self._load_left.pop(rec.id))
+                    continue
                 truck, step_rec = self._load_owner[rec.id]
                 self._schedule_load_end(rec, truck, step_rec, now + self._load_left.pop(rec.id))
         if resumed:
@@ -2106,7 +2365,8 @@ class TruckFlowModel:
             book=dict(self.book.balance), observations=sorted(self._observations.values(), key=lambda o: o.time),
             stock_log=list(self.stock_log), reconciliation=self._reconciliation(),
             outcomes=self._outcomes(), clearance=clearance(list(self.records.values()), self.windows, self._closes),
-            ledger_log=list(self.ledger.log), wait_causes=self._wait_cause_report(),
+            ledger_log=list(self.ledger.log), wait_causes=self._wait_cause_report(), moves=list(self.moves),
+            bin_moisture=self._bin_moisture(), screenings=dict(self.screenings),
             **self._fairness())
         result.outcomes["fairness"] = commodity_fairness(result.truck_metrics.values())
         return result

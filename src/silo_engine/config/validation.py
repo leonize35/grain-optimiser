@@ -21,16 +21,20 @@ EQUIPMENT_LABEL = {
     "hopper": "Unloading hopper",
     "conveyor": "Conveyor",
     "elevator": "Bucket elevator",
+    "cleaner": "Grain cleaner",  # G-D4: removes screenings from dirty loads (not in the prototype)
+    "grain_dryer": "Grain dryer",  # dries grain moved from wet holding bins (not in the prototype)
     "bin": "Storage bin",
     "loadpoint": "Loading point",
     "station": "Truck station",  # generic station for site-defined steps (not in the prototype)
 }
 # Which equipment types each type may discharge grain into.
 ALLOWED_CONNECTIONS = {
-    "hopper": ("conveyor", "elevator"),
-    "conveyor": ("conveyor", "elevator", "bin", "loadpoint"),
-    "elevator": ("conveyor", "bin", "loadpoint"),
-    "bin": ("conveyor", "elevator", "loadpoint"),
+    "hopper": ("conveyor", "elevator", "cleaner"),
+    "conveyor": ("conveyor", "elevator", "bin", "loadpoint", "cleaner", "grain_dryer"),
+    "elevator": ("conveyor", "bin", "loadpoint", "cleaner", "grain_dryer"),
+    "cleaner": ("conveyor", "elevator", "bin"),
+    "grain_dryer": ("conveyor", "elevator", "bin"),
+    "bin": ("conveyor", "elevator", "loadpoint", "cleaner", "grain_dryer"),
     "loadpoint": (),
     "sampler": (),
     "grader": (),

@@ -51,6 +51,8 @@ class PitSpaceClaim:
     pit_id: str
     grain: GradedCommodity
     kg: int
+    dirty: bool = False  # G-D4
+    wet: bool = False  # above the moisture limit
 
 
 @dataclass(frozen=True)
@@ -184,7 +186,7 @@ class ReservationLedger:
                 return [WaitReason("AREA_FULL", claim.area, f"waiting area {claim.area} is full")]
             return []
         if isinstance(claim, PitSpaceClaim):
-            return self.pits[claim.pit_id].check_claim(now, claim.grain, claim.kg)
+            return self.pits[claim.pit_id].check_claim(now, claim.grain, claim.kg, claim.dirty, claim.wet)
         if isinstance(claim, BinIncomingClaim):
             refused = self.bins[claim.bin_id].check_incoming(claim.grain, claim.kg)
             return [] if refused is None else [WaitReason(r.code, claim.bin_id, r.detail) for r in refused.reasons]
@@ -231,7 +233,7 @@ class ReservationLedger:
                 self._segments[claim.equipment_id].streams[reservation_id] = claim.grain
                 self._segments[claim.equipment_id].downstream[reservation_id] = claim.downstream
             elif isinstance(claim, PitSpaceClaim):
-                self.pits[claim.pit_id].claim(reservation_id, claim.grain, claim.kg)
+                self.pits[claim.pit_id].claim(reservation_id, claim.grain, claim.kg, claim.dirty, claim.wet)
             elif isinstance(claim, BinIncomingClaim):
                 self.bins[claim.bin_id].reserve_incoming(reservation_id, claim.grain, claim.kg)
             elif isinstance(claim, BinOutgoingClaim):

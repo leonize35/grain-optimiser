@@ -671,6 +671,150 @@ def _validate_distributions(site: SiteConfig, result: RulesResult) -> None:
                 result.errors.append(Issue(f"{label}, {step} time: {msg}."))
 
 
+def _validate_grain_moves(site: SiteConfig, result: RulesResult) -> None:
+    """Planned moves between bins: known bins, a clock time, unique ids, and a route (without a cleaner; through a
+    dryer exactly when drying). Drying needs a target moisture."""
+    if not site.grain_moves:
+        return
+    from ..sim.time import TimeFormatError, hm
+    from .routes import build_routes
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    by_id = {e.id: e for e in site.equipment}
+    bins = {e.id for e in site.equipment if e.type == "bin"}
+    routes = build_routes(site).moves
+    ids = [mv.id for mv in site.grain_moves]
+    for dup in sorted({i for i in ids if ids.count(i) > 1}):
+        err(f"Grain move {dup} is defined more than once.")
+    for mv in site.grain_moves:
+        label = f"Grain move {mv.id}"
+        unknown = [b for b in (mv.from_bin, mv.to_bin) if b not in bins]
+        for b in unknown:
+            err(f"{label} refers to unknown bin {b}.")
+        try:
+            hm(mv.at)
+        except TimeFormatError:
+            err(f"{label}: time must be a clock time like HH:MM (got '{mv.at}').")
+        drying = mv.kind == "drying"
+        if drying and (mv.target_moisture is None or not 0 < mv.target_moisture < 100):
+            err(f"{label}: a drying move needs a target moisture between 0 and 100 %.")
+        if unknown:
+            continue
+        ok = [p for p in routes.get(mv.from_bin, []) if p[-1] == mv.to_bin
+              and not any(by_id[s].type == "cleaner" for s in p[1:-1])
+              and any(by_id[s].type == "grain_dryer" for s in p[1:-1]) == drying]
+        if not ok:
+            err(f"{label}: there is no route from {mv.from_bin} to {mv.to_bin}"
+                + (" through a dryer." if drying else " (without a cleaner or dryer)."))
+
+
+def _validate_moisture(site: SiteConfig, result: RulesResult) -> None:
+    """Moisture ranges and limits; with wet loads possible: grading before tipping and a route to a wet holding bin
+    (and, for dry loads, to another bin), never through a dryer. Wet grain leaves a wet holding bin only through a
+    dryer (a plain move between a wet holding bin and another bin is refused)."""
+    from .routes import build_routes
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    names = {c.id: c.name for c in site.commodities}
+    by_id = {e.id: e for e in site.equipment}
+    for c, v in site.moisture_limits.items():
+        if c not in names:
+            err(f"The moisture limit refers to unknown commodity {c}.")
+        if not 0 < v < 100:
+            err(f"The moisture limit of {names.get(c, c)} must be between 0 and 100 %.")
+    d = site.demand.unload
+    ranges = (d.moisture or {}) if d is not None else {}
+    for c, tri in ranges.items():
+        if c not in names:
+            err(f"The moisture range refers to unknown commodity {c}.")
+        if len(tri) != 3 or not 0 < tri[0] <= tri[1] <= tri[2] < 100:
+            err(f"The moisture range of {names.get(c, c)}: give [min, most likely, max] percent with "
+                "0 < min <= mode <= max < 100.")
+    for e in site.equipment:
+        if e.inv_moisture is not None and not 0 < e.inv_moisture < 100:
+            err(f"{e.name or e.id}: the opening stock moisture must be between 0 and 100 %.")
+    for mv in site.grain_moves:
+        a, b = by_id.get(mv.from_bin), by_id.get(mv.to_bin)
+        if mv.kind == "transfer" and a is not None and b is not None and mv.from_bin != mv.to_bin \
+                and bool(a.wet_holding) != bool(b.wet_holding):
+            err(f"Grain move {mv.id}: wet grain leaves a wet holding bin only through a dryer (a drying move), and "
+                "dry grain does not go into one.")
+    routes = None
+    for c, tri in ranges.items():
+        limit = site.moisture_limits.get(c)
+        if c not in names or limit is None or len(tri) != 3:
+            continue
+        wet_possible, dry_possible = tri[2] > limit, tri[0] <= limit
+        if not wet_possible:
+            continue
+        seq = list(site.sequences.unload)
+        if not ("grade" in seq and "tip" in seq and seq.index("grade") < seq.index("tip")):
+            err("Wet loads are found at grading (moisture), so receiving trucks must be graded before they tip.")
+        routes = routes or build_routes(site).intake
+        to_wet = to_dry = False
+        for h in site.equipment:
+            if h.type != "hopper" or (h.commodities and c not in h.commodities):
+                continue
+            for path in routes.get(h.id, []):
+                end = by_id[path[-1]]
+                if c not in (end.commodities or []) or any(by_id[x].type == "grain_dryer" for x in path[1:-1]):
+                    continue
+                if end.wet_holding:
+                    to_wet = True
+                else:
+                    to_dry = True
+        if not to_wet:
+            err(f"Some {names[c]} loads may be wet (above {limit:g} %), but no hopper that takes {names[c]} has a "
+                "route to a wet holding bin for it.")
+        if dry_possible and not to_dry:
+            err(f"Dry {names[c]} loads need a route from a hopper to a bin that is not a wet holding bin.")
+
+
+def _validate_cleaning(site: SiteConfig, result: RulesResult) -> None:
+    """G-D4: cleaners' screenings shares; dirty shares; grading before tipping; a route through a cleaner for dirty
+    loads and one without a cleaner (the bypass) for clean loads, for every commodity that may be dirty."""
+    from .routes import build_routes
+    err = lambda msg: result.errors.append(Issue(msg))  # noqa: E731
+    names = {c.id: c.name for c in site.commodities}
+    by_id = {e.id: e for e in site.equipment}
+    for e in site.equipment:
+        for c, share in (e.screenings or {}).items():
+            if c not in names:
+                err(f"{e.name or e.id}: screenings for unknown commodity {c}.")
+            if not 0 <= share < 1:
+                err(f"{e.name or e.id}: the screenings share for {names.get(c, c)} must be at least 0 and below 1.")
+    d = site.demand.unload
+    shares = (d.dirty_share or {}) if d is not None else {}
+    for c, p in shares.items():
+        if c not in names:
+            err(f"The dirty share refers to unknown commodity {c}.")
+        if not 0 <= p <= 1:
+            err(f"The dirty share of {names.get(c, c)} must be between 0 and 1.")
+    dirty = [c for c, p in shares.items() if p > 0 and c in names]
+    if not dirty:
+        return
+    seq = list(site.sequences.unload)
+    if not ("grade" in seq and "tip" in seq and seq.index("grade") < seq.index("tip")):
+        err("Dirty loads are found at grading, so receiving trucks must be graded before they tip.")
+    routes = build_routes(site).intake
+    for c in dirty:
+        via, without = False, False
+        for h in site.equipment:
+            if h.type != "hopper" or (h.commodities and c not in h.commodities):
+                continue
+            for path in routes.get(h.id, []):
+                if c not in (by_id[path[-1]].commodities or []):
+                    continue
+                if any(by_id[s].type == "cleaner" for s in path[1:-1]):
+                    via = True
+                else:
+                    without = True
+        if not via:
+            err(f"Some {names[c]} loads may be dirty, but there is no route through a cleaner from a hopper that "
+                f"takes {names[c]} to a bin for it.")
+        if shares[c] < 1 and not without:
+            err(f"Clean {names[c]} loads need a route without a cleaner (a bypass) from a hopper to a bin, and there "
+                "is none.")
+
+
 def validate_rules(site: SiteConfig) -> RulesResult:
     result = RulesResult()
     names = {c.id: c.name for c in site.commodities}
@@ -690,6 +834,9 @@ def validate_rules(site: SiteConfig) -> RulesResult:
     _validate_release_rules(site, result)
     _validate_background_tasks(site, result)
     _validate_task_phases(site, result)
+    _validate_cleaning(site, result)
+    _validate_grain_moves(site, result)
+    _validate_moisture(site, result)
 
     if site.changeovers is not None:
         for rule in site.changeovers.rules:

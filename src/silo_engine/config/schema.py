@@ -94,6 +94,11 @@ class Equipment(_Model):
     max_concurrent_feeds: int = Field(default=1, ge=1)
     # R1: minutes the route stays reserved after the last grain is fed (equipment emptying). Site input.
     clear_minutes: float = Field(default=0, ge=0)
+    # G-D4 (cleaners): per commodity, the share of a dirty load removed as screenings.
+    screenings: dict[str, float] | None = None
+    # Bins: holds wet loads (above the commodity's moisture limit) until they are dried; other bins take dry loads.
+    wet_holding: bool | None = None
+    inv_moisture: float | None = None  # bins: moisture (percent) of the opening stock; None: unknown
     # G-D1 (hoppers): tipping time per load class; other classes and trucks without a class use the normal time.
     tip_by_class: dict[str, Distribution] | None = None
     # Fitted distributions per step this equipment does (e.g. {"weigh_in": {...}}); they replace the triangular
@@ -139,6 +144,8 @@ class ActivityDemand(_Model):
     mix: dict[str, float] = {}
     grade_mix: dict[str, dict[str, float]] = {}  # R4: per graded commodity, share of each grade
     sampling_share: float | None = Field(default=None, ge=0, le=1)  # share of trucks needing sampling (None = all)
+    dirty_share: dict[str, float] | None = None  # G-D4: per commodity, chance a load is dirty (found at grading)
+    moisture: dict[str, list[float]] | None = None  # per commodity, triangular [min, mode, max] percent (at grading)
     load_classes: list[LoadClass] = []  # G-D1: payload classes (replace `payload` when given)
 
 
@@ -392,6 +399,20 @@ class TruckPaths(_Model):
     weigh: list[str] | None = None
 
 
+class GrainMove(_Model):
+    """A planned move of grain between bins (turning when from_bin == to_bin). It waits for a free route and gives
+    way to truck intake. `tonnes` None: all the stock in from_bin when the move starts. `kind` drying: through a
+    dryer, to `target_moisture` (percent)."""
+    id: str
+    day: int = Field(default=1, ge=1)
+    at: str  # "HH:MM"
+    from_bin: str
+    to_bin: str
+    tonnes: float | None = Field(default=None, gt=0)
+    kind: Literal["transfer", "drying"] = "transfer"
+    target_moisture: float | None = None
+
+
 class SiteConfig(_Model):
     id: str
     name: str
@@ -426,6 +447,8 @@ class SiteConfig(_Model):
     background_tasks: list[BackgroundTask] = []  # P1: off-truck work producing conditions
     task_phases: list[StepPhases] = []  # P4: worker phases per step (tip: same as unloading_labour)
     custom_steps: list[CustomStep] = []  # G2: site-defined truck steps at `station` equipment
+    grain_moves: list[GrainMove] = []  # planned moves between bins (turning, transfers, drying)
+    moisture_limits: dict[str, float] = {}  # per commodity: loads above this moisture (percent) are wet
 
     @model_validator(mode="after")
     def _steps_are_known(self):
@@ -488,7 +511,7 @@ def config_hash(cfg: SiteConfig) -> str:
     data = cfg.model_dump(mode="json", by_alias=True)
     for e in data.get("equipment", []):  # sampler-access fields: hash as before when unset
         for k in ("pass_through", "located_at", "located_lanes", "distributions", "activities", "tip_portion_min_t",
-                  "tip_by_class"):
+                  "tip_by_class", "screenings", "wet_holding", "inv_moisture"):
             if e.get(k) is None:
                 e.pop(k, None)
     for s in data.get("systems", []):  # per-system hours: hash as before when unset
@@ -502,9 +525,14 @@ def config_hash(cfg: SiteConfig) -> str:
             d.pop("sampling_share", None)
         if isinstance(d, dict) and d.get("load_classes") == []:
             d.pop("load_classes", None)
+        if isinstance(d, dict) and d.get("dirty_share") is None:
+            d.pop("dirty_share", None)
+        if isinstance(d, dict) and d.get("moisture") is None:
+            d.pop("moisture", None)
     for added, unset in (("operator_pools", []), ("labour", []), ("staffing_scenarios", {}), ("crew_time", {}),
                          ("unloading_labour", None), ("systems", []), ("release_rules", []),
-                         ("background_tasks", []), ("task_phases", []), ("custom_steps", [])):
+                         ("background_tasks", []), ("task_phases", []), ("custom_steps", []), ("grain_moves", []),
+                         ("moisture_limits", {})):
         if data.get(added) == unset:
             data.pop(added, None)
     for added, unset in (("queue_policies", None), ("outages", []), ("truck_bypasses", []), ("stock_events", []), ("opening_book", []),
